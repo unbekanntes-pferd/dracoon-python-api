@@ -9,10 +9,11 @@
 
 # collection of DRACOON API calls for node access
 # documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/nodes
+# Please note: maximum 500 items are returned in GET requests 
+# - refer to documentation for details on filtering and offset 
+# - use documentation for payload description 
+# All requests with bodies use generic params variable to pass JSON body
 
-
-# get list of nodes - maximum 500 items are returned
-# refer to documentation for details on filtering and offset
 def get_nodes(roomManager=False, parentID=0, offset=0, filter=None):
     if filter == None:
         api_call = {

@@ -10,10 +10,11 @@
 
 # collection of DRACOON API calls for user management
 # documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/users
+# Please note: maximum 500 items are returned in GET requests 
+# - refer to documentation for details on filtering and offset 
+# - use documentation for payload description 
+# All requests with bodies use generic params variable to pass JSON body
 
-
-# get list of users - maximum 500 items are returned
-# refer to documentation for details on filtering and offset 
 def get_users(offset=0, filter=None):
     if filter == None:
         api_call = {
@@ -75,14 +76,14 @@ def delete_user(userID, params):
 def get_user_groups(userID, offset=0, filter=None):
     if filter == None:
         api_call = {
-        'url': '/users/' + str(userID) + '/?offset=' + str(offset),
+        'url': '/users/' + str(userID) + '/groups?offset=' + str(offset),
         'body': None,
         'method': 'GET',
         'Content-Type': 'application/json'
     }
     else: 
         api_call = {
-        'url': '/users/' + str(userID) + '/?offset=' + str(offset) +'&filter=' + filter, 
+        'url': '/users/' + str(userID) + '/groups?offset=' + str(offset) +'&filter=' + filter, 
         'body': None,
         'method': 'GET',
         'Content-Type': 'application/json'
@@ -113,14 +114,14 @@ def get_user_roles(userID):
 def get_user_attributes(userID, offset=0, filter=None):
     if filter == None:
         api_call = {
-        'url': '/users/' + str(userID) + '/userAttributes/?offset=' + str(offset),
+        'url': '/users/' + str(userID) + '/userAttributes?offset=' + str(offset),
         'body': None,
         'method': 'GET',
         'Content-Type': 'application/json'
     }
     else: 
         api_call = {
-        'url': '/users/' + str(userID) + '/userAttributes/?offset=' + str(offset) +'&filter=' + filter, 
+        'url': '/users/' + str(userID) + '/userAttributes?offset=' + str(offset) +'&filter=' + filter, 
         'body': None,
         'method': 'GET',
         'Content-Type': 'application/json'
