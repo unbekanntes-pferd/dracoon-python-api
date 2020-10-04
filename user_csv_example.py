@@ -1,12 +1,9 @@
 # ---------------------------------------------------------------------------#
 # DRACOON API Python examples
-# Basic authentication via password flow 
-# requires OAuth client authentication
+# Export user list to CSV file
 # Requires dracoon package 
 # Author: Octavio Simone, 04.10.2020
 # ---------------------------------------------------------------------------#
-
-# for OAuth authentication refer to https://support.dracoon.com/hc/de/articles/115003832605
 
 from dracoon import core, users
 import sys
