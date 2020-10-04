@@ -1,3 +1,9 @@
+# ignore Python cache, legacy files and package builds for PyPi
+
 /test.py
+/setup.py
 /dracoon/__pycache__
 /dracoon_api.py
+/build
+/dist
+/dracoon_UNBEKANNTES_PFERD.egg-info
