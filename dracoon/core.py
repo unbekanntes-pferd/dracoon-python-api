@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------#
-# Python mocule to provide DRACOON object
+# Python module to provide DRACOON object
 # Authentication and call handlers 
 # Version 0.1.0
 # Author: Octavio Simone, 04.10.2020
