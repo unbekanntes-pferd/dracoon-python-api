@@ -83,8 +83,12 @@ _Exception: core module - this is required to create Dracoon object and to send 
 * Object creation
 ```
 my_dracoon = core.Dracoon(clientID, clientSecret)
+my_dracoon.set_URLs(baseURL)
 ```
 Please note: providing a client secret is optional (in order to use with OAuth apps that don't have one).
+* _clientID_; please register your OAuth app or use dracoon_legacy_scripting
+* _clientSecret_; please register your OAuth app or use dracoon_legacy_scripting
+* _baseURL_: Your DRACOON URL instance (e.g. https://dracoon.team)
 
 
 * Authentication
