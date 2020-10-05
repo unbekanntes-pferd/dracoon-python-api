@@ -1,10 +1,3 @@
-# DRACOON-PYTHON-API
-
-. 
-- DRACOON object and call handlers in core.py
-- Route specific reequests in individual modules (e.g. users, nodes)
-
-
 
   <h3 align="center">DRACOON-PYTHON-API</h3>
 
@@ -13,13 +6,11 @@
     <br />
     <a href="https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API"><strong>Explore the docs »</strong></a>
     <br />
-    <a href="hhttps://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/issues">Report Bug</a>
+    <a href="https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/issues">Report Bug</a>
     ·
     <a href="https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/issues">Request Feature</a>
   </p>
 </p>
-
-
 
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
@@ -40,7 +31,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-_Disclaimer: this is an unofficial repo and is not supported by DRACOON_
+__Disclaimer: this is an unofficial repo and is not supported by DRACOON__<br>
 This package provides a connector to DRACOON API. 
 DRACOON is a cloud storage product / service (SaaS) by DRACOON GmbH (http://dracoon.com). 
 DRACOON API documentation can be found here (Swagger UI):
@@ -86,7 +77,7 @@ Please note: this package will also be provided via official PyPi soon.
 from dracoon import core, users
 ```
 
-Modules are named after API endpoints (see documentation for further details).
+Modules are named after API endpoints (see documentation for further details).<br>
 _Exception: core module - this is required to create Dracoon object and to send authenticated requests to the API._
 
 * Object creation
@@ -124,7 +115,7 @@ Supported request types:
 * PUT (object.put(reqest))
 * DELETE (object.delete(request))
 
-_For examples, check out the example files:_
+_For examples, check out the example files:_<br>
 
 * [DRACOON authentication](/authentication_example.py)
 * [Export user list to CSV](/user_csv_example.py)
