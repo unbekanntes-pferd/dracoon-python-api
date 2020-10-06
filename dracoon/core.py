@@ -11,6 +11,8 @@ import json  # handle JSON
 import requests  # HTTP requests
 import base64  # base64 encode
 import mimetypes
+import aiohttp
+import asyncio
 
 # define DRACOON class object with specific variables (clientID, clientSecret optional)
 class Dracoon:
@@ -98,3 +100,22 @@ class Dracoon:
             return api_response
         else:
             raise TypeError('Invalid request method.')
+
+
+    # async call handler prototype
+    async def async_get(self, api_call, session):
+        self.api_call_headers["Content-Type"] = api_call["Content-Type"]
+        if api_call["method"] == "GET":
+            api_url = self.apiURL + api_call["url"]
+            if api_call["body"] != None:
+                async with session.get(api_url, json=api_call["body"], headers=self.api_call_headers) as api_response:
+                    return await api_response
+            else:
+                async with session.get(api_url, headers=self.api_call_headers) as api_response:
+                    return await api_response    
+        else:
+            raise TypeError('Invalid request method.')
+
+    
+
+
