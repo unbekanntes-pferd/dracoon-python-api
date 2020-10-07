@@ -14,7 +14,7 @@
 # - use documentation for payload description 
 # All requests with bodies use generic params variable to pass JSON body
 
-def get_nodes(roomManager=False, parentID=0, offset=0, filter=None):
+def get_nodes(roomManager='false', parentID=0, offset=0, filter=None):
     if filter == None:
         api_call = {
             'url': '/nodes?offset=' + str(offset) + '&parent_id=' + str(parentID) + '&roomManager=' + roomManager,

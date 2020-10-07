@@ -72,7 +72,7 @@ Please note: this package will also be provided via official PyPi soon.
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-* Import required modules
+### Import required modules
 ```
 from dracoon import core, users
 ```
@@ -80,7 +80,7 @@ from dracoon import core, users
 Modules are named after API endpoints (see documentation for further details).<br>
 _Exception: core module - this is required to create Dracoon object and to send authenticated requests to the API._
 
-* Object creation
+### Object creation
 ```
 my_dracoon = core.Dracoon(clientID, clientSecret)
 my_dracoon.set_URLs(baseURL)
@@ -91,13 +91,13 @@ Please note: providing a client secret is optional (in order to use with OAuth a
 * _baseURL_: Your DRACOON URL instance (e.g. https://dracoon.team)
 
 
-* Authentication
+### Authentication
 ```
 login_response = my_dracoon.basic_auth(username, password)
 ```
 Please note: you can only authenticate if OAuth app is correctly configured. Only local accounts can be used via password flow.
 
-* Send requests
+### Send requests
 
 1. First you will need to build a request with specific parameters:
 ```
