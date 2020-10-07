@@ -7,8 +7,6 @@
     <a href="https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API"><strong>Explore the docs »</strong></a>
     <br />
     <a href="https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/issues">Request Feature</a>
   </p>
 </p>
 
@@ -24,8 +22,6 @@
 * [Roadmap](#roadmap)
 * [Contributing](#contributing)
 * [License](#license)
-* [Contact](#contact)
-* [Acknowledgements](#acknowledgements)
 
 
 
@@ -41,7 +37,8 @@ https://dracoon.team/api/
 ### Built With
 
 * [Python 3.7.3](https://www.python.org/)
-* [Python requests](https://requests.readthedocs.io/en/master/)
+* [requests module](https://requests.readthedocs.io/en/master/)
+* [aiohttp module](https://docs.aiohttp.org/en/stable/)
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -123,7 +120,34 @@ _For examples, check out the example files:_<br>
 
 * [DRACOON authentication](/authentication_example.py)
 * [Export user list to CSV](/user_csv_example.py)
+* [Import users from CSV](/import_csv_example.py)
 
+### Send async requests
+
+1. First you will need to build a request with specific parameters:
+```
+r = users.get_users(offset=0, filter=f)
+```
+
+Please note: 
+* GET requests are limited to returning 500 items. Therefore all such requests contain an offset parameter (default is 0)
+* Providing a filter is optional - see API documentation and examples on usage
+* Sorting not implemented - sorting results should occur via client
+
+2. you will need to call async requests inside an async function (e.g. main()) and pass a client session
+```
+         async with aiohttp.ClientSession() as session:
+             user_response = await my_dracoon.async_get(r, session)
+```
+Supported request types:
+* GET (object.async_get(request, session))
+* POST (oject.async_post(request, session))
+* PUT (object.async_put(reqest, session))
+* DELETE (object.async_delete(request, session))
+
+_For examples, check out the example file:_<br>
+
+* [Async requests](/async_requests_example.py)
 
 <!-- ROADMAP -->
 ## Roadmap
