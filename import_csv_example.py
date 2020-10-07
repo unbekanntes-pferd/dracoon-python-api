@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------#
 # DRACOON API Python examples
-# Export user list to CSV file
+# Import user list from CSV file
 # Requires dracoon package
 # Author: Octavio Simone, 04.10.2020
 # ---------------------------------------------------------------------------#
@@ -12,13 +12,13 @@ import csv
 import os
 
 # replace with client id from OAuth app - for Cloud you can use dracoon_legacy_scripting if enabled in apps
-clientID = 'xxxxxxx'
+clientID = 'xxxxx'
 # replace with client secret - dracoon_legacy_scripting has no secret, it can be omitted as parameter
 clientSecret = 'xxxxxx'
 baseURL = 'https://dracoon.team'  # replace with own DRACOON url
 
 # create DRACOON object
-my_dracoon = core.Dracoon(clientID)
+my_dracoon = core.Dracoon(clientID, clientSecret)
 my_dracoon.set_URLs(baseURL)
 
 # get user login credentials (basic, AD possible)
@@ -56,12 +56,13 @@ with open('import.csv', 'r') as f:
         lastName = user[1]
         email = user[2]
         
-        # for data model please refer to API documentation
+        # for data model please refer to API documentation - this model is compatible with current DRACOON Cloud release
+        # for DRACOON Server model see https://demo.dracoon.com/api/swagger-ui.html
         params = {
             "firstName": firstName,
             "lastName": lastName,
             "userName": email,
-            "receiverLanguage": "DE",
+            "receiverLanguage": "de-DE",
             "email": email,
             "notifyUser": True,
             "authData": {
@@ -80,8 +81,13 @@ with open('import.csv', 'r') as f:
 
         if create_response.status_code == 201:
             print(f"User {user[0]} {user[1]} (Email: {user[2]}) created.")
-        else:
-            print(f"User {user[0]} {user[1]} (Email: {user[2]}) could not be created - error:")
+        elif create_response.status_code >= 400 and create_response.status_code < 500:
+            print(f"User {user[0]} {user[1]} (Email: {user[2]}) could not be created - error: {create_response.status_code}")
             print(create_response.json()["message"])
             print(create_response.json()["debugInfo"])
+        else:
+            print(f"User {user[0]} {user[1]} (Email: {user[2]}) could not be created - error: {create_response.status_code}")
+
+
+
 
