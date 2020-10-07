@@ -69,6 +69,7 @@ async def main():
              room_response = await my_dracoon.async_get(r2, session)
 
              # to be replaced with async CSV output function
+             
              print(user_response)
              print(room_response)
 
