@@ -56,8 +56,8 @@ with open('import.csv', 'r') as f:
         lastName = user[1]
         email = user[2]
 
-        # for data model please refer to API documentation - this model is compatible with current DRACOON Cloud release
-        # for DRACOON Server model see https://demo.dracoon.com/api/swagger-ui.html
+        # for data model please refer to API documentation - this model is compatible with current DRACOON Server (LTS) release
+        # for DRACOON Cloud model see https://dracoon.team/api/swagger-ui.html
         params = {
             "firstName": firstName,
             "lastName": lastName,
