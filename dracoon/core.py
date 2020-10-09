@@ -18,10 +18,12 @@ import asyncio
 class Dracoon:
     def __init__(self, clientID, clientSecret=None):
         self.clientID = clientID
+        self.api_call_headers["User-Agent"] = 'dracoon-python-0.1.0'
         if clientSecret is not None:
             self.clientSecret = clientSecret
         if clientSecret is None:
             self.clientSecret = None
+    
 
     # generate URls necessary for API calls based on passed baseURL
     def set_URLs(self, baseURL):
