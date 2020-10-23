@@ -18,7 +18,7 @@ import asyncio
 class Dracoon:
     def __init__(self, clientID, clientSecret=None):
         self.clientID = clientID
-        self.api_call_headers["User-Agent"] = 'dracoon-python-0.1.0'
+        self.api_call_headers = {'User-Agent': 'dracoon-python-0.1.0'}
         if clientSecret is not None:
             self.clientSecret = clientSecret
         if clientSecret is None:
@@ -32,7 +32,7 @@ class Dracoon:
 
     # pass oauth token - needed for OAuth2 three-legged flow
     def pass_oauth_token(self, oauth_token):
-        self.api_call_headers = {'Authorization': 'Bearer ' + oauth_token}
+        self.api_call_headers["Authorization"] = 'Bearer ' + oauth_token
 
     # authenticate via basic auth (local, AD) - if initiated without clientSecret, perform Basic auth, else authorize
     # via clientID & clientSecret
@@ -45,13 +45,13 @@ class Dracoon:
                                          auth=(self.clientID, self.clientSecret))
             if api_response.status_code == 200:
                 tokens = json.loads(api_response.text)
-                self.api_call_headers = {'Authorization': 'Bearer ' + tokens['access_token']}
+                self.api_call_headers["Authorization"] = 'Bearer ' + tokens["access_token"]
         if self.clientSecret is None:
             call_header = {'Authorization': 'Basic ' + token_payload.decode('ascii')}
             api_response = requests.post(token_url, data=data, allow_redirects=False, headers=call_header)
             if api_response.status_code == 200:
                 tokens = json.loads(api_response.text)
-                self.api_call_headers = {'Authorization': 'Bearer ' + tokens['access_token']}
+                self.api_call_headers["Authorization"] = 'Bearer ' + tokens["access_token"]
         return api_response
  
     # call handlers for GET, POST, PUT, DELETE 
