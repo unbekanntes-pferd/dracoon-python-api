@@ -11,9 +11,9 @@ import getpass
 import csv
 import os 
 
-clientID = 'Wm5U1u1LcQvkco26LjDWLtvx64YQGHJ2' # replace with client id from OAuth app - for Cloud you can use dracoon_legacy_scripting if enabled in apps
-clientSecret = 'lrwKg0V8FZ83HGCLJwKdLkUvBKLtNIOo' # replace with client secret - dracoon_legacy_scripting has no secret, it can be omitted as parameter 
-baseURL = 'https://demo.dracoon.com' # replace with own DRACOON url
+clientID = 'xxxxxx' # replace with client id from OAuth app - for Cloud you can use dracoon_legacy_scripting if enabled in apps
+clientSecret = 'xxxxxxx' # replace with client secret - dracoon_legacy_scripting has no secret, it can be omitted as parameter 
+baseURL = 'https://dracoon.team' # replace with own DRACOON url
 
 # create DRACOON object 
 my_dracoon = core.Dracoon(clientID, clientSecret)
