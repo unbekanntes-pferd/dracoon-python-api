@@ -30,3 +30,19 @@ def get_user_permissions(offset=0, filter=None):
             'Content-Type': 'application/json'
         }
     return api_call
+
+
+def get_events(dateStart=None, dateEnd=None, operationID=None, userID=None, offset=0):
+    api_call = {
+            'url': '/eventlog/events/' + '?offset=' + str(offset),
+            'body': None,
+            'method': 'GET',
+            'Content-Type': 'application/json'
+        }
+
+    if dateStart != None: api_call['url'] += '&date_start=' + dateStart
+    if dateEnd != None: api_call['url'] += '&date_end=' + dateEnd
+    if operationID != None: api_call['url'] += '&type=' + str(operationID)
+    if userID != None: api_call['url'] += '&user_id=' + str(userID)
+
+    return api_call

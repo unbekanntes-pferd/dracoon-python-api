@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------#
 # DRACOON API Python examples
 # Export user list to CSV file
-# Requires dracoon package 
+# Requires dracoon package
 # Author: Octavio Simone, 04.10.2020
 # ---------------------------------------------------------------------------#
 
@@ -9,14 +9,15 @@ from dracoon import core, users
 import sys
 import getpass
 import csv
-import os 
+import os
 
-clientID = 'xxxx' # replace with client id from OAuth app - for Cloud you can use dracoon_legacy_scripting if enabled in apps
-clientSecret = 'xxxxxx' # replace with client secret - dracoon_legacy_scripting has no secret, it can be omitted as parameter 
-baseURL = 'https://dracoon.team' # replace with own DRACOON url
+clientID = 'xxxxxx'  # replace with client id from OAuth app - for Cloud you can use dracoon_legacy_scripting if enabled in apps
+# replace with client secret - dracoon_legacy_scripting has no secret, it can be omitted as parameter
+clientSecret = 'xxxxxx'
+baseURL = 'https://dracoon.team'  # replace with own DRACOON url
 
-# create DRACOON object 
-my_dracoon = core.Dracoon(clientID)
+# create DRACOON object
+my_dracoon = core.Dracoon(clientID, clientSecret)
 my_dracoon.set_URLs(baseURL)
 
 # get user login credentials (basic, AD possible)
@@ -26,7 +27,7 @@ RO_password = getpass.getpass('Password: ')
 # try to authenticate - exit if request fails (timeout, connection error..)
 try:
     login_response = my_dracoon.basic_auth(RO_user, RO_password)
-except core.requests.exceptions.RequestException as e:  
+except core.requests.exceptions.RequestException as e:
     raise SystemExit(e)
 
 # authenticate or exit if authentication fails
@@ -39,11 +40,10 @@ else:
         print(login_response.json()["error_description"])
     else:
         print(login_response.text)
-    sys.exit() # exit script if login not successful 
+    sys.exit()  # exit script if login not successful
 
-# optional: provide specific filter 
+# optional: provide specific filter
 f = 'email:cn:dracoon.com'
-
 
 
 # create list for users
@@ -54,11 +54,11 @@ r = users.get_users(offset=0, filter=f)
 # perform request with authenticated DRACOON instance
 try:
     user_response = my_dracoon.get(r)
-except core.requests.exceptions.RequestException as e:  
+except core.requests.exceptions.RequestException as e:
     raise SystemExit(e)
 
 # if call successful, check if user count exceeds 500 and fill list
-if user_response.status_code == 200: 
+if user_response.status_code == 200:
     total_users = user_response.json()["range"]["total"]
     for user in user_response.json()['items']:
         user_list.append(user)
@@ -73,55 +73,37 @@ if user_response.status_code == 200:
                 raise SystemExit(e)
             for user in user_response.json()['items']:
                 user_list.append(user)
-else: 
+else:
     print(f'Error: {user_response.status_code}')
     print(f'Details: {user_response.text}')
 
-    
+
 # create CSV in current directory, write header, iterate through results
-with open('user_list.csv', 'w', encoding='utf-8', newline = '') as f:
-    csv_writer = csv.writer(f, delimiter = ',')
-    csv_writer.writerow(['id', 'firstName', 'lastName', 'email', 'login', 'createdAt', 'lastLoginSuccessAt', 'isConfigManager', 'isUserManager', 'isGroupManager', 'isRoomManager', 'isAuditor', 'isNonMemberViewer', 'expirationDate', 'isLocked'])
+with open('user_list.csv', 'w', encoding='utf-8', newline='') as f:
+    csv_writer = csv.writer(f, delimiter=',')
+    csv_writer.writerow(['id', 'firstName', 'lastName', 'email', 'login', 'createdAt', 'lastLoginSuccessAt', 'isConfigManager', 'isUserManager',
+                         'isGroupManager', 'isRoomManager', 'isAuditor', 'isNonMemberViewer', 'expirationDate', 'isLocked'])
 
     for user in user_list:
 
-        # default values for roles, expiration date and last login date
-        isConfigManager = 'False'
-        isUserManager = 'False'
-        isGroupManager = 'False'
-        isRoomManager = 'False'
-        isAuditor = 'False'
-        isNonMemberViewer = 'False'
-        expirationDate = 'None'
-        lastLoginSuccessAt = 'Never logged in'
-
-        # check for roles, expiration and last login 
+        # check for roles, expiration and last login
         if "userRoles" in user:
             for role in user["userRoles"]["items"]:
-                if role["id"] == 1:
-                    isConfigManager = 'True'
-                if role["id"] == 2:
-                    isUserManager = 'True'
-                if role["id"] == 3:
-                    isGroupManager = 'True'
-                if role["id"] == 4:
-                    isRoomManager = 'True'
-                if role["id"] == 5:
-                    isAuditor = 'True'
-                if role["id"] == 6:
-                    isNonMemberViewer = 'True'
 
-        if "expireAt" in user:
-            expirationDate = user["expireAt"]
+                isConfigManager = 'True' if role["id"] == 1 else 'False'
+                isUserManager = 'True' if role["id"] == 2 else 'False'
+                isGroupManager = 'True' if role["id"] == 3 else 'False'
+                isRoomManager = 'True' if role["id"] == 4 else 'False'
+                isAuditor = 'True' if role["id"] == 5 else 'False'
+                isNonMemberViewer = 'True' if role["id"] == 6 else 'False'
 
-        if "lastLoginSuccessAt" in user:
-            lastLoginSuccessAt = user["lastLoginSuccessAt"]
-        
+        expirationDate = user["expireAt"] if "expireAt" in user else 'None'
+        lastLoginSuccessAt = user["lastLoginSuccessAt"] if "lastLoginSuccessAt" in user else 'Never logged in'
+
         # write row for current user
-        csv_writer.writerow([user["id"], user["firstName"], user["lastName"], user["email"], user["login"], user["createdAt"], \
-        lastLoginSuccessAt, isConfigManager, isUserManager, isGroupManager, isRoomManager, isAuditor, \
-                 isNonMemberViewer, expirationDate, user["isLocked"]])
-            
+        csv_writer.writerow([user["id"], user["firstName"], user["lastName"], user["email"], user["login"], user["createdAt"],
+                             lastLoginSuccessAt, isConfigManager, isUserManager, isGroupManager, isRoomManager, isAuditor,
+                             isNonMemberViewer, expirationDate, user["isLocked"]])
+
 
 print('CSV user report created:' + os.getcwd() + '/user_list.csv')
-
