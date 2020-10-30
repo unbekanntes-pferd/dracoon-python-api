@@ -155,7 +155,6 @@ _For examples, check out the example file:_<br>
 * Implement public API to upload files 
 * Implement missing API endpoint (selection)
     * shares
-    * eventlog 
     * uploads
     * public
 * Distribute package via official PyPi
