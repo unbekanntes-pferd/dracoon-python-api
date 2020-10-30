@@ -5,7 +5,7 @@
 # Author: Octavio Simone, 23.10.2020
 # ---------------------------------------------------------------------------#
 
-from dracoon import core, users, eventlog
+from dracoon import core, eventlog
 import sys
 import getpass
 import csv
@@ -111,5 +111,5 @@ with open('permission_list.csv', 'w', encoding='utf-8', newline = '') as f:
                 notAvailable, notAvailable, notAvailable, notAvailable, notAvailable, notAvailable, notAvailable, notAvailable, notAvailable])
 
         
-print('CSV user report created:' + os.getcwd() + '/user_list.csv')
+print('CSV user report created:' + os.getcwd() + '/permissions_list.csv')
 
