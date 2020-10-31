@@ -152,13 +152,10 @@ _For examples, check out the example file:_<br>
 <!-- ROADMAP -->
 ## Roadmap
 
-* Implement public API to upload files 
-* Implement missing API endpoint (selection)
-    * shares
-    * eventlog 
-    * uploads
-    * public
 * Distribute package via official PyPi
+* Implement workflows (based on examples - e.g. user csv import, log csv export, file upload)
+* Implement CLI for workflows 
+* Implement refresh token storage 
 
 <!-- LICENSE -->
 ## License

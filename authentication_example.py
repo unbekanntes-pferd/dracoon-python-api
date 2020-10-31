@@ -17,7 +17,7 @@ clientSecret = 'xxxxxx' # replace with client secret - dracoon_legacy_scripting 
 baseURL = 'https://dracoon.team' # replace with own DRACOON url
 
 # create object to authenticate and send requests - client secret is optional (e.g. for use with dracoon_legacy_scripting)
-my_dracoon = core.Dracoon(clientID)
+my_dracoon = core.Dracoon(clientID, clientSecret)
 my_dracoon.set_URLs(baseURL)
 
 # get user login credentials (basic, AD possible)

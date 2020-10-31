@@ -68,13 +68,25 @@ class Dracoon:
             raise TypeError('Invalid request method.')
 
     def post(self, api_call):
-        self.api_call_headers["Content-Type"] = api_call["Content-Type"]
-        if api_call["method"] == "POST":
+        if api_call["method"] == "POST" and "body" in api_call:
+            self.api_call_headers["Content-Type"] = api_call["Content-Type"]
             api_url = self.apiURL + api_call["url"]
             if api_call["body"] != None:
                 api_response = requests.post(api_url, json=api_call["body"], headers=self.api_call_headers)
             else:
                 api_response = requests.post(api_url, headers=self.api_call_headers)
+            return api_response
+        # check for API call with files instead of body - see uploads 
+        if api_call["method"] == "POST" and "files" in api_call:
+            api_url = api_call["url"]
+            if api_call["files"] != None:
+                file_upload_header = {
+                    "accept": "application/json",
+                    "User-Agent": "dracoon-python-0.1.0"
+                }
+                api_response = requests.post(api_url, headers=file_upload_header, files=api_call["files"])
+            else:
+                raise ValueError('No file to upload provided.')
             return api_response
         else:
             raise TypeError('Invalid request method.')
@@ -82,7 +94,8 @@ class Dracoon:
     def put(self, api_call):
         self.api_call_headers["Content-Type"] = api_call["Content-Type"]
         if api_call["method"] == "PUT":
-            api_url = self.apiURL + api_call["url"]
+            if "body" in api_call: api_url = self.apiURL + api_call["url"] 
+            if "files" in api_call: api_url = api_call["url"]
             if api_call["body"] != None:
                 api_response = requests.put(api_url, json=api_call["body"], headers=self.api_call_headers)
             else:
@@ -94,7 +107,9 @@ class Dracoon:
     def delete(self, api_call):
         self.api_call_headers["Content-Type"] = api_call["Content-Type"]
         if api_call["method"] == "DELETE":
-            api_url = self.apiURL + api_call["url"]
+            if "body" in api_call: api_url = self.apiURL + api_call["url"] 
+            if "files" in api_call: api_url = api_call["url"]
+
             if api_call["body"] != None:
                 api_response = requests.delete(api_url, json=api_call["body"], headers=self.api_call_headers)
             else:
@@ -123,6 +138,13 @@ class Dracoon:
             api_url = self.apiURL + api_call["url"]
             if api_call["body"] != None:
                 async with session.post(api_url, json=api_call["body"], headers=self.api_call_headers) as api_response:
+                    return await api_response.text()
+            if "files" in api_call and api_call["files"] != None:
+
+                file_upload_header = {
+                    "accept": "application/json"
+                }
+                async with session.post(api_url, headers=file_upload_header, files=api_call["files"]) as api_response:
                     return await api_response.text()
             else:
                 async with session.post(api_url, headers=self.api_call_headers) as api_response:
