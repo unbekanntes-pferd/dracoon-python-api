@@ -121,6 +121,9 @@ _For examples, check out the example files:_<br>
 * [DRACOON authentication](/authentication_example.py)
 * [Export user list to CSV](/user_csv_example.py)
 * [Import users from CSV](/import_csv_example.py)
+* [Export room permissions to CSV](/permissions_csv_example.py)
+* [Export room log to CSV](/room_events_csv_example.py)
+* [Upload files (generate room logs for root rooms and upload them to target room)](/file_upload_example.py)
 
 ### Send async requests
 
@@ -154,7 +157,8 @@ _For examples, check out the example file:_<br>
 * Distribute package via official PyPi
 * Implement workflows (based on examples - e.g. user csv import, log csv export, file upload)
 * Implement CLI for workflows 
-* Implement refresh token storage 
+* Implement refresh token storage
+* Update examples to async
 
 <!-- LICENSE -->
 ## License
