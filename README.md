@@ -151,7 +151,6 @@ _For examples, check out the example file:_<br>
 
 <!-- ROADMAP -->
 ## Roadmap
-
 * Distribute package via official PyPi
 * Implement workflows (based on examples - e.g. user csv import, log csv export, file upload)
 * Implement CLI for workflows 
