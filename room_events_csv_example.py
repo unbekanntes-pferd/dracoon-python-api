@@ -1,8 +1,8 @@
 # ---------------------------------------------------------------------------#
 # DRACOON API Python examples
-# Export room permissions list to CSV file
+# Export room log to CSV file
 # Requires dracoon package
-# Author: Octavio Simone, 23.10.2020
+# Author: Octavio Simone, 30.10.2020
 # ---------------------------------------------------------------------------#
 
 from dracoon import core, nodes
