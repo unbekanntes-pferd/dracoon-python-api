@@ -12,13 +12,13 @@ import csv
 import os
 
 # replace with client id from OAuth app - for Cloud you can use dracoon_legacy_scripting if enabled in apps
-clientID = 'xxxxx'
+clientID = 'dracoon_legacy_scripting'
 # replace with client secret - dracoon_legacy_scripting has no secret, it can be omitted as parameter
 clientSecret = 'xxxxxx'
-baseURL = 'https://dracoon.team'  # replace with own DRACOON url
+baseURL = 'https://air.dracoon.team'  # replace with own DRACOON url
 
 # create DRACOON object
-my_dracoon = core.Dracoon(clientID, clientSecret)
+my_dracoon = core.Dracoon(clientID)
 my_dracoon.set_URLs(baseURL)
 
 # get user login credentials (basic, AD possible)
@@ -45,7 +45,7 @@ else:
 
 
 # open CSV file (example: import.csv in cwd)
-with open('import.csv', 'r') as f:
+with open('air_import.csv', 'r') as f:
     csv_reader = csv.reader(f)
     # skip header
     next(csv_reader)
