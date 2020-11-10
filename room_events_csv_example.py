@@ -72,7 +72,7 @@ if event_response.status_code == 200:
     print(f'Event count: {total_events}')
     if total_events > 500:
         for offset in range(500, total_events, 500):
-            r = nodes.get_events(nodeID, None, None, None, None, offset=offset)
+            r = nodes.get_events(nodeID, dateStart="value",dateEnd="value", operationID=None, userID=None, offset=offset)
             try:
                 event_response = my_dracoon.get(r)
             except core.requests.exceptions.RequestException as e:

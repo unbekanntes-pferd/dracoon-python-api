@@ -84,7 +84,7 @@ def add_node_comment(nodeID, params):
     return api_call
 
 # copy node for given node id
-def copy_node(nodeID, params):
+def copy_nodes(nodeID, params):
     api_call = {
         'url': '/nodes/' + str(nodeID) + '/copy_to',
         'body': params,
@@ -154,7 +154,7 @@ def delete_favorite(nodeID):
     return api_call
 
 # copy node for given node id
-def move_node(nodeID, params):
+def move_nodes(nodeID, params):
     api_call = {
         'url': '/nodes/' + str(nodeID) + '/move_to',
         'body': params,
@@ -411,16 +411,16 @@ def process_pending_assignments(params):
 def search_nodes(search, parentID=0, depthLevel=0, offset=0, filter=None):
     if filter == None:
         api_call = {
-            'url': '/nodes/search?search_string=' + search +  'offset=' + str(offset) + 
-            '&parent_id=' + str(parentID)  + '&depth_level=' + str(depthLevel),
+            'url': '/nodes/search?search_string=' + str(search) +  '&offset=' + str(offset) + 
+            '&parent_id=' + str(parentID)  + '&depth_level=' + str(depthLevel) + '&sort=parentPath:asc',
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
     else:
         api_call = {
-            'url': '/nodes/search?search_string=' + search +  'offset=' + str(offset) + 
-            '&parent_id=' + str(parentID)  + '&depth_level=' + str(depthLevel) + '&filter=' + filter,
+            'url': '/nodes/search?search_string=' + str(search) +  '&offset=' + str(offset) + 
+            '&parent_id=' + str(parentID)  + '&depth_level=' + str(depthLevel) + '&filter=' + filter + '&sort=parentPath:asc',
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'

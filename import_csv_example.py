@@ -46,7 +46,7 @@ else:
 
 # open CSV file (example: import.csv in cwd)
 with open('air_import.csv', 'r') as f:
-    csv_reader = csv.reader(f)
+    csv_reader = csv.reader(f, delimiter=";")
     # skip header
     next(csv_reader)
 
