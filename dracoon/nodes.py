@@ -17,14 +17,14 @@
 def get_nodes(roomManager='false', parentID=0, offset=0, filter=None):
     if filter == None:
         api_call = {
-            'url': '/nodes?offset=' + str(offset) + '&parent_id=' + str(parentID) + '&roomManager=' + roomManager,
+            'url': '/nodes?offset=' + str(offset) + '&parent_id=' + str(parentID) + '&room_manager=' + roomManager,
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
     else:
         api_call = {
-            'url': '/nodes?offset=' + str(offset) + '&filter=' + filter + '&parent_id=' + str(parentID) + '&roomManager=' + roomManager,
+            'url': '/nodes?offset=' + str(offset) + '&filter=' + filter + '&parent_id=' + str(parentID) + '&room_manager=' + roomManager,
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
