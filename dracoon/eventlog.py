@@ -14,7 +14,7 @@
 # Important: role log auditor required (!)
 
 # get assigned users per node
-def get_user_permissions(offset=0, filter=None):
+def get_user_permissions(offset=0, filter=None, limit=None):
     api_call = {
             'url': '/eventlog/audits/nodes?offset=' + str(offset),
             'body': None,
@@ -23,6 +23,7 @@ def get_user_permissions(offset=0, filter=None):
         }
 
     if filter != None: api_call['url'] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + limit
 
     return api_call
 
