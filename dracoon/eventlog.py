@@ -15,20 +15,15 @@
 
 # get assigned users per node
 def get_user_permissions(offset=0, filter=None):
-    if filter == None:
-        api_call = {
+    api_call = {
             'url': '/eventlog/audits/nodes?offset=' + str(offset),
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
-    else:
-        api_call = {
-            'url': '/eventlog/audits/nodes?offset=' + str(offset) + '&filter=' + filter,
-            'body': None,
-            'method': 'GET',
-            'Content-Type': 'application/json'
-        }
+
+    if filter != None: api_call['url'] += '&filter=' + filter
+
     return api_call
 
 

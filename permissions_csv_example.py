@@ -11,8 +11,8 @@ import getpass
 import csv
 import os 
 
-clientID = 'xxxxxx' # replace with client id from OAuth app - for Cloud you can use dracoon_legacy_scripting if enabled in apps
-clientSecret = 'xxxxxxx' # replace with client secret - dracoon_legacy_scripting has no secret, it can be omitted as parameter 
+clientID = 'xxxxx' # replace with client id from OAuth app - for Cloud you can use dracoon_legacy_scripting if enabled in apps
+clientSecret = 'xxxxx' # replace with client secret - dracoon_legacy_scripting has no secret, it can be omitted as parameter 
 baseURL = 'https://dracoon.team' # replace with own DRACOON url
 
 # create DRACOON object 
@@ -34,7 +34,7 @@ if login_response.status_code == 200:
     print('Login successful: ' + str(login_response.status_code))
 else:
     print(login_response.status_code)
-    if login_response.json()["error"] and login_response.json()["error_description"]:
+    if "error" in login_response.json() and "error_description" in login_response.json():
         print(login_response.json()["error"])
         print(login_response.json()["error_description"])
     else:
