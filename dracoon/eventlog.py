@@ -23,7 +23,7 @@ def get_user_permissions(offset=0, filter=None, limit=None):
         }
 
     if filter != None: api_call['url'] += '&filter=' + filter
-    if limit != None: api_call['url'] += '&limit=' + limit
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
 
     return api_call
 

@@ -15,20 +15,15 @@
 # All requests with bodies use generic params variable to pass JSON body
 
 def get_nodes(roomManager='false', parentID=0, offset=0, filter=None):
-    if filter == None:
-        api_call = {
+    api_call = {
             'url': '/nodes?offset=' + str(offset) + '&parent_id=' + str(parentID) + '&room_manager=' + roomManager,
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
-    else:
-        api_call = {
-            'url': '/nodes?offset=' + str(offset) + '&filter=' + filter + '&parent_id=' + str(parentID) + '&room_manager=' + roomManager,
-            'body': None,
-            'method': 'GET',
-            'Content-Type': 'application/json'
-        }
+
+    if filter != None: api_call['url'] += '&filter=' + filter
+ 
     return api_call
 
 # delete nodes for given array of node ids
@@ -95,20 +90,16 @@ def copy_nodes(nodeID, params):
 
 # get node comfor given node id
 def get_deleted_nodes(parentID, offset=0, filter=None):
-    if filter == None:
-        api_call = {
+    
+    api_call = {
             'url': '/nodes/' + str(parentID) + '/deleted_nodes?offset=' + str(offset),
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
-    else:
-        api_call = {
-            'url': '/nodes/' + str(parentID) + '/deleted_nodes?offset=' + str(offset) + '&filter=' + filter,
-            'body': None,
-            'method': 'GET',
-            'Content-Type': 'application/json'
-        }
+
+    if filter != None: api_call['url'] += '&filter=' + filter
+
     return api_call
 
 # empty recycle bin of a given parent id
@@ -255,10 +246,10 @@ def create_room(params):
     }
     return api_call
 
-# update folder mets data
+# update room mets data
 def update_room(nodeID, params):
     api_call = {
-        'url': '/nodes/folders/' + str(nodeID),
+        'url': '/nodes/rooms/' + str(nodeID),
         'body': params,
         'method': 'PUT',
         'Content-Type': 'application/json'
@@ -268,7 +259,7 @@ def update_room(nodeID, params):
 # configure data room
 def config_room(nodeID, params):
     api_call = {
-        'url': '/nodes/folders/' + str(nodeID) + '/config',
+        'url': '/nodes/rooms/' + str(nodeID) + '/config',
         'body': params,
         'method': 'PUT',
         'Content-Type': 'application/json'
@@ -277,20 +268,15 @@ def config_room(nodeID, params):
 
 # get node comfor given node id
 def get_room_groups(nodeID, offset=0, filter=None):
-    if filter == None:
-        api_call = {
+
+    api_call = {
             'url': '/nodes/rooms/' + str(nodeID) + '/groups?offset=' + str(offset),
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
-    else:
-        api_call = {
-            'url': '/nodes/rooms/' + str(nodeID) + '/groups?offset=' + str(offset) + '&filter=' + filter,
-            'body': None,
-            'method': 'GET',
-            'Content-Type': 'application/json'
-        }
+    if filter != None: api_call['url'] += '&filter=' + filter
+
     return api_call
 
 # add or change groups assigned to room with given node id
@@ -315,20 +301,15 @@ def delete_room_groups(nodeID, params):
 
 # get node comfor given node id
 def get_room_users(nodeID, offset=0, filter=None):
-    if filter == None:
-        api_call = {
+    api_call = {
             'url': '/nodes/rooms/' + str(nodeID) + '/users?offset=' + str(offset),
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
-    else:
-        api_call = {
-            'url': '/nodes/rooms/' + str(nodeID) + '/users?offset=' + str(offset) + '&filter=' + filter,
-            'body': None,
-            'method': 'GET',
-            'Content-Type': 'application/json'
-        }
+    
+    if filter != None: api_call['url'] += '&filter=' + filter
+ 
     return api_call
 
 # add or change users assigned to room with given node id
@@ -353,20 +334,15 @@ def delete_room_users(nodeID, params):
 
 # get webhooks assigned or assignable to room with given node id
 def get_room_webhooks(nodeID, offset=0, filter=None):
-    if filter == None:
-        api_call = {
+    api_call = {
             'url': '/nodes/rooms/' + str(nodeID) + '/webhooks?offset=' + str(offset),
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
-    else:
-        api_call = {
-            'url': '/nodes/rooms/' + str(nodeID) + '/webhooks?offset=' + str(offset) + '&filter=' + filter,
-            'body': None,
-            'method': 'GET',
-            'Content-Type': 'application/json'
-        }
+    
+    if filter != None: api_call['url'] += '&filter=' + filter
+
     return api_call
 
 # delete users assigned to room with given node id
@@ -381,20 +357,15 @@ def update_room_webhooks(nodeID, params):
 
 # get pending room assignments (new group members not currently accepted)
 def get_pending_assignments(offset=0, filter=None):
-    if filter == None:
-        api_call = {
+    api_call = {
             'url': '/nodes/rooms/pending?offset=' + str(offset),
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
-    else:
-        api_call = {
-            'url': '/nodes/rooms/pending?offset=' + str(offset) + '&filter=' + filter,
-            'body': None,
-            'method': 'GET',
-            'Content-Type': 'application/json'
-        }
+    
+    if filter != None: api_call['url'] += '&filter=' + filter
+
     return api_call
 
 # process pending room assignments
@@ -409,22 +380,16 @@ def process_pending_assignments(params):
 
 # search for nodes
 def search_nodes(search, parentID=0, depthLevel=0, offset=0, filter=None):
-    if filter == None:
-        api_call = {
+    
+    api_call = {
             'url': '/nodes/search?search_string=' + str(search) +  '&offset=' + str(offset) + 
             '&parent_id=' + str(parentID)  + '&depth_level=' + str(depthLevel) + '&sort=parentPath:asc',
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
-    else:
-        api_call = {
-            'url': '/nodes/search?search_string=' + str(search) +  '&offset=' + str(offset) + 
-            '&parent_id=' + str(parentID)  + '&depth_level=' + str(depthLevel) + '&filter=' + filter + '&sort=parentPath:asc',
-            'body': None,
-            'method': 'GET',
-            'Content-Type': 'application/json'
-        }
+    if filter != None: api_call['url'] += '&filter=' + filter
+
     return api_call
 
 # get room events
