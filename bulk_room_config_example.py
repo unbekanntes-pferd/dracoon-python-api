@@ -14,13 +14,13 @@ import sys
 import getpass
 
 # replace with client id from OAuth app - for Cloud you can use dracoon_legacy_scripting if enabled in apps
-clientID = 'dracoon_legacy_scripting'
+clientID = 'xxxxx'
 # replace with client secret - dracoon_legacy_scripting has no secret, it can be omitted as parameter
 clientSecret = 'xxxxxx'
-baseURL = 'https://demo-os.dracoon.com'  # replace with own DRACOON url
+baseURL = 'https://dracoon.team'  # replace with own DRACOON url
 
 # create object to authenticate and send requests - client secret is optional (e.g. for use with dracoon_legacy_scripting)
-my_dracoon = core.Dracoon(clientID)
+my_dracoon = core.Dracoon(clientID, clientSecret)
 my_dracoon.set_URLs(baseURL)
 
 # get user login credentials (basic, AD possible)
