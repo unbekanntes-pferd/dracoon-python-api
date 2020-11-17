@@ -1,11 +1,9 @@
 # ---------------------------------------------------------------------------#
 # DRACOON API Python examples
 # Perform bulk edit on data rooms one can manage
-# Example first renames all folders, then creates rooms and moves files
-# from folders to rooms
-# into a target room as CSV
+# Example sets recycle bin retention period to 30 days
 # Requires dracoon package
-# Author: Octavio Simone, 04.11.2020
+# Author: Octavio Simone, 17.11.2020
 # ---------------------------------------------------------------------------#
 
 from dracoon import core, nodes
