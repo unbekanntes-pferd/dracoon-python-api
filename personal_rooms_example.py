@@ -19,7 +19,7 @@ clientSecret = 'xxxxxx'
 baseURL = 'https://dracoon.team'  # replace with own DRACOON url
 
 # parent ID of room for personal rooms (user running script must be room admin)
-parentID = 6847
+parentID = 99 # replace with own node id
 
 # create DRACOON object
 my_dracoon = core.Dracoon(clientID, clientSecret)
