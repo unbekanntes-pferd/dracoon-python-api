@@ -109,7 +109,7 @@ if room_response.status_code == 200:
             for room in room_response.json()['items']:
                 room_list.append(user)
 else:
-    e = f'Error getting folders - details: {room_response.text}'
+    e = f'Error getting rooms - details: {room_response.text}'
     raise SystemExit(e)
 
 # get all room ids
