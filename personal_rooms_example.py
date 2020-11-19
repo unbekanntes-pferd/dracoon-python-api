@@ -19,7 +19,7 @@ clientSecret = 'xxxxxx'
 baseURL = 'https://dracoon.team'  # replace with own DRACOON url
 
 # parent ID of room for personal rooms (user running script must be room admin)
-parentID = 6847
+parentID = 99 # replace with own node id
 
 # create DRACOON object
 my_dracoon = core.Dracoon(clientID, clientSecret)
@@ -109,7 +109,7 @@ if room_response.status_code == 200:
             for room in room_response.json()['items']:
                 room_list.append(user)
 else:
-    e = f'Error getting folders - details: {room_response.text}'
+    e = f'Error getting rooms - details: {room_response.text}'
     raise SystemExit(e)
 
 # get all room ids
