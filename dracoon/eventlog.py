@@ -14,7 +14,7 @@
 # Important: role log auditor required (!)
 
 # get assigned users per node
-def get_user_permissions(offset=0, filter=None, limit=None):
+def get_user_permissions(offset=0, filter=None, limit=None, sort=None):
     api_call = {
             'url': '/eventlog/audits/nodes?offset=' + str(offset),
             'body': None,
@@ -24,11 +24,12 @@ def get_user_permissions(offset=0, filter=None, limit=None):
 
     if filter != None: api_call['url'] += '&filter=' + filter
     if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
 
     return api_call
 
 
-def get_events(dateStart=None, dateEnd=None, operationID=None, userID=None, offset=0):
+def get_events(offset=0, dateStart=None, dateEnd=None, operationID=None, userID=None, limit=None, sort=None):
     api_call = {
             'url': '/eventlog/events/' + '?offset=' + str(offset),
             'body': None,
@@ -40,5 +41,7 @@ def get_events(dateStart=None, dateEnd=None, operationID=None, userID=None, offs
     if dateEnd != None: api_call['url'] += '&date_end=' + dateEnd
     if operationID != None: api_call['url'] += '&type=' + str(operationID)
     if userID != None: api_call['url'] += '&user_id=' + str(userID)
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
 
     return api_call
