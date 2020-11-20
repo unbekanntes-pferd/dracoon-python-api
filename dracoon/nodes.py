@@ -14,7 +14,7 @@
 # - use documentation for payload description 
 # All requests with bodies use generic params variable to pass JSON body
 
-def get_nodes(roomManager='false', parentID=0, offset=0, filter=None):
+def get_nodes(roomManager='false', parentID=0, offset=0, filter=None, limit=None, sort=None):
     api_call = {
             'url': '/nodes?offset=' + str(offset) + '&parent_id=' + str(parentID) + '&room_manager=' + roomManager,
             'body': None,
@@ -23,6 +23,8 @@ def get_nodes(roomManager='false', parentID=0, offset=0, filter=None):
         }
 
     if filter != None: api_call['url'] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
  
     return api_call
 
@@ -89,7 +91,7 @@ def copy_nodes(nodeID, params):
     return api_call
 
 # get node comfor given node id
-def get_deleted_nodes(parentID, offset=0, filter=None):
+def get_deleted_nodes(parentID, offset=0, filter=None, limit=None, sort=None):
     
     api_call = {
             'url': '/nodes/' + str(parentID) + '/deleted_nodes?offset=' + str(offset),
@@ -99,6 +101,8 @@ def get_deleted_nodes(parentID, offset=0, filter=None):
         }
 
     if filter != None: api_call['url'] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
 
     return api_call
 
@@ -267,7 +271,7 @@ def config_room(nodeID, params):
     return api_call
 
 # get node comfor given node id
-def get_room_groups(nodeID, offset=0, filter=None):
+def get_room_groups(nodeID, offset=0, filter=None, limit=None, sort=None):
 
     api_call = {
             'url': '/nodes/rooms/' + str(nodeID) + '/groups?offset=' + str(offset),
@@ -276,6 +280,8 @@ def get_room_groups(nodeID, offset=0, filter=None):
             'Content-Type': 'application/json'
         }
     if filter != None: api_call['url'] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
 
     return api_call
 
@@ -300,7 +306,7 @@ def delete_room_groups(nodeID, params):
     return api_call
 
 # get node comfor given node id
-def get_room_users(nodeID, offset=0, filter=None):
+def get_room_users(nodeID, offset=0, filter=None, limit=None, sort=None):
     api_call = {
             'url': '/nodes/rooms/' + str(nodeID) + '/users?offset=' + str(offset),
             'body': None,
@@ -309,6 +315,8 @@ def get_room_users(nodeID, offset=0, filter=None):
         }
     
     if filter != None: api_call['url'] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
  
     return api_call
 
@@ -333,7 +341,7 @@ def delete_room_users(nodeID, params):
     return api_call
 
 # get webhooks assigned or assignable to room with given node id
-def get_room_webhooks(nodeID, offset=0, filter=None):
+def get_room_webhooks(nodeID, offset=0, filter=None, limit=None, sort=None):
     api_call = {
             'url': '/nodes/rooms/' + str(nodeID) + '/webhooks?offset=' + str(offset),
             'body': None,
@@ -342,6 +350,8 @@ def get_room_webhooks(nodeID, offset=0, filter=None):
         }
     
     if filter != None: api_call['url'] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
 
     return api_call
 
@@ -356,7 +366,7 @@ def update_room_webhooks(nodeID, params):
     return api_call
 
 # get pending room assignments (new group members not currently accepted)
-def get_pending_assignments(offset=0, filter=None):
+def get_pending_assignments(offset=0, filter=None, limit=None, sort=None):
     api_call = {
             'url': '/nodes/rooms/pending?offset=' + str(offset),
             'body': None,
@@ -379,7 +389,7 @@ def process_pending_assignments(params):
     return api_call
 
 # search for nodes
-def search_nodes(search, parentID=0, depthLevel=0, offset=0, filter=None):
+def search_nodes(search, parentID=0, depthLevel=0, offset=0, filter=None, limit=None, sort=None):
     
     api_call = {
             'url': '/nodes/search?search_string=' + str(search) +  '&offset=' + str(offset) + 
@@ -389,26 +399,15 @@ def search_nodes(search, parentID=0, depthLevel=0, offset=0, filter=None):
             'Content-Type': 'application/json'
         }
     if filter != None: api_call['url'] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
 
     return api_call
 
-# get room events
 
-# search for nodes
-def get_events(roomID, dateStart=None, dateEnd=None, operationID=None, userID=None, offset=0):
-    api_call = {
-            'url': '/nodes/rooms/' + str(roomID) + '/events?offset=' + str(offset),
-            'body': None,
-            'method': 'GET',
-            'Content-Type': 'application/json'
-        }
 
-    if dateStart != None: api_call['url'] += '&date_start=' + dateStart
-    if dateEnd != None: api_call['url'] += '&date_end=' + dateEnd
-    if operationID != None: api_call['url'] += '&type=' + str(operationID)
-    if userID != None: api_call['url'] += '&user_id=' + str(userID)
 
-    return api_call
+
 
 
 

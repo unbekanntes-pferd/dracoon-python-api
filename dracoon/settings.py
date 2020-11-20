@@ -36,21 +36,18 @@ def update_settings(params):
     return api_call
 
 # get customer webhooks 
-def get_webhooks(offset=0, filter=None):
-    if filter == None:
-        api_call = {
+def get_webhooks(offset=0, filter=None, limit=None, sort=None):
+    api_call = {
             'url': '/settings/webhooks?offset=' + str(offset),
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
-    else:
-        api_call = {
-            'url': '/settings/webhooks?offset=' + str(offset) + '&filter=' + filter,
-            'body': None,
-            'method': 'GET',
-            'Content-Type': 'application/json'
-        }
+        
+    if filter != None: api_call['url'] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
+
     return api_call
 
 # create a webhook with given parameters - please refer to documentation above

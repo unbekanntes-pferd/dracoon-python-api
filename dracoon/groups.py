@@ -15,21 +15,17 @@
 # All requests with bodies use generic params variable to pass JSON body
 
 # get list of groups
-def get_groups(offset=0, filter=None):
-    if filter == None:
-        api_call = {
+def get_groups(offset=0, filter=None, limit=None, sort=None):
+    api_call = {
             'url': '/groups?offset=' + str(offset),
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
-    else:
-        api_call = {
-            'url': '/groups?offset=' + str(offset) + '&filter=' + filter,
-            'body': None,
-            'method': 'GET',
-            'Content-Type': 'application/json'
-        }
+    if filter != None: api_call['url'] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
+    
     return api_call
 
 # create a group with given parameters
@@ -101,21 +97,18 @@ def get_group_roles(groupID):
     return api_call
 
 # get group users
-def get_group_users(groupID, offset=0, filter=None):
-    if filter == None:
-        api_call = {
+def get_group_users(groupID, offset=0, filter=None, limit=None, sort=None):
+    api_call = {
             'url': '/groups/' + str(groupID) + '/users?offset=' + str(offset),
             'body': None,
             'method': 'GET',
             'Content-Type': 'application/json'
         }
-    else:
-        api_call = {
-            'url': '/groups/' + str(groupID) + '/users?offset=' + str(offset) + '&filter=' + filter,
-            'body': None,
-            'method': 'GET',
-            'Content-Type': 'application/json'
-        }
+    
+    if filter != None: api_call['url'] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
+    
     return api_call
 
 # update assigned users (array of user ids) to a group with given group id

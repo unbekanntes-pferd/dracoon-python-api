@@ -12,7 +12,7 @@
 # documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/shares
 
 # get list of all (download) shares
-def get_shares(offset=0, filter=None):
+def get_shares(offset=0, filter=None, limit=None, sort=None):
     api_call = {
         'url': '/shares/downloads?offset=' + str(offset),
         'body': None,
@@ -21,6 +21,8 @@ def get_shares(offset=0, filter=None):
     }
 
     if filter != None: api_call["url"] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
     
     return api_call
 
@@ -88,7 +90,7 @@ def send_share(shareID, params):
 
 
 # get list of all (download) shares
-def get_file_requests(offset=0, filter=None):
+def get_file_requests(offset=0, filter=None, limit=None, sort=None):
     api_call = {
         'url': '/shares/uploads?offset=' + str(offset),
         'body': None,
@@ -97,6 +99,8 @@ def get_file_requests(offset=0, filter=None):
     }
 
     if filter != None: api_call["url"] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
     
     return api_call
 

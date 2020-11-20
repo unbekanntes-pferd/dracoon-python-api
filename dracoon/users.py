@@ -15,21 +15,18 @@
 # - use documentation for payload description 
 # All requests with bodies use generic params variable to pass JSON body
 
-def get_users(offset=0, filter=None):
-    if filter == None:
-        api_call = {
+def get_users(offset=0, filter=None, sort=None, limit=None):
+    api_call = {
         'url': '/users?offset=' + str(offset),
         'body': None,
         'method': 'GET',
         'Content-Type': 'application/json'
     }
-    else: 
-        api_call = {
-        'url': '/users?offset=' + str(offset) +'&filter=' + filter,
-        'body': None,
-        'method': 'GET',
-        'Content-Type': 'application/json'
-    }
+
+    if filter != None: api_call["url"] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
+
     return api_call
 
 # create a user with given parameters 
@@ -73,21 +70,18 @@ def delete_user(userID, params):
     return api_call
 
 # get user details for given user id
-def get_user_groups(userID, offset=0, filter=None):
-    if filter == None:
-        api_call = {
+def get_user_groups(userID, offset=0, filter=None, limit=None, sort=None):
+    api_call = {
         'url': '/users/' + str(userID) + '/groups?offset=' + str(offset),
         'body': None,
         'method': 'GET',
         'Content-Type': 'application/json'
     }
-    else: 
-        api_call = {
-        'url': '/users/' + str(userID) + '/groups?offset=' + str(offset) +'&filter=' + filter, 
-        'body': None,
-        'method': 'GET',
-        'Content-Type': 'application/json'
-    }
+
+    if filter != None: api_call["url"] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
+    
     return api_call
 
 # get rooms in which user is last remaining admin (prevents user deletion!)
@@ -111,21 +105,18 @@ def get_user_roles(userID):
     return api_call
 
 # get custom user attributes (key, value)
-def get_user_attributes(userID, offset=0, filter=None):
-    if filter == None:
-        api_call = {
+def get_user_attributes(userID, offset=0, filter=None, limit=None, sort=None):
+    api_call = {
         'url': '/users/' + str(userID) + '/userAttributes?offset=' + str(offset),
         'body': None,
         'method': 'GET',
         'Content-Type': 'application/json'
     }
-    else: 
-        api_call = {
-        'url': '/users/' + str(userID) + '/userAttributes?offset=' + str(offset) +'&filter=' + filter, 
-        'body': None,
-        'method': 'GET',
-        'Content-Type': 'application/json'
-    }
+
+    if filter != None: api_call["url"] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
+
     return api_call
 
 # set custom user attributes (key, value)
