@@ -1,9 +1,8 @@
 # ---------------------------------------------------------------------------#
 # DRACOON API Python examples
-# Create personal rooms for all users matching an email, delete all 
-# previously existing rooms before
+# Create personal rooms for all users matching an email part
 # Requires dracoon package
-# Author: Octavio Simone, 12.11.2020
+# Author: Octavio Simone, 20.11.2020
 # ---------------------------------------------------------------------------#
 
 from dracoon import core, users, nodes
@@ -48,14 +47,14 @@ else:
     sys.exit()  # exit script if login not successful
 
 # optional: provide specific filter
-f = 'email:cn:@octsim.com'
+f = 'isGranted:eq:any|user:cn:@octsim.com'
 
 
 # create list for users
 user_list = []
 
 # generate request to get users - filter can be omitted, default is no filter
-r = users.get_users(offset=0, filter=f)
+r = nodes.get_room_users(nodeID=parentID, offset=0, filter=f)
 # perform request with authenticated DRACOON instance
 try:
     user_response = my_dracoon.get(r)
@@ -71,7 +70,7 @@ if user_response.status_code == 200:
     print(f'User count: {total_users}')
     if total_users > 500:
         for offset in range(500, total_users, 500):
-            r = users.get_users(offset=offset, filter=f)
+            r = nodes.get_room_users(nodeID=parentID, offset=offset, filter=f)
             try:
                 user_response = my_dracoon.get(r)
             except core.requests.exceptions.RequestException as e:
@@ -92,13 +91,13 @@ except core.requests.exceptions.RequestException as e:
 
 room_list = []
 
-
-
+# get all rooms in parent room 
 if room_response.status_code == 200:
     total_rooms = room_response.json()["range"]["total"]
-    room_list = room_response.json()["items"]
-    print(room_list)
-    print(room_response.text)
+    for room in room_response.json()["items"]:
+        room_list.append(room)
+    print('Added rooms to list.')
+    print(f'Room count: {total_rooms}')
     if total_rooms > 500:
         for offset in range(500, total_users, 500):
             r = nodes.get_nodes(roomManager='true', parentID=parentID, offset=offset, filter='type:eq:room')
@@ -107,57 +106,41 @@ if room_response.status_code == 200:
             except core.requests.exceptions.RequestException as e:
                 raise SystemExit(e)
             for room in room_response.json()['items']:
-                room_list.append(user)
-else:
-    e = f'Error getting rooms - details: {room_response.text}'
-    raise SystemExit(e)
-
-# get all room ids
-room_id_list = []
-
-print(len(room_id_list))
-
-for room in room_list:
-    room_id_list.append(room["id"])
-
-# create request to delete a room
-r = nodes.delete_nodes(room_id_list)
-
-# only send request to delete rooms if rooms present
-if len(room_id_list) > 0:
-    room_delete_response = my_dracoon.delete(r)
-    if room_delete_response.status_code == 204:
-        print(f"{len(room_id_list)} rooms deleted.")
-    else:
-        e = f'Error deleting rooms - details: {room_delete_response.text}'
-        raise SystemExit(e)
-
+                room_list.append(room)
+    
+# check for each user if a room exists
+    for room in room_list:
+        for user in user_list:
+            if room["name"] == f'{user["userInfo"]["id"]}_{user["userInfo"]["firstName"]}_{user["userInfo"]["lastName"]}':
+                user["hasRoom"] = True
 
 # create room for each user in list
 
 for user in user_list:
-    params = {
-        "name": f"{user['id']}_{user['firstName']}_{user['lastName']}",
-        "adminIds": [user['id']],
-        "parentId": parentID,
-        "inheritPermissions": False
-    }
 
-    # create request for room creation with name and parent path
-    # try to create a room
-    r = nodes.create_room(params)
-    try:
-        room_response = my_dracoon.post(r)
-    except core.requests.exceptions.RequestException as e:
-        raise SystemExit(e)
+    # check if room was found - only crate room if no room present 
+    if "hasRoom" not in user:
+        params = {
+            "name": f"{user['userInfo']['id']}_{user['userInfo']['firstName']}_{user['userInfo']['lastName']}",
+            "adminIds": [user['userInfo']['id']],
+            "parentId": parentID,
+            "inheritPermissions": False
+        }
 
-    # respond to creation request
-    if room_response.status_code == 201:
-        room_id = room_response.json()["id"]
-        room_list.append(room_id)
-        print(
-            f'Room {user["id"]}_{user["firstName"]}_{user["lastName"]} created.')
-    else:
-        print('Room not created.')
-        print(f'Details: {room_response.text}')
-        continue
+        # create request for room creation with name and parent path
+        # try to create a room
+        r = nodes.create_room(params)
+        try:
+            room_response = my_dracoon.post(r)
+        except core.requests.exceptions.RequestException as e:
+            raise SystemExit(e)
+
+        # respond to creation request
+        if room_response.status_code == 201:
+            room_id = room_response.json()["id"]
+            print(
+                f'Room {user["userInfo"]["id"]}_{user["userInfo"]["firstName"]}_{user["userInfo"]["lastName"]} created.')
+        else:
+            print('Room not created.')
+            print(f'Details: {room_response.text}')
+            continue
