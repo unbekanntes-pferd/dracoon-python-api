@@ -195,7 +195,7 @@ def update_file(nodeID, params):
     api_call = {
         'url': '/nodes/files/' + str(nodeID),
         'body': params,
-        'method': 'POST',
+        'method': 'PUT',
         'Content-Type': 'application/json'
     }
     return api_call
