@@ -47,7 +47,7 @@ To get started, create a virtual environment in Python and install the dracoon p
 ```
 virtualenv <DIR>
 source <DIR>/bin/activate 
-python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps dracoon-UNBEKANNTES-PFERD
+python3 -m pip install dracoon
 ```
 
 ### Prerequisites
@@ -62,10 +62,8 @@ python3 --version
 
 1. Install the package from TestPyPi
 ```
-python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps dracoon-UNBEKANNTES-PFERD
+python3 -m pip install dracoon
 ```
-
-Please note: this package will also be provided via official PyPi soon.
 
 <!-- USAGE EXAMPLES -->
 ## Usage
@@ -118,12 +116,16 @@ Supported request types:
 
 _For examples, check out the example files:_<br>
 
-* [DRACOON authentication](/authentication_example.py)
-* [Export user list to CSV](/user_csv_example.py)
-* [Import users from CSV](/import_csv_example.py)
-* [Export room permissions to CSV](/permissions_csv_example.py)
-* [Export room log to CSV](/room_events_csv_example.py)
-* [Upload files (generate room logs for root rooms and upload them to target room)](/file_upload_example.py)
+* [DRACOON authentication](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/authentication_example.py)
+* [Export user list to CSV](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/user_csv_example.py)
+* [Import users from CSV](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/import_csv_example.py)
+* [Export room permissions to CSV](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/permissions_csv_example.py)
+* [Export room log to CSV](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/room_events_csv_example.py)
+* [Upload files (generate room logs for root rooms and upload them to target room)](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/file_upload_example.py)
+* [Create personal rooms](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/personal_rooms_example.py)
+* [Bulk update file metadata (epiration example)](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/bulk_file_meta_update_example.py)
+* [Bulk room config (recycle bin period example)](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/bulk_room_config_example.py)
+* [Convert folders into rooms with inheritance](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/folder_room_converter_example.py)
 
 ### Send async requests
 
@@ -150,11 +152,10 @@ Supported request types:
 
 _For examples, check out the example file:_<br>
 
-* [Async requests](/async_requests_example.py)
+* [Async requests](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/async_requests_example.py)
 
 <!-- ROADMAP -->
 ## Roadmap
-* Distribute package via official PyPi
 * Implement workflows (based on examples - e.g. user csv import, log csv export, file upload)
 * Implement CLI for workflows 
 * Implement refresh token storage
