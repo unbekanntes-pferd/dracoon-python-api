@@ -60,7 +60,7 @@ python3 --version
 
 ### Installation
 
-1. Install the package from TestPyPi
+1. Install the package from PyPi
 ```
 python3 -m pip install dracoon
 ```
