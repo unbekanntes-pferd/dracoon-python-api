@@ -1,8 +1,8 @@
 # ---------------------------------------------------------------------------#
 # DRACOON API Python examples
-# Import user list from CSV file
+# Import user list from CSV file (LTS AD version)
 # Requires dracoon package
-# Author: Octavio Simone, 04.10.2020
+# Author: Octavio Simone, 17.12.2020
 # ---------------------------------------------------------------------------#
 
 from dracoon import core, users
@@ -16,7 +16,7 @@ clientID = 'xxxxx'
 # replace with client secret - dracoon_legacy_scripting has no secret, it can be omitted as parameter
 clientSecret = 'xxxxxx'
 baseURL = 'https://demo.dracoon.com'  # replace with own DRACOON url
-ad_config_id = 1
+ad_config_id = 1 # replace with corresponding AD config ID 
 
 # create DRACOON object
 my_dracoon = core.Dracoon(clientID, clientSecret)
@@ -51,7 +51,7 @@ with open('import.csv', 'r') as f:
     # skip header
     next(csv_reader)
 
-    # csv format: 'firstName', 'lastName', 'email'
+    # csv format: 'firstName', 'lastName', 'email', 'sAMAccountName'
     for user in csv_reader:
         firstName = user[0]
         lastName = user[1]
@@ -73,7 +73,7 @@ with open('import.csv', 'r') as f:
 		"isEnabled": True,
 		"options": [{
 			"key": "username",
-			"value": "peter.lustig"
+			"value": username
 		}, {
 			"key": "ad_config_id",
 			"value": ad_config_id
