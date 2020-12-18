@@ -1,9 +1,9 @@
 # ---------------------------------------------------------------------------#
 # DRACOON API Python examples
 # Perform bulk edit on data rooms one can manage
-# Example sets recycle bin retention period to 30 days
+# Example adds group to room permissions
 # Requires dracoon package
-# Author: Octavio Simone, 17.11.2020
+# Author: Octavio Simone, 18.12.2020
 # ---------------------------------------------------------------------------#
 
 from dracoon import core, nodes
@@ -103,10 +103,10 @@ for room in room_list:
     r = nodes.update_room_groups(nodeID=room["id"], params=params)
 
     config_response = my_dracoon.put(r)
-    if config_response.status_code == 200:
-        print(f'Successfully set recycle bin retention period to 30 days for room {room["name"]}')
+    if config_response.status_code == 204:
+        print(f'Successfully added group with id {group_id} to room {room["name"]}')
     else: 
-        print(f'Error setting recycle bin retention period for room {room["name"]}')
+        print(f'Error adding group to {room["name"]}')
         print(f'Details: {config_response.text}')
         print(f'Status: {config_response.status_code}')
         continue
