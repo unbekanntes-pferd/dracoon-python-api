@@ -40,7 +40,7 @@ else:
 
 # get list of rooms
 
-parentID = x
+parentID = 59
 
 r = nodes.search_nodes('*', parentID=parentID, depthLevel=-1, offset=0, filter='type:eq:room')
 try:
@@ -49,9 +49,9 @@ except core.requests.exceptions.RequestException as e:
     raise SystemExit(e)
 
 if room_response.status_code == 200:
-    parent_list = folder_response.json()["items"]
+    parent_list = room_response.json()["items"]
 else:
-    e = f'Error getting rooms - details: {folder_response.text}'
+    e = f'Error getting rooms - details: {room_response.text}'
     raise SystemExit(e)
 
 # provide a list (or single id for parent)
