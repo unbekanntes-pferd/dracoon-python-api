@@ -20,7 +20,7 @@ from requests import api
 class Dracoon:
     def __init__(self, clientID, clientSecret=None):
         self.clientID = clientID
-        self.api_call_headers = {'User-Agent': 'dracoon-python-0.2.1'}
+        self.api_call_headers = {'User-Agent': 'dracoon-python-0.3.0'}
         if clientSecret is not None:
             self.clientSecret = clientSecret
         if clientSecret is None:
