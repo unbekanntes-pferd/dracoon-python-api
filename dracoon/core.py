@@ -1,8 +1,8 @@
 # ---------------------------------------------------------------------------#
 # Python module to provide DRACOON object
 # Authentication and call handlers 
-# Version 0.1.0
-# Author: Octavio Simone, 04.10.2020
+# Version 0.3.0
+# Author: Octavio Simone, 06.03.2021
 # Part of dracoon Python package
 # ---------------------------------------------------------------------------#
 
@@ -13,8 +13,6 @@ import base64  # base64 encode
 import mimetypes
 import aiohttp
 import asyncio
-
-from requests import api
 
 # define DRACOON class object with specific variables (clientID, clientSecret optional)
 class Dracoon:
