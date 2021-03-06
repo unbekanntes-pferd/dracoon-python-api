@@ -14,11 +14,13 @@ import mimetypes
 import aiohttp
 import asyncio
 
+from requests import api
+
 # define DRACOON class object with specific variables (clientID, clientSecret optional)
 class Dracoon:
     def __init__(self, clientID, clientSecret=None):
         self.clientID = clientID
-        self.api_call_headers = {'User-Agent': 'dracoon-python-0.1.0'}
+        self.api_call_headers = {'User-Agent': 'dracoon-python-0.2.1'}
         if clientSecret is not None:
             self.clientSecret = clientSecret
         if clientSecret is None:
@@ -53,7 +55,37 @@ class Dracoon:
                 tokens = json.loads(api_response.text)
                 self.api_call_headers["Authorization"] = 'Bearer ' + tokens["access_token"]
         return api_response
- 
+
+    # generate URL string for OAuth auth code flow
+    def get_code_url(self):
+        return self.baseURL + f'/oauth/authorize?branding=full&response_type=code&client_id={self.clientID}&redirect_uri={self.baseURL}/oauth/callback&scope=all'
+
+    # authenticate via code
+    def oauth_code_auth(self, code):
+        data = {'grant_type': 'authorization_code', 'code': code, 'client_id': self.clientID, 'client_secret': self.clientSecret, 'redirect_uri': self.baseURL + '/oauth/callback'}
+        token_url = self.baseURL + '/oauth/token'
+
+        api_response = requests.post(token_url, data=data, headers=self.api_call_headers)
+        if api_response.status_code == 200:
+            self.tokens = json.loads(api_response.text)
+            self.api_call_headers["Authorization"] = 'Bearer ' + self.tokens["access_token"]
+        
+        return api_response
+
+    # get new tokens via refresh token
+    def refresh_token_auth(self):
+        token_url = self.baseURL + '/oauth/token'
+        data = {'grant_type': 'refresh_token', 'refresh_token': self.tokens['refresh_token'], 'client_id': self.clientID, 'client_secret': self.clientSecret}
+        
+        api_response = requests.post(token_url, data=data, headers=self.api_call_headers)
+
+        if api_response.status_code == 200:
+            self.tokens = json.loads(api_response.text)
+            self.api_call_headers["Authorization"] = 'Bearer ' + self.tokens["access_token"]
+
+        return api_response
+
+         
     # call handlers for GET, POST, PUT, DELETE 
     def get(self, api_call):
         self.api_call_headers["Content-Type"] = api_call["Content-Type"]
