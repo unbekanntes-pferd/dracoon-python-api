@@ -11,3 +11,5 @@
 /._.DS_Store
 /.DS_Store
 /dracoon-workflows
+/dracoon.egg-info
+/.vscode
