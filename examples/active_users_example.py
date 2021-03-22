@@ -1,12 +1,11 @@
 # ---------------------------------------------------------------------------#
 # DRACOON API Python examples
-# Export room log to CSV file
+# Export active users in given timeframe to CSV file
 # Requires dracoon package
-# Author: Octavio Simone, 30.10.2020
+# Author: Octavio Simone, 22.03.2021
 # ---------------------------------------------------------------------------#
 
 from dracoon import core, eventlog
-import getpass
 import csv
 import os
 import sys
@@ -21,13 +20,14 @@ baseURL = 'https://dracoon.team'  # replace with own DRACOON url
 my_dracoon = core.Dracoon(clientID, clientSecret)
 my_dracoon.set_URLs(baseURL)
 
+print(f'Please get authorization code: {my_dracoon.get_code_url()}')
+
 # get user login credentials (basic, AD possible)
-RO_user = input('Username: ')
-RO_password = getpass.getpass('Password: ')
+auth_code = input('Enter authorization code: ')
 
 # try to authenticate - exit if request fails (timeout, connection error..)
 try:
-    login_response = my_dracoon.basic_auth(RO_user, RO_password)
+    login_response = my_dracoon.oauth_code_auth(code=auth_code)
 except core.requests.exceptions.RequestException as e:
     raise SystemExit(e)
 
@@ -93,8 +93,6 @@ for event in event_list:
 user_list = set(user_list)
 
 last_user_events = []
-
-
 
 # get last event for all users
 for user in user_list:
