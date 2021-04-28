@@ -60,7 +60,7 @@ def update_user(userID, params):
     return api_call
 
 # delete user for given user id
-def delete_user(userID, params):
+def delete_user(userID):
     api_call = {
         'url': '/users/' + str(userID),
         'body': None,
