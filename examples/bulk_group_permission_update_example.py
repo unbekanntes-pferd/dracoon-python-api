@@ -16,7 +16,9 @@ clientID = 'xxxxx'
 # replace with client secret - dracoon_legacy_scripting has no secret, it can be omitted as parameter
 clientSecret = 'xxxxxx'
 baseURL = 'https://dracoon.team'  # replace with own DRACOON url
-group_id = 99
+
+# admin group id
+group_id = 32
 
 # create object to authenticate and send requests - client secret is optional (e.g. for use with dracoon_legacy_scripting)
 my_dracoon = core.Dracoon(clientID, clientSecret)
@@ -43,9 +45,6 @@ else:
     else:
         print(login_response.text)
     sys.exit()  # exit script if login not successful
-
-# create request to get search for all folders in a parent room
-r = nodes.search_nodes('*', parentID=0, depthLevel=-1, offset=0, filter='type:eq:room')
 
 # perform request with authenticated DRACOON instance
 try:
@@ -79,9 +78,6 @@ if total_rooms > 500:
                 room_list.append(room)
 
 print(f"{len(room_list)} rooms to process.")
-
-
-
 
 # set permissions to desired permissions
 for room in room_list:
@@ -123,37 +119,42 @@ for room in room_list:
     print(f"{len(group_list)} groups to process.")
 
 
-
+    # update permission for each group in list 
     for group in group_list:
-        params = {
-    "items": [
-        {
-        "id": group["id"],
-        "permissions": {
-            "manage": False,
-            "read": True,
-            "create": True,
-            "change": True,
-            "delete": True,
-            "manageDownloadShare": True,
-            "manageUploadShare": True,
-            "readRecycleBin": True,
-            "restoreRecycleBin": True,
-            "deleteRecycleBin": True
-        },
-        "newGroupMemberAcceptance": "autoallow"
-        }
-    ]
-    }
-        r = nodes.update_room_groups(nodeID=room["id"], params=params)
+        
+        # exclude admin group 
+        if group["id"] != group_id:
 
-        config_response = my_dracoon.put(r)
-        if config_response.status_code == 204:
-            print(f'Successfully added group with id {group["id"]} to room {room["name"]}')
-        else:
-            print(f'Error adding group to {room["name"]}')
-            print(f'Details: {config_response.text}')
-            print(f'Status: {config_response.status_code}')
-            continue
+            # given permission set 
+            params = {
+        "items": [
+            {
+            "id": group["id"],
+            "permissions": {
+                "manage": False,
+                "read": True,
+                "create": True,
+                "change": True,
+                "delete": True,
+                "manageDownloadShare": True,
+                "manageUploadShare": True,
+                "readRecycleBin": True,
+                "restoreRecycleBin": True,
+                "deleteRecycleBin": True
+            },
+            "newGroupMemberAcceptance": "autoallow"
+            }
+        ]
+        }
+            r = nodes.update_room_groups(nodeID=room["id"], params=params)
+
+            config_response = my_dracoon.put(r)
+            if config_response.status_code == 204:
+                print(f'Successfully added group with id {group["id"]} to room {room["name"]}')
+            else:
+                print(f'Error adding group to {room["name"]}')
+                print(f'Details: {config_response.text}')
+                print(f'Status: {config_response.status_code}')
+                continue
 
 
