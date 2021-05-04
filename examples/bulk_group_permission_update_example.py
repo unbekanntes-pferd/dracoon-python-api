@@ -65,6 +65,9 @@ else:
     print(room_response.status_code)
     print(room_response.text)
 
+# build request to get rooms
+r = nodes.search_nodes('*', parentID=0, depthLevel=-1, offset=0, filter='type:eq:room')
+
 #get total amount of rooms
 total_rooms = room_response.json()['range']['total']
 
