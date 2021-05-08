@@ -16,7 +16,7 @@
 
 
 # upload a file (step 2 of file upload process - to generate an upload url, use nodes.create_upload_channel)
-def upload_file(uploadURL, upload_file, contentRange=None):
+def upload_file(uploadURL: str, upload_file, contentRange: int = None):
     api_call = {
         'url': uploadURL,
         'files': upload_file,
@@ -26,7 +26,7 @@ def upload_file(uploadURL, upload_file, contentRange=None):
     return api_call
 
 # finalie upload - body/params must be empty for public 
-def finalize_upload(uploadURL, params=None):
+def finalize_upload(uploadURL: str, params=None):
     api_call = {
         'url': uploadURL,
         'files': None,
@@ -38,7 +38,7 @@ def finalize_upload(uploadURL, params=None):
     return api_call
 
 # delete upload request
-def cancel_upload(uploadURL):
+def cancel_upload(uploadURL: str):
     api_call = {
         'url': uploadURL,
         'files': None,

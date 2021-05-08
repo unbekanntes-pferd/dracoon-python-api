@@ -14,7 +14,9 @@
 # - use documentation for payload description 
 # All requests with bodies use generic params variable to pass JSON body
 
-def get_nodes(roomManager='false', parentID=0, offset=0, filter=None, limit=None, sort=None):
+from typing import List
+
+def get_nodes(roomManager: str = 'false', parentID: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
     api_call = {
             'url': '/nodes?offset=' + str(offset) + '&parent_id=' + str(parentID) + '&room_manager=' + roomManager,
             'body': None,
@@ -29,7 +31,7 @@ def get_nodes(roomManager='false', parentID=0, offset=0, filter=None, limit=None
     return api_call
 
 # delete nodes for given array of node ids
-def delete_nodes(nodeIDs):
+def delete_nodes(nodeIDs: List[int]):
     api_call = {
         'url': '/nodes',
         'body': {
@@ -41,7 +43,7 @@ def delete_nodes(nodeIDs):
     return api_call
 
 # get node for given node id
-def get_node(nodeID):
+def get_node(nodeID: int):
     api_call = {
         'url': '/nodes/' + str(nodeID),
         'body': None,
@@ -51,7 +53,7 @@ def get_node(nodeID):
     return api_call
 
 # delete node for given node id
-def delete_node(nodeID):
+def delete_node(nodeID: int):
     api_call = {
         'url': '/nodes/' + str(nodeID),
         'body': None,
@@ -61,7 +63,7 @@ def delete_node(nodeID):
     return api_call
 
 # get node comments for given node id
-def get_node_comments(nodeID, offset=0):
+def get_node_comments(nodeID: int, offset: int = 0):
     api_call = {
         'url': '/nodes/' + str(nodeID) + '/comments' + '/offset=' + offset,
         'body': None,
@@ -71,7 +73,7 @@ def get_node_comments(nodeID, offset=0):
     return api_call
 
 # get node for given node id
-def add_node_comment(nodeID, params):
+def add_node_comment(nodeID: int, params):
     api_call = {
         'url': '/nodes/' + str(nodeID) + '/comments',
         'body': params,
@@ -81,7 +83,7 @@ def add_node_comment(nodeID, params):
     return api_call
 
 # copy node for given node id
-def copy_nodes(nodeID, params):
+def copy_nodes(nodeID: int, params):
     api_call = {
         'url': '/nodes/' + str(nodeID) + '/copy_to',
         'body': params,
@@ -91,7 +93,7 @@ def copy_nodes(nodeID, params):
     return api_call
 
 # get node comfor given node id
-def get_deleted_nodes(parentID, offset=0, filter=None, limit=None, sort=None):
+def get_deleted_nodes(parentID: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
     
     api_call = {
             'url': '/nodes/' + str(parentID) + '/deleted_nodes?offset=' + str(offset),
@@ -107,7 +109,7 @@ def get_deleted_nodes(parentID, offset=0, filter=None, limit=None, sort=None):
     return api_call
 
 # empty recycle bin of a given parent id
-def empty_node_recyclebin(parentID):
+def empty_node_recyclebin(parentID: int):
     api_call = {
         'url': '/nodes/' + str(parentID) + '/deleted_nodes',
         'body': None,
@@ -117,7 +119,7 @@ def empty_node_recyclebin(parentID):
     return api_call
 
 # get node versions in a given parent id (requires name, specification of type)
-def get_node_versions(parentID, name, type='file', offset=0):
+def get_node_versions(parentID: int, name: str, type: str = 'file', offset: int = 0):
     api_call = {
         'url': '/nodes/' + str(parentID) + '/deleted_nodes/versions' + '/offset=' + offset + '&type=' + type + '&name=' + name,
         'body': None,
@@ -128,7 +130,7 @@ def get_node_versions(parentID, name, type='file', offset=0):
 
 
 # get node for given node id
-def add_favorite(nodeID):
+def add_favorite(nodeID: int):
     api_call = {
         'url': '/nodes/' + str(nodeID) + '/favorite',
         'body': None,
@@ -139,7 +141,7 @@ def add_favorite(nodeID):
 
 
 # delete node for given node id
-def delete_favorite(nodeID):
+def delete_favorite(nodeID: int):
     api_call = {
         'url': '/nodes/' + str(nodeID) + '/favorite',
         'body': None,
@@ -149,7 +151,7 @@ def delete_favorite(nodeID):
     return api_call
 
 # copy node for given node id
-def move_nodes(nodeID, params):
+def move_nodes(nodeID: int, params):
     api_call = {
         'url': '/nodes/' + str(nodeID) + '/move_to',
         'body': params,
@@ -159,7 +161,7 @@ def move_nodes(nodeID, params):
     return api_call
 
 # delete deleted nodes in recycle bin for given array of node ids
-def empty_recyclebin(nodeIDs):
+def empty_recyclebin(nodeIDs: List[int]):
     api_call = {
         'url': '/nodes',
         'body': {
@@ -171,7 +173,7 @@ def empty_recyclebin(nodeIDs):
     return api_call
 
 # get deleted node info for given node id
-def get_deleted_node(nodeID):
+def get_deleted_node(nodeID: int):
     api_call = {
         'url': '/nodes/deleted_nodes/' + str(nodeID),
         'body': None,
@@ -191,7 +193,7 @@ def restore_nodes(params):
     return api_call
 
 # update file meta data
-def update_file(nodeID, params):
+def update_file(nodeID: int, params):
     api_call = {
         'url': '/nodes/files/' + str(nodeID),
         'body': params,
@@ -201,7 +203,7 @@ def update_file(nodeID, params):
     return api_call
 
 # get download url as authenticated user to download a file
-def get_download_url(nodeID):
+def get_download_url(nodeID: int):
     api_call = {
         'url': '/nodes/files' + str(nodeID) + '/downloads',
         'body': None,
@@ -231,7 +233,7 @@ def create_folder(params):
     return api_call
 
 # update folder mets data
-def update_folder(nodeID, params):
+def update_folder(nodeID: int, params):
     api_call = {
         'url': '/nodes/folders/' + str(nodeID),
         'body': params,
@@ -251,7 +253,7 @@ def create_room(params):
     return api_call
 
 # update room mets data
-def update_room(nodeID, params):
+def update_room(nodeID: int, params):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID),
         'body': params,
@@ -261,7 +263,7 @@ def update_room(nodeID, params):
     return api_call
 
 # configure data room
-def config_room(nodeID, params):
+def config_room(nodeID: int, params):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID) + '/config',
         'body': params,
@@ -271,7 +273,7 @@ def config_room(nodeID, params):
     return api_call
 
 # get node comfor given node id
-def get_room_groups(nodeID, offset=0, filter=None, limit=None, sort=None):
+def get_room_groups(nodeID: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None):
 
     api_call = {
             'url': '/nodes/rooms/' + str(nodeID) + '/groups?offset=' + str(offset),
@@ -286,7 +288,7 @@ def get_room_groups(nodeID, offset=0, filter=None, limit=None, sort=None):
     return api_call
 
 # add or change groups assigned to room with given node id
-def update_room_groups(nodeID, params):
+def update_room_groups(nodeID: int, params):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID) + '/groups',
         'body': params,
@@ -296,7 +298,7 @@ def update_room_groups(nodeID, params):
     return api_call
 
 # delete groups assigned to room with given node id
-def delete_room_groups(nodeID, params):
+def delete_room_groups(nodeID: int, params):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID) + '/groups',
         'body': params,
@@ -306,7 +308,7 @@ def delete_room_groups(nodeID, params):
     return api_call
 
 # get node comfor given node id
-def get_room_users(nodeID, offset=0, filter=None, limit=None, sort=None):
+def get_room_users(nodeID: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None):
     api_call = {
             'url': '/nodes/rooms/' + str(nodeID) + '/users?offset=' + str(offset),
             'body': None,
@@ -321,7 +323,7 @@ def get_room_users(nodeID, offset=0, filter=None, limit=None, sort=None):
     return api_call
 
 # add or change users assigned to room with given node id
-def update_room_users(nodeID, params):
+def update_room_users(nodeID: int, params):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID) + '/users',
         'body': params,
@@ -331,7 +333,7 @@ def update_room_users(nodeID, params):
     return api_call
 
 # delete users assigned to room with given node id
-def delete_room_users(nodeID, params):
+def delete_room_users(nodeID: int, params):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID) + '/users',
         'body': params,
@@ -341,7 +343,7 @@ def delete_room_users(nodeID, params):
     return api_call
 
 # get webhooks assigned or assignable to room with given node id
-def get_room_webhooks(nodeID, offset=0, filter=None, limit=None, sort=None):
+def get_room_webhooks(nodeID: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None):
     api_call = {
             'url': '/nodes/rooms/' + str(nodeID) + '/webhooks?offset=' + str(offset),
             'body': None,
@@ -356,7 +358,7 @@ def get_room_webhooks(nodeID, offset=0, filter=None, limit=None, sort=None):
     return api_call
 
 # delete users assigned to room with given node id
-def update_room_webhooks(nodeID, params):
+def update_room_webhooks(nodeID: int, params):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID) + '/webhooks',
         'body': params,
@@ -366,7 +368,7 @@ def update_room_webhooks(nodeID, params):
     return api_call
 
 # get pending room assignments (new group members not currently accepted)
-def get_pending_assignments(offset=0, filter=None, limit=None, sort=None):
+def get_pending_assignments(offset: int = 0, filter: str = None, limit: str = None, sort: str = None):
     api_call = {
             'url': '/nodes/rooms/pending?offset=' + str(offset),
             'body': None,
@@ -375,6 +377,8 @@ def get_pending_assignments(offset=0, filter=None, limit=None, sort=None):
         }
     
     if filter != None: api_call['url'] += '&filter=' + filter
+    if limit != None: api_call['url'] += '&limit=' + str(limit)
+    if sort != None: api_call['url'] += '&sort=' + sort
 
     return api_call
 
@@ -389,7 +393,7 @@ def process_pending_assignments(params):
     return api_call
 
 # search for nodes
-def search_nodes(search, parentID=0, depthLevel=0, offset=0, filter=None, limit=None, sort=None):
+def search_nodes(search: str, parentID: int = 0, depthLevel: int = 0, offset: int = 0, filter: str = None, limit: str = None, sort: str = None):
     
     api_call = {
             'url': '/nodes/search?search_string=' + str(search) +  '&offset=' + str(offset) + 

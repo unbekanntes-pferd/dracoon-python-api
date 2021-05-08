@@ -14,8 +14,10 @@
 # - use documentation for payload description
 # All requests with bodies use generic params variable to pass JSON body
 
+from typing import List
+
 # get list of groups
-def get_groups(offset=0, filter=None, limit=None, sort=None):
+def get_groups(offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
     api_call = {
             'url': '/groups?offset=' + str(offset),
             'body': None,
@@ -43,7 +45,7 @@ def create_group(params):
 # get group details for given group id
 
 
-def get_user(groupID):
+def get_user(groupID: int):
     api_call = {
         'url': '/groups/' + str(groupID),
         'body': None,
@@ -55,7 +57,7 @@ def get_user(groupID):
 # update group's meta data for given group id
 
 
-def update_user(groupID, params):
+def update_user(groupID: int, params):
     api_call = {
         'url': '/groups/' + str(groupID),
         'body': params,
@@ -67,7 +69,7 @@ def update_user(groupID, params):
 # delete user for given user id
 
 
-def delete_user(groupID, params):
+def delete_user(groupID: int, params):
     api_call = {
         'url': '/groups/' + str(groupID),
         'body': None,
@@ -77,7 +79,7 @@ def delete_user(groupID, params):
     return api_call
 
 # get rooms in which group is last remaining admin (prevents user deletion!)
-def get_group_last_admin_rooms(groupID):
+def get_group_last_admin_rooms(groupID: int):
     api_call = {
         'url': '/groups/' + str(groupID) + '/last_admin_rooms',
         'body': None,
@@ -87,7 +89,7 @@ def get_group_last_admin_rooms(groupID):
     return api_call
 
 # get roles assigned to group
-def get_group_roles(groupID):
+def get_group_roles(groupID: int):
     api_call = {
         'url': '/groups/' + str(groupID) + '/roles',
         'body': None,
@@ -97,7 +99,7 @@ def get_group_roles(groupID):
     return api_call
 
 # get group users
-def get_group_users(groupID, offset=0, filter=None, limit=None, sort=None):
+def get_group_users(groupID: int, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
     api_call = {
             'url': '/groups/' + str(groupID) + '/users?offset=' + str(offset),
             'body': None,
@@ -112,7 +114,7 @@ def get_group_users(groupID, offset=0, filter=None, limit=None, sort=None):
     return api_call
 
 # update assigned users (array of user ids) to a group with given group id
-def update_group_users(userIDs, groupID):
+def update_group_users(userIDs: List[int], groupID: int):
     api_call = {
         'url': '/groups/' + str(groupID) + '/users',
         'body': {
@@ -124,7 +126,7 @@ def update_group_users(userIDs, groupID):
     return api_call
 
 # delete assigned users (array of user ids) from a group with given group id
-def delete_group_users(userIDs, groupID):
+def delete_group_users(userIDs: List[int], groupID: int):
     api_call = {
         'url': '/users/' + str(groupID) + '/users',
         'body': {

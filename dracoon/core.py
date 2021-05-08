@@ -16,7 +16,7 @@ import asyncio
 
 # define DRACOON class object with specific variables (clientID, clientSecret optional)
 class Dracoon:
-    def __init__(self, clientID, clientSecret=None):
+    def __init__(self, clientID: str, clientSecret: str = None):
         self.clientID = clientID
         self.api_call_headers = {'User-Agent': 'dracoon-python-0.3.0'}
         if clientSecret is not None:
@@ -26,17 +26,17 @@ class Dracoon:
     
 
     # generate URls necessary for API calls based on passed baseURL
-    def set_URLs(self, baseURL):
+    def set_URLs(self, baseURL: str):
         self.baseURL = baseURL
         self.apiURL = baseURL + '/api/v4'
 
     # pass oauth token - needed for OAuth2 three-legged flow
-    def pass_oauth_token(self, oauth_token):
+    def pass_oauth_token(self, oauth_token: str):
         self.api_call_headers["Authorization"] = 'Bearer ' + oauth_token
 
     # authenticate via basic auth (local, AD) - if initiated without clientSecret, perform Basic auth, else authorize
     # via clientID & clientSecret
-    def basic_auth(self, userName, userPassword):
+    def basic_auth(self, userName: str, userPassword: str):
         data = {'grant_type': 'password', 'username': userName, 'password': userPassword}
         token_url = self.baseURL + '/oauth/token'
         token_payload = base64.b64encode(bytes(self.clientID + ':', 'ascii'))
@@ -59,7 +59,7 @@ class Dracoon:
         return self.baseURL + f'/oauth/authorize?branding=full&response_type=code&client_id={self.clientID}&redirect_uri={self.baseURL}/oauth/callback&scope=all'
 
     # authenticate via code
-    def oauth_code_auth(self, code):
+    def oauth_code_auth(self, code: str):
         data = {'grant_type': 'authorization_code', 'code': code, 'client_id': self.clientID, 'client_secret': self.clientSecret, 'redirect_uri': self.baseURL + '/oauth/callback'}
         token_url = self.baseURL + '/oauth/token'
 

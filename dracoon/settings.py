@@ -36,7 +36,7 @@ def update_settings(params):
     return api_call
 
 # get customer webhooks 
-def get_webhooks(offset=0, filter=None, limit=None, sort=None):
+def get_webhooks(offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
     api_call = {
             'url': '/settings/webhooks?offset=' + str(offset),
             'body': None,
@@ -61,7 +61,7 @@ def create_webhook(params):
     return api_call
 
 # get webhook details for given hook id
-def get_webhook(hookID):
+def get_webhook(hookID: int):
     api_call = {
         'url': '/settings/webhooks/' + str(hookID),
         'body': None,
@@ -71,7 +71,7 @@ def get_webhook(hookID):
     return api_call
 
 # update webhook data for given hook id
-def update_webhook(hookID, params):
+def update_webhook(hookID: int, params):
     api_call = {
         'url': '/settings/webhooks/' + str(hookID),
         'body': params,
@@ -81,7 +81,7 @@ def update_webhook(hookID, params):
     return api_call
 
 # delete webhook for given hook id
-def delete_webhook(hookID, params):
+def delete_webhook(hookID: int):
     api_call = {
         'url': '/settings/webhooks/' + str(hookID),
         'body': None,

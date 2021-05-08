@@ -11,8 +11,10 @@
 # collection of DRACOON API calls for shares & file requests
 # documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/shares
 
+from typing import List
+
 # get list of all (download) shares
-def get_shares(offset=0, filter=None, limit=None, sort=None):
+def get_shares(offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
     api_call = {
         'url': '/shares/downloads?offset=' + str(offset),
         'body': None,
@@ -37,7 +39,7 @@ def create_share(params):
     return api_call
 
 # delete an array of shares
-def delete_shares(shareIDs):
+def delete_shares(shareIDs: List[int]):
     api_call = {
         'url': '/shares/downloads',
         'body': {
@@ -49,7 +51,7 @@ def delete_shares(shareIDs):
     return api_call
 
 # get information about a specific share (given share ID)
-def get_share(shareID):
+def get_share(shareID: int):
     api_call = {
         'url': '/shares/downloads/' + str(shareID),
         'body': None,
@@ -59,7 +61,7 @@ def get_share(shareID):
     return api_call
 
 # update a specific share (given share ID)
-def update_share(shareID, params):
+def update_share(shareID: int, params):
     api_call = {
         'url': '/shares/downloads/' + str(shareID),
         'body': params,
@@ -69,7 +71,7 @@ def update_share(shareID, params):
     return api_call
 
 # delete specific share (given share ID)
-def delete_share(shareID):
+def delete_share(shareID: int):
     api_call = {
         'url': '/shares/downloads/' + str(shareID),
         'body': None,
@@ -79,7 +81,7 @@ def delete_share(shareID):
     return api_call
 
 # send share via email 
-def send_share(shareID, params):
+def send_share(shareID: int, params):
     api_call = {
         'url': '/shares/downloads/' + str(shareID),
         'body': params,
@@ -90,7 +92,7 @@ def send_share(shareID, params):
 
 
 # get list of all (download) shares
-def get_file_requests(offset=0, filter=None, limit=None, sort=None):
+def get_file_requests(offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
     api_call = {
         'url': '/shares/uploads?offset=' + str(offset),
         'body': None,
@@ -115,7 +117,7 @@ def create_file_request(params):
     return api_call
 
 # delete an array of file requests
-def delete_file_requests(requestIDs):
+def delete_file_requests(requestIDs: List[int]):
     api_call = {
         'url': '/shares/uploads',
         'body': {
@@ -127,7 +129,7 @@ def delete_file_requests(requestIDs):
     return api_call
 
 # get information about a specific file request (given request ID)
-def get_file_request(requestID):
+def get_file_request(requestID: int):
     api_call = {
         'url': '/shares/uploads/' + str(requestID),
         'body': None,
@@ -137,7 +139,7 @@ def get_file_request(requestID):
     return api_call
 
 # update a specific file request (given request ID)
-def update_file_request(shareID, params):
+def update_file_request(shareID: int, params):
     api_call = {
         'url': '/shares/uploads/' + str(shareID),
         'body': params,
@@ -147,7 +149,7 @@ def update_file_request(shareID, params):
     return api_call
 
 # delete specific file request (given request ID)
-def delete_file_request(requestID):
+def delete_file_request(requestID: int):
     api_call = {
         'url': '/shares/uploads/' + str(requestID),
         'body': None,
@@ -157,7 +159,7 @@ def delete_file_request(requestID):
     return api_call
 
 # send file request via email 
-def send_file_request(shareID, params):
+def send_file_request(shareID: int, params):
     api_call = {
         'url': '/shares/uploads/' + str(shareID) + 'email',
         'body': params,
