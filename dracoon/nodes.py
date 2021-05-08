@@ -160,6 +160,16 @@ def move_nodes(nodeID: int, params):
     }
     return api_call
 
+# get node ancestors (parents)
+def get_parents(nodeID: int):
+    api_call = {
+        'url': '/nodes/' + str(nodeID) + '/parents',
+        'body': None,
+        'method': 'GET',
+        'Content-Type': 'application/json'
+    }
+    return api_call
+
 # delete deleted nodes in recycle bin for given array of node ids
 def empty_recyclebin(nodeIDs: List[int]):
     api_call = {
@@ -212,6 +222,30 @@ def get_download_url(nodeID: int):
     }
     return api_call
 
+# get user file key if available
+def get_user_file_key(fileID: int, version: str = None):
+    api_call = {
+        'url': '/nodes/files/' + str(fileID) + '/user_file_key',
+        'method': 'GET',
+        'Content-Type': 'application/json'
+    }
+
+    if version != None: api_call['url'] += '/?version=' + version
+
+    return api_call
+
+def set_file_keys(params):
+    api_call = {
+        'url': '/nodes/files/keys',
+        'method': 'POST',
+        'body': params,
+        'Content-Type': 'application/json'
+    }
+
+
+    return api_call
+
+
 # get download url as authenticated user to download a file
 def create_upload_channel(params):
     api_call = {
@@ -241,6 +275,21 @@ def update_folder(nodeID: int, params):
         'Content-Type': 'application/json'
     }
     return api_call
+
+# get missing file keys
+def get_missing_file_keys(fileID: int = None, roomID: int = None, userID: int = None, offset: int = 0, limit: int = None, use_key: str = None):
+    api_call = {
+        'url': '/nodes/missingFileKeys/?offset=' + str(offset),
+        'method': 'GET',
+        'Content-Type': 'application/json'
+    }
+
+    if roomID != None: api_call['url'] += '&room_id=' + str(roomID)
+    if fileID != None: api_call['url'] += '&file_id=' + str(fileID)
+    if userID != None: api_call['url'] += '&user_id=' + str(userID)
+
+    return api_call
+
 
 # create folder
 def create_room(params):
