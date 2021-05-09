@@ -15,6 +15,7 @@
 # All requests with bodies use generic params variable to pass JSON body
 
 from typing import List
+from .nodes_models import ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, ProcessRoomPendingUsers, SetFileKeys, TransferNode, CommentNode, RestoreNode, UpdateFiles, UpdateFolder, UpdateRoom, UpdateRoomGroups, UpdateRoomHooks, UpdateRoomUsers
 
 def get_nodes(roomManager: str = 'false', parentID: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
     api_call = {
@@ -73,7 +74,7 @@ def get_node_comments(nodeID: int, offset: int = 0):
     return api_call
 
 # get node for given node id
-def add_node_comment(nodeID: int, params):
+def add_node_comment(nodeID: int, params: CommentNode):
     api_call = {
         'url': '/nodes/' + str(nodeID) + '/comments',
         'body': params,
@@ -83,7 +84,7 @@ def add_node_comment(nodeID: int, params):
     return api_call
 
 # copy node for given node id
-def copy_nodes(nodeID: int, params):
+def copy_nodes(nodeID: int, params: TransferNode):
     api_call = {
         'url': '/nodes/' + str(nodeID) + '/copy_to',
         'body': params,
@@ -151,7 +152,7 @@ def delete_favorite(nodeID: int):
     return api_call
 
 # copy node for given node id
-def move_nodes(nodeID: int, params):
+def move_nodes(nodeID: int, params: TransferNode):
     api_call = {
         'url': '/nodes/' + str(nodeID) + '/move_to',
         'body': params,
@@ -193,7 +194,7 @@ def get_deleted_node(nodeID: int):
     return api_call
 
 # restore deleted nodes from recycle bin
-def restore_nodes(params):
+def restore_nodes(params: RestoreNode):
     api_call = {
         'url': '/nodes/deleted_nodes/actions/restore',
         'body': params,
@@ -203,7 +204,7 @@ def restore_nodes(params):
     return api_call
 
 # update file meta data
-def update_file(nodeID: int, params):
+def update_file(nodeID: int, params: UpdateFiles):
     api_call = {
         'url': '/nodes/files/' + str(nodeID),
         'body': params,
@@ -234,20 +235,17 @@ def get_user_file_key(fileID: int, version: str = None):
 
     return api_call
 
-def set_file_keys(params):
+def set_file_keys(params: SetFileKeys):
     api_call = {
         'url': '/nodes/files/keys',
         'method': 'POST',
         'body': params,
         'Content-Type': 'application/json'
     }
-
-
     return api_call
 
-
 # get download url as authenticated user to download a file
-def create_upload_channel(params):
+def create_upload_channel(params: CreateUploadChannel):
     api_call = {
         'url': '/nodes/files/uploads',
         'body': params,
@@ -257,7 +255,7 @@ def create_upload_channel(params):
     return api_call
 
 # create folder
-def create_folder(params):
+def create_folder(params: CreateFolder):
     api_call = {
         'url': '/nodes/folders',
         'body': params,
@@ -267,7 +265,7 @@ def create_folder(params):
     return api_call
 
 # update folder mets data
-def update_folder(nodeID: int, params):
+def update_folder(nodeID: int, params: UpdateFolder):
     api_call = {
         'url': '/nodes/folders/' + str(nodeID),
         'body': params,
@@ -292,7 +290,7 @@ def get_missing_file_keys(fileID: int = None, roomID: int = None, userID: int = 
 
 
 # create folder
-def create_room(params):
+def create_room(params: CreateRoom):
     api_call = {
         'url': '/nodes/rooms',
         'body': params,
@@ -302,7 +300,7 @@ def create_room(params):
     return api_call
 
 # update room mets data
-def update_room(nodeID: int, params):
+def update_room(nodeID: int, params: UpdateRoom):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID),
         'body': params,
@@ -312,7 +310,7 @@ def update_room(nodeID: int, params):
     return api_call
 
 # configure data room
-def config_room(nodeID: int, params):
+def config_room(nodeID: int, params: ConfigRoom):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID) + '/config',
         'body': params,
@@ -337,7 +335,7 @@ def get_room_groups(nodeID: int, offset: int = 0, filter: str = None, limit: str
     return api_call
 
 # add or change groups assigned to room with given node id
-def update_room_groups(nodeID: int, params):
+def update_room_groups(nodeID: int, params: UpdateRoomGroups):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID) + '/groups',
         'body': params,
@@ -347,10 +345,10 @@ def update_room_groups(nodeID: int, params):
     return api_call
 
 # delete groups assigned to room with given node id
-def delete_room_groups(nodeID: int, params):
+def delete_room_groups(nodeID: int):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID) + '/groups',
-        'body': params,
+        'body': None,
         'method': 'DELETE',
         'Content-Type': 'application/json'
     }
@@ -372,7 +370,7 @@ def get_room_users(nodeID: int, offset: int = 0, filter: str = None, limit: str 
     return api_call
 
 # add or change users assigned to room with given node id
-def update_room_users(nodeID: int, params):
+def update_room_users(nodeID: int, params: UpdateRoomUsers):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID) + '/users',
         'body': params,
@@ -382,10 +380,10 @@ def update_room_users(nodeID: int, params):
     return api_call
 
 # delete users assigned to room with given node id
-def delete_room_users(nodeID: int, params):
+def delete_room_users(nodeID: int):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID) + '/users',
-        'body': params,
+        'body': None,
         'method': 'DELETE',
         'Content-Type': 'application/json'
     }
@@ -407,7 +405,7 @@ def get_room_webhooks(nodeID: int, offset: int = 0, filter: str = None, limit: s
     return api_call
 
 # delete users assigned to room with given node id
-def update_room_webhooks(nodeID: int, params):
+def update_room_webhooks(nodeID: int, params: UpdateRoomHooks):
     api_call = {
         'url': '/nodes/rooms/' + str(nodeID) + '/webhooks',
         'body': params,
@@ -432,7 +430,7 @@ def get_pending_assignments(offset: int = 0, filter: str = None, limit: str = No
     return api_call
 
 # process pending room assignments
-def process_pending_assignments(params):
+def process_pending_assignments(params: ProcessRoomPendingUsers):
     api_call = {
         'url': '/nodes/rooms/pending',
         'body': params,

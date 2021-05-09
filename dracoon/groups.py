@@ -15,6 +15,7 @@
 # All requests with bodies use generic params variable to pass JSON body
 
 from typing import List
+from .groups_models import CreateGroup, UpdateGroup
 
 # get list of groups
 def get_groups(offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
@@ -31,9 +32,7 @@ def get_groups(offset: int = 0, filter: str = None, limit: int = None, sort: str
     return api_call
 
 # create a group with given parameters
-
-
-def create_group(params):
+def create_group(params: CreateGroup):
     api_call = {
         'url': '/groups',
         'body': params,
@@ -57,7 +56,7 @@ def get_user(groupID: int):
 # update group's meta data for given group id
 
 
-def update_user(groupID: int, params):
+def update_group(groupID: int, params: UpdateGroup):
     api_call = {
         'url': '/groups/' + str(groupID),
         'body': params,
@@ -69,7 +68,7 @@ def update_user(groupID: int, params):
 # delete user for given user id
 
 
-def delete_user(groupID: int, params):
+def delete_group(groupID: int):
     api_call = {
         'url': '/groups/' + str(groupID),
         'body': None,
@@ -128,11 +127,11 @@ def update_group_users(userIDs: List[int], groupID: int):
 # delete assigned users (array of user ids) from a group with given group id
 def delete_group_users(userIDs: List[int], groupID: int):
     api_call = {
-        'url': '/users/' + str(groupID) + '/users',
+        'url': '/groups/' + str(groupID) + '/users',
         'body': {
             "ids": userIDs
         },
-        'method': 'POST',
+        'method': 'DELETE',
         'Content-Type': 'application/json'
     }
     return api_call

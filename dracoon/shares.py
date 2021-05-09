@@ -6,12 +6,11 @@
 # Part of dracoon Python package
 # ---------------------------------------------------------------------------#
 
-
-
 # collection of DRACOON API calls for shares & file requests
 # documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/shares
 
 from typing import List
+from .shares_models import CreateFileRequest, CreateShare, SendShare, UpdateFileRequest, UpdateFileRequests, UpdateShare, UpdateShares
 
 # get list of all (download) shares
 def get_shares(offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
@@ -29,7 +28,7 @@ def get_shares(offset: int = 0, filter: str = None, limit: int = None, sort: str
     return api_call
 
 # create a new (download) share - for model see documentation linked above
-def create_share(params):
+def create_share(params: CreateShare):
     api_call = {
         'url': '/shares/downloads',
         'body': params,
@@ -60,8 +59,18 @@ def get_share(shareID: int):
     }
     return api_call
 
+# update a list of shares (given share IDs)
+def update_shares(params: UpdateShares):
+    api_call = {
+        'url': '/shares/downloads',
+        'body': params,
+        'method': 'PUT',
+        'Content-Type': 'application/json'
+    }
+    return api_call
+
 # update a specific share (given share ID)
-def update_share(shareID: int, params):
+def update_share(shareID: int, params: UpdateShare):
     api_call = {
         'url': '/shares/downloads/' + str(shareID),
         'body': params,
@@ -83,7 +92,7 @@ def delete_share(shareID: int):
 # send share via email 
 def send_share(shareID: int, params):
     api_call = {
-        'url': '/shares/downloads/' + str(shareID),
+        'url': '/shares/downloads/' + str(shareID) + '/email',
         'body': params,
         'method': 'POST',
         'Content-Type': 'application/json'
@@ -107,7 +116,7 @@ def get_file_requests(offset: int = 0, filter: str = None, limit: int = None, so
     return api_call
 
 # create a new file request - for model see documentation linked above
-def create_file_request(params):
+def create_file_request(params: CreateFileRequest):
     api_call = {
         'url': '/shares/uploads',
         'body': params,
@@ -139,7 +148,18 @@ def get_file_request(requestID: int):
     return api_call
 
 # update a specific file request (given request ID)
-def update_file_request(shareID: int, params):
+def update_file_request(params: UpdateFileRequests):
+    api_call = {
+        'url': '/shares/uploads',
+        'body': params,
+        'method': 'PUT',
+        'Content-Type': 'application/json'
+    }
+    return api_call
+
+
+# update a specific file request (given request ID)
+def update_file_request(shareID: int, params: UpdateFileRequest):
     api_call = {
         'url': '/shares/uploads/' + str(shareID),
         'body': params,
@@ -159,9 +179,9 @@ def delete_file_request(requestID: int):
     return api_call
 
 # send file request via email 
-def send_file_request(shareID: int, params):
+def send_file_request(shareID: int, params: SendShare):
     api_call = {
-        'url': '/shares/uploads/' + str(shareID) + 'email',
+        'url': '/shares/uploads/' + str(shareID) + '/email',
         'body': params,
         'method': 'POST',
         'Content-Type': 'application/json'

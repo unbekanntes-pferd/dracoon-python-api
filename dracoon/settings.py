@@ -15,6 +15,8 @@
 # - use documentation for payload description
 # All requests with bodies use generic params variable to pass JSON body
 
+from .settings_models import CreateWebhook, UpdateSettings, UpdateWebhook
+
 # get customer settings
 def get_settings():
     api_call = {
@@ -26,7 +28,7 @@ def get_settings():
     return api_call
 
 # get customer settings
-def update_settings(params):
+def update_settings(params: UpdateSettings):
     api_call = {
             'url': '/settings',
             'body': params,
@@ -51,7 +53,7 @@ def get_webhooks(offset: int = 0, filter: str = None, limit: int = None, sort: s
     return api_call
 
 # create a webhook with given parameters - please refer to documentation above
-def create_webhook(params):
+def create_webhook(params: CreateWebhook):
     api_call = {
         'url': '/settings/webhooks',
         'body': params,
@@ -71,7 +73,7 @@ def get_webhook(hookID: int):
     return api_call
 
 # update webhook data for given hook id
-def update_webhook(hookID: int, params):
+def update_webhook(hookID: int, params: UpdateWebhook):
     api_call = {
         'url': '/settings/webhooks/' + str(hookID),
         'body': params,

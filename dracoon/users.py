@@ -13,6 +13,9 @@
 # - use documentation for payload description 
 # All requests with bodies use generic params variable to pass JSON body
 
+from .users_models import CreateUser, SetUserAttributes, UpdateUser, UpdateUserAttributes
+
+# get all users
 def get_users(offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
     api_call = {
         'url': '/users?offset=' + str(offset),
@@ -28,7 +31,7 @@ def get_users(offset: int = 0, filter: str = None, limit: int = None, sort: str 
     return api_call
 
 # create a user with given parameters 
-def create_user(params):
+def create_user(params: CreateUser):
     api_call = {
         'url': '/users',
         'body': params,
@@ -48,7 +51,7 @@ def get_user(userID: int):
     return api_call
 
 # update user's meta data for given user id
-def update_user(userID: int, params):
+def update_user(userID: int, params: UpdateUser):
     api_call = {
         'url': '/users/' + str(userID),
         'body': params,
@@ -118,7 +121,7 @@ def get_user_attributes(userID: int, offset: int = 0, filter: str = None, limit:
     return api_call
 
 # set custom user attributes (key, value)
-def set_user_attributes(userID: int, params):
+def set_user_attributes(userID: int, params: SetUserAttributes):
     api_call = {
         'url': '/users/' + str(userID) + '/userAttributes',
         'body': params,
@@ -126,6 +129,18 @@ def set_user_attributes(userID: int, params):
         'Content-Type': 'application/json'
     }
     return api_call
+
+
+# update custom user attributes (key, value)
+def update_user_attributes(userID: int, params: UpdateUserAttributes):
+    api_call = {
+        'url': '/users/' + str(userID) + '/userAttributes',
+        'body': params,
+        'method': 'PUT',
+        'Content-Type': 'application/json'
+    }
+    return api_call
+
 
 
 
