@@ -114,12 +114,12 @@ class Dracoon:
         # check for API call with files instead of body - see uploads 
         if api_call.method == "POST" and "files" in api_call:
             api_url = api_call.url
-            if api_call["files"] != None:
+            if api_call.files != None:
                 file_upload_header = {
                     "accept": "application/json",
                     "User-Agent": "dracoon-python-0.1.0"
                 }
-                api_response = requests.post(api_url, headers=file_upload_header, files=api_call["files"])
+                api_response = requests.post(api_url, headers=file_upload_header, files=api_call.files)
             else:
                 raise ValueError('No file to upload provided.')
             return api_response
@@ -158,7 +158,7 @@ class Dracoon:
         # async call handlers for async requests (GET, POST, PUT, DELETE)
     @validate_arguments
     async def async_get(self, api_call: ApiCall, session):
-        self.api_call_headers["Content-Type"] = api_call["content_type"]
+        self.api_call_headers["Content-Type"] = api_call.content_type
         if api_call.method == "GET":
             api_url = self.apiURL + api_call.url
             if api_call.body != None:
@@ -172,18 +172,18 @@ class Dracoon:
     
     @validate_arguments
     async def async_post(self, api_call: ApiCall, session):
-        self.api_call_headers["Content-Type"] = api_call["content_type"]
+        self.api_call_headers["Content-Type"] = api_call.content_type
         if api_call.method == "GET":
             api_url = self.apiURL + api_call.url
             if api_call.body != None:
                 async with session.post(api_url, json=api_call.body, headers=self.api_call_headers) as api_response:
                     return await api_response.text()
-            if "files" in api_call and api_call["files"] != None:
+            if "files" in api_call and api_call.files != None:
 
                 file_upload_header = {
                     "accept": "application/json"
                 }
-                async with session.post(api_url, headers=file_upload_header, files=api_call["files"]) as api_response:
+                async with session.post(api_url, headers=file_upload_header, files=api_call.files) as api_response:
                     return await api_response.text()
             else:
                 async with session.post(api_url, headers=self.api_call_headers) as api_response:
@@ -193,7 +193,7 @@ class Dracoon:
     
     @validate_arguments
     async def async_put(self, api_call: ApiCall, session):
-        self.api_call_headers["Content-Type"] = api_call["content_type"]
+        self.api_call_headers["Content-Type"] = api_call.content_type
         if api_call.method == "GET":
             api_url = self.apiURL + api_call.url
             if api_call.body != None:
@@ -207,7 +207,7 @@ class Dracoon:
     
     @validate_arguments
     async def async_delete(self, api_call: ApiCall, session):
-        self.api_call_headers["Content-Type"] = api_call["content_type"]
+        self.api_call_headers["Content-Type"] = api_call.content_type
         if api_call.method == "GET":
             api_url = self.apiURL + api_call.url
             if api_call.body != None:
