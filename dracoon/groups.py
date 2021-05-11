@@ -15,15 +15,17 @@
 # All requests with bodies use generic params variable to pass JSON body
 
 from typing import List
+from pydantic import validate_arguments
 from .groups_models import CreateGroup, UpdateGroup
 
 # get list of groups
+@validate_arguments
 def get_groups(offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
     api_call = {
             'url': '/groups?offset=' + str(offset),
             'body': None,
             'method': 'GET',
-            'Content-Type': 'application/json'
+            'content_type': 'application/json'
         }
     if filter != None: api_call['url'] += '&filter=' + filter
     if limit != None: api_call['url'] += '&limit=' + str(limit)
@@ -32,78 +34,80 @@ def get_groups(offset: int = 0, filter: str = None, limit: int = None, sort: str
     return api_call
 
 # create a group with given parameters
+@validate_arguments
 def create_group(params: CreateGroup):
     api_call = {
         'url': '/groups',
         'body': params,
         'method': 'POST',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
+
     return api_call
 
 # get group details for given group id
-
-
+@validate_arguments
 def get_user(groupID: int):
     api_call = {
         'url': '/groups/' + str(groupID),
         'body': None,
         'method': 'GET',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     return api_call
 
 # update group's meta data for given group id
-
-
+@validate_arguments
 def update_group(groupID: int, params: UpdateGroup):
     api_call = {
         'url': '/groups/' + str(groupID),
         'body': params,
         'method': 'PUT',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     return api_call
 
 # delete user for given user id
-
-
+@validate_arguments
 def delete_group(groupID: int):
     api_call = {
         'url': '/groups/' + str(groupID),
         'body': None,
         'method': 'DELETE',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     return api_call
 
 # get rooms in which group is last remaining admin (prevents user deletion!)
+@validate_arguments
 def get_group_last_admin_rooms(groupID: int):
     api_call = {
         'url': '/groups/' + str(groupID) + '/last_admin_rooms',
         'body': None,
         'method': 'GET',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     return api_call
 
 # get roles assigned to group
+@validate_arguments
 def get_group_roles(groupID: int):
     api_call = {
         'url': '/groups/' + str(groupID) + '/roles',
         'body': None,
         'method': 'GET',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     return api_call
 
 # get group users
+@validate_arguments
 def get_group_users(groupID: int, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
     api_call = {
             'url': '/groups/' + str(groupID) + '/users?offset=' + str(offset),
             'body': None,
             'method': 'GET',
-            'Content-Type': 'application/json'
+            'content_type': 'application/json'
         }
     
     if filter != None: api_call['url'] += '&filter=' + filter
@@ -113,6 +117,7 @@ def get_group_users(groupID: int, offset: int = 0, filter: str = None, limit: in
     return api_call
 
 # update assigned users (array of user ids) to a group with given group id
+@validate_arguments
 def update_group_users(userIDs: List[int], groupID: int):
     api_call = {
         'url': '/groups/' + str(groupID) + '/users',
@@ -120,11 +125,12 @@ def update_group_users(userIDs: List[int], groupID: int):
             "ids": userIDs
         },
         'method': 'POST',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     return api_call
 
 # delete assigned users (array of user ids) from a group with given group id
+@validate_arguments
 def delete_group_users(userIDs: List[int], groupID: int):
     api_call = {
         'url': '/groups/' + str(groupID) + '/users',
@@ -132,6 +138,6 @@ def delete_group_users(userIDs: List[int], groupID: int):
             "ids": userIDs
         },
         'method': 'DELETE',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     return api_call

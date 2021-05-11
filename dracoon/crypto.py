@@ -6,8 +6,10 @@
 # Part of dracoon Python package
 # ---------------------------------------------------------------------------#
 
+from pydantic import validate_arguments
 from Crypto.PublicKey import RSA
 from .crypto_models import FileKey, PlainUserKeyPairContainer, UserKeyPairContainer, UserKeyPairVersion
+
 
 def encryptPrivateKey(secret: str, plainKey: PlainUserKeyPairContainer) -> UserKeyPairContainer:
     ...

@@ -14,9 +14,11 @@
 # - refer to documentation on how to upload files:
 # https://support.dracoon.com/hc/de/articles/115005512089
 
+from pydantic import validate_arguments, HttpUrl
 
 # upload a file (step 2 of file upload process - to generate an upload url, use nodes.create_upload_channel)
-def upload_file(uploadURL: str, upload_file, contentRange: int = None):
+@validate_arguments
+def upload_file(uploadURL: HttpUrl, upload_file, contentRange: int = None):
     api_call = {
         'url': uploadURL,
         'files': upload_file,
@@ -25,24 +27,26 @@ def upload_file(uploadURL: str, upload_file, contentRange: int = None):
     if contentRange != None: api_call["Content-Range"] = contentRange
     return api_call
 
-# finalie upload - body/params must be empty for public 
-def finalize_upload(uploadURL: str, params=None):
+# finalie upload - body/params must be empty for public
+@validate_arguments
+def finalize_upload(uploadURL: HttpUrl, params=None):
     api_call = {
         'url': uploadURL,
         'files': None,
         'method': 'PUT',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     if params != None: api_call["body"] = params
 
     return api_call
 
 # delete upload request
-def cancel_upload(uploadURL: str):
+@validate_arguments
+def cancel_upload(uploadURL: HttpUrl):
     api_call = {
         'url': uploadURL,
         'files': None,
         'method': 'DELETE',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     return api_call

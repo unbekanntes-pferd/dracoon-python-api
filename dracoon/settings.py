@@ -15,6 +15,7 @@
 # - use documentation for payload description
 # All requests with bodies use generic params variable to pass JSON body
 
+from pydantic import validate_arguments
 from .settings_models import CreateWebhook, UpdateSettings, UpdateWebhook
 
 # get customer settings
@@ -23,27 +24,29 @@ def get_settings():
             'url': '/settings',
             'body': None,
             'method': 'GET',
-            'Content-Type': 'application/json'
+            'content_type': 'application/json'
         }
     return api_call
 
 # get customer settings
+@validate_arguments
 def update_settings(params: UpdateSettings):
     api_call = {
             'url': '/settings',
             'body': params,
             'method': 'PUT',
-            'Content-Type': 'application/json'
+            'content_type': 'application/json'
         }
     return api_call
 
 # get customer webhooks 
+@validate_arguments
 def get_webhooks(offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
     api_call = {
             'url': '/settings/webhooks?offset=' + str(offset),
             'body': None,
             'method': 'GET',
-            'Content-Type': 'application/json'
+            'content_type': 'application/json'
         }
         
     if filter != None: api_call['url'] += '&filter=' + filter
@@ -53,42 +56,46 @@ def get_webhooks(offset: int = 0, filter: str = None, limit: int = None, sort: s
     return api_call
 
 # create a webhook with given parameters - please refer to documentation above
+@validate_arguments
 def create_webhook(params: CreateWebhook):
     api_call = {
         'url': '/settings/webhooks',
         'body': params,
         'method': 'POST',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     return api_call
 
 # get webhook details for given hook id
+@validate_arguments
 def get_webhook(hookID: int):
     api_call = {
         'url': '/settings/webhooks/' + str(hookID),
         'body': None,
         'method': 'GET',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     return api_call
 
 # update webhook data for given hook id
+@validate_arguments
 def update_webhook(hookID: int, params: UpdateWebhook):
     api_call = {
         'url': '/settings/webhooks/' + str(hookID),
         'body': params,
         'method': 'PUT',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     return api_call
 
 # delete webhook for given hook id
+@validate_arguments
 def delete_webhook(hookID: int):
     api_call = {
         'url': '/settings/webhooks/' + str(hookID),
         'body': None,
         'method': 'DELETE',
-        'Content-Type': 'application/json'
+        'content_type': 'application/json'
     }
     return api_call
 
@@ -98,6 +105,6 @@ def get_hook_event_types():
             'url': '/settings/webhooks/event_types',
             'body': None,
             'method': 'GET',
-            'Content-Type': 'application/json'
+            'content_type': 'application/json'
         }
     return api_call
