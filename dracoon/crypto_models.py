@@ -51,9 +51,9 @@ class PrivateKeyContainer(BaseModel):
 
 class UserKeyPairContainer(BaseModel):
     privateKeyContainer: PrivateKeyContainer
-    PublicKeyContainer: PublicKeyContainer
+    publicKeyContainer: PublicKeyContainer
 
 class PlainUserKeyPairContainer(BaseModel):
     privateKeyContainer: PrivateKeyContainer
-    PublicKeyContainer: PublicKeyContainer
+    publicKeyContainer: PublicKeyContainer
 
