@@ -24,15 +24,15 @@ class UserKeyPairVersion(Enum):
 
 # file key AES256
 class FileKey(BaseModel):
-    key: bytes
-    iv: bytes
+    key: str
+    iv: str
     version: FileKeyVersion
-    tag: bytes
+    tag: str
 
 class PlainFileKey(BaseModel):
     version: PlainFileKeyVersion
-    key: bytes
-    iv: bytes
+    key: str
+    iv: str
     tag: Optional[bytes]
 
 class PublicKeyContainer(BaseModel):
