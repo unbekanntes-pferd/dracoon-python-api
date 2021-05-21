@@ -18,7 +18,7 @@ import asyncio
 class Dracoon:
     def __init__(self, clientID: str, clientSecret: str = None):
         self.clientID = clientID
-        self.api_call_headers = {'User-Agent': 'dracoon-python-0.3.0'}
+        self.api_call_headers = {'User-Agent': 'dracoon-python-0.3.2'}
         if clientSecret is not None:
             self.clientSecret = clientSecret
         if clientSecret is None:
@@ -112,7 +112,7 @@ class Dracoon:
             if api_call["files"] != None:
                 file_upload_header = {
                     "accept": "application/json",
-                    "User-Agent": "dracoon-python-0.1.0"
+                    "User-Agent": "dracoon-python-0.3.2"
                 }
                 api_response = requests.post(api_url, headers=file_upload_header, files=api_call["files"])
             else:

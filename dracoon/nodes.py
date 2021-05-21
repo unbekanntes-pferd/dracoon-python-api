@@ -173,9 +173,9 @@ def get_parents(nodeID: int):
 # delete deleted nodes in recycle bin for given array of node ids
 def empty_recyclebin(nodeIDs: List[int]):
     api_call = {
-        'url': '/nodes',
+        'url': '/nodes/deleted_nodes',
         'body': {
-            "nodeIds": nodeIDs
+            "deletedNodeIds": nodeIDs
         },
         'method': 'DELETE',
         'Content-Type': 'application/json'
