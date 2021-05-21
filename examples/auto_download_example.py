@@ -18,6 +18,13 @@ clientID = 'xxxx'
 clientSecret = 'xxxxxx'
 baseURL = 'https://demo.dracoon.com'  # replace with own DRACOON url
 
+# target path to donwload files to
+target_path = '/Users/user.name/test/'
+
+# target node id of room or folder to download from
+targetID = 5757
+INTERVAL = 900 # equals 15 minutes
+
 # create DRACOON object
 my_dracoon = core.Dracoon(clientID)
 my_dracoon.set_URLs(baseURL)
@@ -44,13 +51,6 @@ else:
         print(login_response.text)
     sys.exit()  # exit script if login not successful
 
-# target path to donwload files to
-target_path = '/Users/octavio.simone/test/'
-
-# target node id of room or folder to download from
-targetID = 5757
-INTERVAL = 900
-
 # create empty file list
 
 file_list = []
@@ -63,6 +63,14 @@ r = nodes.get_nodes(parentID=targetID, filter=f)
 
 # send request
 file_response = my_dracoon.get(r)
+
+if file_response.status_code != 200:
+    print(f'Error getting file list: {file_response.status_code}')
+    print(file_response.text)
+    sys.exit()
+elif file_response.status_code == 200:
+    for file in file_response.json()['items']:
+        file_list.append(file)
 
 #get total amount of files
 total_files = file_response.json()['range']['total']
@@ -79,12 +87,15 @@ if total_files > 500:
 for file in file_list:
     # get datetime string up to seconds
     created_at = file["createdAt"][:19]
+    created_at = datetime.strptime(created_at, '%Y-%m-%dT%H:%M:%S')
+    print(created_at)
 
     # get current datetime
-    now = datetime.now()
+    now = datetime.utcnow()
 
     # check if file uploaded within given interval (default 15 minutes)
     delta = now - created_at
+    print(delta)
     if delta.days == 0 and delta.seconds < INTERVAL:
 
         # generate download url
@@ -95,14 +106,17 @@ for file in file_list:
             raise SystemExit(e)
 
         # check if successful
-        if download_response.status_code == 201:
+        if download_response.status_code == 200:
             download_url = download_response.json()["downloadUrl"]
+
         
         # error handling (skip to next file)
         else:
             print(f'Error getting download URL for file {file["name"]}')
             print(download_response.status_code)
             continue
+
+        print(download_url)
        
        # get file content 
         try:
