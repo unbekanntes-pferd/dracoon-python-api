@@ -190,9 +190,9 @@ def get_parents(nodeID: int):
 @validate_arguments
 def empty_recyclebin(nodeIDs: List[int]):
     api_call = {
-        'url': '/nodes',
+        'url': '/nodes/deleted_nodes',
         'body': {
-            "nodeIds": nodeIDs
+            "deletedNodeIds": nodeIDs
         },
         'method': 'DELETE',
         'content_type': 'application/json'

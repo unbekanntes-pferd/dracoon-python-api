@@ -13,13 +13,14 @@ import base64  # base64 encode
 from pydantic import validate_arguments, HttpUrl
 from .core_models import ApiCall, CallMethod
 
-USER_AGENT = 'dracoon-python-0.3.0'
+USER_AGENT = 'dracoon-python-0.3.2'
 
 
 # define DRACOON class object with specific variables (clientID, clientSecret optional)
 class Dracoon:
     def __init__(self, clientID: str, clientSecret: str = None):
         self.clientID = clientID
+
         self.api_call_headers = {'User-Agent': USER_AGENT}
         if clientSecret is not None:
             self.clientSecret = clientSecret
@@ -119,7 +120,9 @@ class Dracoon:
             if api_call.files != None:
                 file_upload_header = {
                     "accept": "application/json",
+
                     "User-Agent": USER_AGENT
+
                 }
                 api_response = requests.post(api_url, headers=file_upload_header, files=api_call.files)
             else:

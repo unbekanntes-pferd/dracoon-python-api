@@ -1,16 +1,15 @@
 # ---------------------------------------------------------------------------#
 # DRACOON API Python examples
-# Example checks for new files and downloads them to target path
+# Example checks for files older than 90 days and deletes them (based on
+# upload into DRACOON (!))
 # Requires dracoon package
-# Author: Octavio Simone, 28.04.2021
+# Author: Octavio Simone, 21.05.2021
 # ---------------------------------------------------------------------------#
 
 from dracoon import core, nodes
 import sys
 import getpass
-import os
-import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # replace with client id from OAuth app - for Cloud you can use dracoon_legacy_scripting if enabled in apps
 clientID = 'xxxx'
@@ -18,12 +17,10 @@ clientID = 'xxxx'
 clientSecret = 'xxxxxx'
 baseURL = 'https://demo.dracoon.com'  # replace with own DRACOON url
 
-# target path to donwload files to
-target_path = '/Users/user.name/test/'
 
 # target node id of room or folder to download from
-targetID = 5757
-INTERVAL = 900 # equals 15 minutes
+targetID = 8888
+INTERVAL = 90 # 90 days
 
 # create DRACOON object
 my_dracoon = core.Dracoon(clientID)
@@ -51,15 +48,16 @@ else:
         print(login_response.text)
     sys.exit()  # exit script if login not successful
 
-# create empty file list
+# create empty file lists (file list for all files, expired files for all expired files)
 
 file_list = []
+expired_files = []
 
 # filter for files created for given time interval
 f = 'type:eq:file'
 
 # build request to get nodes
-r = nodes.get_nodes(parentID=targetID, filter=f)
+r = nodes.search_nodes(parentID=targetID, filter=f, search='*', depthLevel=-1)
 
 # send request
 file_response = my_dracoon.get(r)
@@ -83,51 +81,74 @@ if total_files > 500:
         for file in file_response.json()['items']:
             file_list.append(file)
 
+
+
 # iterate through list and download only files within given timeframe (example: 900 seconds = 15 minutes interval)
 for file in file_list:
     # get datetime string up to seconds
     created_at = file["createdAt"][:19]
     created_at = datetime.strptime(created_at, '%Y-%m-%dT%H:%M:%S')
-    print(created_at)
 
     # get current datetime
     now = datetime.utcnow()
 
     # check if file uploaded within given interval (default 15 minutes)
     delta = now - created_at
-    if delta.days == 0 and delta.seconds < INTERVAL:
 
-        # generate download url
-        r = nodes.get_download_url(nodeID=file["id"])
-        try:
-            download_response = my_dracoon.post(r)
-        except core.requests.exceptions.RequestException as e:
-            raise SystemExit(e)
+    if delta.days >= 90:
+        print(f'File {file["name"]} expired and will be deleted.')
+        expired_files.append(file["id"])
 
-        # check if successful
-        if download_response.status_code == 200:
-            download_url = download_response.json()["downloadUrl"]
+
+# generate delete request
+r = nodes.delete_nodes(expired_files)
+try:
+    delete_response = my_dracoon.delete(r)
+except core.requests.exceptions.RequestException as e:
+    raise SystemExit(e)
+
+# check if successful
+if delete_response.status_code == 204:
+    print(f'Files moved to recycle bin.')
+    r = nodes.empty_recyclebin(nodeIDs=expired_files)
+    recyclebin_response = my_dracoon.delete(r)
+    if recyclebin_response.status_code == 204:
+        print(f'Files removed from recycle bin.')
+    else: 
+        print('Error emptying recycle bin.')
+        print(recyclebin_response.status_code)
+        print(recyclebin_response.text)
+else:
+    print('Error deleting files.')
+    print(delete_response.status_code)
+    print(delete_response.text)
+
+
+
 
         
-        # error handling (skip to next file)
-        else:
-            print(f'Error getting download URL for file {file["name"]}')
-            print(download_response.status_code)
-            continue
+
+        
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
        
-       # get file content 
-        try:
-            file_response = requests.get(download_url)
-        except core.requests.exceptions.RequestException as e:
-            raise SystemExit(e)
+ 
 
-        # create file name with given path
-        file_name = target_path + file["name"]
-
-        # write file to path
-        open(file_name, 'wb').write(file_response.content)
-        print(f'File {file["name"]} downloaded to {target_path}')
-
+        
 
 
 
