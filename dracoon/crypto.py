@@ -19,8 +19,8 @@ import base64
 def encrypt_private_key(secret: str, plain_key: PlainUserKeyPairContainer) -> UserKeyPairContainer:
     
     # load plain private key 
-    private_key_pem = plain_key["privateKeyContainer"]["privateKey"]
-    private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(data=private_key_pem)
+    private_key_pem = plain_key.privateKeyContainer.privateKey
+    private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(data=private_key_pem.encode('ascii'), password=None)
 
     # serialize key with passphrase (secret)
     encrypted_private_key = private_key.private_bytes(encoding=serialization.Encoding.PEM,
@@ -126,7 +126,7 @@ def create_file_key(version: PlainFileKeyVersion) -> PlainFileKey:
 def encrypt_file_key(plain_fileKey: PlainFileKey, keypair: PlainUserKeyPairContainer) -> FileKey:
 
     private_key_pem = keypair["privateKeyContainer"]["privateKey"]
-    private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(data=private_key_pem)
+    private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(data=private_key_pem.encode('ascii'), password=None)
     public_key = private_key.public_key()
 
     # check correct version
