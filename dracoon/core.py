@@ -10,15 +10,18 @@
 import json  # handle JSON
 import requests  # HTTP requests
 import base64  # base64 encode
-import mimetypes
-import aiohttp
-import asyncio
+from pydantic import validate_arguments, HttpUrl
+from .core_models import ApiCall, CallMethod
+
+USER_AGENT = 'dracoon-python-0.3.2'
+
 
 # define DRACOON class object with specific variables (clientID, clientSecret optional)
 class Dracoon:
     def __init__(self, clientID: str, clientSecret: str = None):
         self.clientID = clientID
-        self.api_call_headers = {'User-Agent': 'dracoon-python-0.3.2'}
+
+        self.api_call_headers = {'User-Agent': USER_AGENT}
         if clientSecret is not None:
             self.clientSecret = clientSecret
         if clientSecret is None:
@@ -26,16 +29,19 @@ class Dracoon:
     
 
     # generate URls necessary for API calls based on passed baseURL
-    def set_URLs(self, baseURL: str):
+    @validate_arguments
+    def set_URLs(self, baseURL: HttpUrl):
         self.baseURL = baseURL
         self.apiURL = baseURL + '/api/v4'
 
     # pass oauth token - needed for OAuth2 three-legged flow
+    @validate_arguments
     def pass_oauth_token(self, oauth_token: str):
         self.api_call_headers["Authorization"] = 'Bearer ' + oauth_token
 
     # authenticate via basic auth (local, AD) - if initiated without clientSecret, perform Basic auth, else authorize
     # via clientID & clientSecret
+    @validate_arguments
     def basic_auth(self, userName: str, userPassword: str):
         data = {'grant_type': 'password', 'username': userName, 'password': userPassword}
         token_url = self.baseURL + '/oauth/token'
@@ -59,6 +65,7 @@ class Dracoon:
         return self.baseURL + f'/oauth/authorize?branding=full&response_type=code&client_id={self.clientID}&redirect_uri={self.baseURL}/oauth/callback&scope=all'
 
     # authenticate via code
+    @validate_arguments
     def oauth_code_auth(self, code: str):
         data = {'grant_type': 'authorization_code', 'code': code, 'client_id': self.clientID, 'client_secret': self.clientSecret, 'redirect_uri': self.baseURL + '/oauth/callback'}
         token_url = self.baseURL + '/oauth/token'
@@ -85,63 +92,69 @@ class Dracoon:
 
          
     # call handlers for GET, POST, PUT, DELETE 
-    def get(self, api_call):
-        self.api_call_headers["Content-Type"] = api_call["Content-Type"]
-        if api_call["method"] == "GET":
-            api_url = self.apiURL + api_call["url"]
-            if api_call["body"] != None:
-                api_response = requests.get(api_url, json=api_call["body"], headers=self.api_call_headers)
+    @validate_arguments
+    def get(self, api_call: ApiCall):
+        self.api_call_headers["Content-Type"] = api_call.content_type
+        if api_call.method == CallMethod.GET:
+            api_url = self.apiURL + api_call.url
+            if api_call.body != None:
+                api_response = requests.get(api_url, json=api_call.body, headers=self.api_call_headers)
             else:
                 api_response = requests.get(api_url, headers=self.api_call_headers)
             return api_response
         else:
             raise TypeError('Invalid request method.')
-
-    def post(self, api_call):
-        if api_call["method"] == "POST" and "body" in api_call:
-            self.api_call_headers["Content-Type"] = api_call["Content-Type"]
-            api_url = self.apiURL + api_call["url"]
-            if api_call["body"] != None:
-                api_response = requests.post(api_url, json=api_call["body"], headers=self.api_call_headers)
+    @validate_arguments
+    def post(self, api_call: ApiCall):
+        if api_call.method == CallMethod.POST and hasattr(api_call, 'body'):
+            self.api_call_headers["Content-Type"] = api_call.content_type
+            api_url = self.apiURL + api_call.url
+            if api_call.body != None:
+                api_response = requests.post(api_url, json=api_call.body, headers=self.api_call_headers)
             else:
                 api_response = requests.post(api_url, headers=self.api_call_headers)
             return api_response
         # check for API call with files instead of body - see uploads 
-        if api_call["method"] == "POST" and "files" in api_call:
-            api_url = api_call["url"]
-            if api_call["files"] != None:
+        if api_call.method == CallMethod.POST and hasattr(api_call, 'files'):
+            api_url = api_call.url
+            if api_call.files != None:
                 file_upload_header = {
                     "accept": "application/json",
-                    "User-Agent": "dracoon-python-0.3.2"
+
+                    "User-Agent": USER_AGENT
+
                 }
-                api_response = requests.post(api_url, headers=file_upload_header, files=api_call["files"])
+                api_response = requests.post(api_url, headers=file_upload_header, files=api_call.files)
             else:
                 raise ValueError('No file to upload provided.')
             return api_response
+        
         else:
             raise TypeError('Invalid request method.')
-
-    def put(self, api_call):
-        self.api_call_headers["Content-Type"] = api_call["Content-Type"]
-        if api_call["method"] == "PUT":
-            if "body" in api_call: api_url = self.apiURL + api_call["url"] 
-            if "files" in api_call: api_url = api_call["url"]
-            if api_call["body"] != None:
-                api_response = requests.put(api_url, json=api_call["body"], headers=self.api_call_headers)
+    
+    @validate_arguments
+    def put(self, api_call: ApiCall):
+        self.api_call_headers["Content-Type"] = api_call.content_type
+        if api_call.method == "PUT":
+            if "body" in api_call: api_url = self.apiURL + api_call.url 
+            if "files" in api_call: api_url = api_call.url
+            if api_call.body != None:
+                api_response = requests.put(api_url, json=api_call.body, headers=self.api_call_headers)
             else:
                 api_response = requests.put(api_url, headers=self.api_call_headers)
             return api_response
         else:
             raise TypeError('Invalid request method.')
 
-    def delete(self, api_call):
-        self.api_call_headers["Content-Type"] = api_call["Content-Type"]
-        if api_call["method"] == "DELETE":
-            if "body" in api_call: api_url = self.apiURL + api_call["url"] 
-            if "files" in api_call: api_url = api_call["url"]
+    @validate_arguments
+    def delete(self, api_call: ApiCall):
+        self.api_call_headers["Content-Type"] = api_call.content_type
+        if api_call.method == "DELETE":
+            if "body" in api_call: api_url = self.apiURL + api_call.url 
+            if "files" in api_call: api_url = api_call.url
 
-            if api_call["body"] != None:
-                api_response = requests.delete(api_url, json=api_call["body"], headers=self.api_call_headers)
+            if api_call.body != None:
+                api_response = requests.delete(api_url, json=api_call.body, headers=self.api_call_headers)
             else:
                 api_response = requests.delete(api_url, headers=self.api_call_headers)
             return api_response
@@ -149,58 +162,62 @@ class Dracoon:
             raise TypeError('Invalid request method.')
 
         # async call handlers for async requests (GET, POST, PUT, DELETE)
-    async def async_get(self, api_call, session):
-        self.api_call_headers["Content-Type"] = api_call["Content-Type"]
-        if api_call["method"] == "GET":
-            api_url = self.apiURL + api_call["url"]
-            if api_call["body"] != None:
-                async with session.get(api_url, json=api_call["body"], headers=self.api_call_headers) as api_response:
+    @validate_arguments
+    async def async_get(self, api_call: ApiCall, session):
+        self.api_call_headers["Content-Type"] = api_call.content_type
+        if api_call.method == "GET":
+            api_url = self.apiURL + api_call.url
+            if api_call.body != None:
+                async with session.get(api_url, json=api_call.body, headers=self.api_call_headers) as api_response:
                     return await api_response.text()
             else:
                 async with session.get(api_url, headers=self.api_call_headers) as api_response:
                     return await api_response.text()  
         else:
             raise TypeError('Invalid request method.')
-
-    async def async_post(self, api_call, session):
-        self.api_call_headers["Content-Type"] = api_call["Content-Type"]
-        if api_call["method"] == "GET":
-            api_url = self.apiURL + api_call["url"]
-            if api_call["body"] != None:
-                async with session.post(api_url, json=api_call["body"], headers=self.api_call_headers) as api_response:
+    
+    @validate_arguments
+    async def async_post(self, api_call: ApiCall, session):
+        self.api_call_headers["Content-Type"] = api_call.content_type
+        if api_call.method == "GET":
+            api_url = self.apiURL + api_call.url
+            if api_call.body != None:
+                async with session.post(api_url, json=api_call.body, headers=self.api_call_headers) as api_response:
                     return await api_response.text()
-            if "files" in api_call and api_call["files"] != None:
+            if "files" in api_call and api_call.files != None:
 
                 file_upload_header = {
                     "accept": "application/json"
                 }
-                async with session.post(api_url, headers=file_upload_header, files=api_call["files"]) as api_response:
+                async with session.post(api_url, headers=file_upload_header, files=api_call.files) as api_response:
                     return await api_response.text()
             else:
                 async with session.post(api_url, headers=self.api_call_headers) as api_response:
                     return await api_response.text()  
         else:
             raise TypeError('Invalid request method.')
-
-    async def async_put(self, api_call, session):
-        self.api_call_headers["Content-Type"] = api_call["Content-Type"]
-        if api_call["method"] == "GET":
-            api_url = self.apiURL + api_call["url"]
-            if api_call["body"] != None:
-                async with session.put(api_url, json=api_call["body"], headers=self.api_call_headers) as api_response:
+    
+    @validate_arguments
+    async def async_put(self, api_call: ApiCall, session):
+        self.api_call_headers["Content-Type"] = api_call.content_type
+        if api_call.method == "GET":
+            api_url = self.apiURL + api_call.url
+            if api_call.body != None:
+                async with session.put(api_url, json=api_call.body, headers=self.api_call_headers) as api_response:
                     return await api_response.text()
             else:
                 async with session.put(api_url, headers=self.api_call_headers) as api_response:
                     return await api_response.text()  
         else:
             raise TypeError('Invalid request method.')
-
-    async def async_delete(self, api_call, session):
-        self.api_call_headers["Content-Type"] = api_call["Content-Type"]
-        if api_call["method"] == "GET":
-            api_url = self.apiURL + api_call["url"]
-            if api_call["body"] != None:
-                async with session.delete(api_url, json=api_call["body"], headers=self.api_call_headers) as api_response:
+    
+    @validate_arguments
+    async def async_delete(self, api_call: ApiCall, session):
+        self.api_call_headers["Content-Type"] = api_call.content_type
+        if api_call.method == "GET":
+            api_url = self.apiURL + api_call.url
+            if api_call.body != None:
+                async with session.delete(api_url, json=api_call.body, headers=self.api_call_headers) as api_response:
                     return await api_response.text()
             else:
                 async with session.delete(api_url, headers=self.api_call_headers) as api_response:
