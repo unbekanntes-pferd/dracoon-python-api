@@ -236,7 +236,7 @@ def update_file(nodeID: int, params: UpdateFiles):
 @validate_arguments
 def get_download_url(nodeID: int):
     api_call = {
-        'url': '/nodes/files' + str(nodeID) + '/downloads',
+        'url': '/nodes/files/' + str(nodeID) + '/downloads',
         'body': None,
         'method': 'POST',
         'content_type': 'application/json'

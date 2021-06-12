@@ -13,12 +13,14 @@ import base64  # base64 encode
 from pydantic import validate_arguments, HttpUrl
 from .core_models import ApiCall, CallMethod
 
+USER_AGENT = 'dracoon-python-0.3.0'
+
 
 # define DRACOON class object with specific variables (clientID, clientSecret optional)
 class Dracoon:
     def __init__(self, clientID: str, clientSecret: str = None):
         self.clientID = clientID
-        self.api_call_headers = {'User-Agent': 'dracoon-python-0.3.0'}
+        self.api_call_headers = {'User-Agent': USER_AGENT}
         if clientSecret is not None:
             self.clientSecret = clientSecret
         if clientSecret is None:
@@ -103,7 +105,7 @@ class Dracoon:
             raise TypeError('Invalid request method.')
     @validate_arguments
     def post(self, api_call: ApiCall):
-        if api_call.method == CallMethod.POST and "body" in api_call:
+        if api_call.method == CallMethod.POST and hasattr(api_call, 'body'):
             self.api_call_headers["Content-Type"] = api_call.content_type
             api_url = self.apiURL + api_call.url
             if api_call.body != None:
@@ -112,17 +114,18 @@ class Dracoon:
                 api_response = requests.post(api_url, headers=self.api_call_headers)
             return api_response
         # check for API call with files instead of body - see uploads 
-        if api_call.method == "POST" and "files" in api_call:
+        if api_call.method == CallMethod.POST and hasattr(api_call, 'files'):
             api_url = api_call.url
             if api_call.files != None:
                 file_upload_header = {
                     "accept": "application/json",
-                    "User-Agent": "dracoon-python-0.1.0"
+                    "User-Agent": USER_AGENT
                 }
                 api_response = requests.post(api_url, headers=file_upload_header, files=api_call.files)
             else:
                 raise ValueError('No file to upload provided.')
             return api_response
+        
         else:
             raise TypeError('Invalid request method.')
     
