@@ -14,6 +14,7 @@
 # - refer to documentation on how to upload files:
 # https://support.dracoon.com/hc/de/articles/115005512089
 
+from .uploads_models import FinalizeUpload
 from pydantic import validate_arguments, HttpUrl
 
 # upload a file (step 2 of file upload process - to generate an upload url, use nodes.create_upload_channel)
@@ -29,7 +30,7 @@ def upload_file(uploadURL: HttpUrl, upload_file, contentRange: int = None):
 
 # finalie upload - body/params must be empty for public
 @validate_arguments
-def finalize_upload(uploadURL: HttpUrl, params=None):
+def finalize_upload(uploadURL: HttpUrl, params: FinalizeUpload=None):
     api_call = {
         'url': uploadURL,
         'files': None,
