@@ -39,6 +39,8 @@ https://dracoon.team/api/
 * [Python 3.7.3](https://www.python.org/)
 * [requests module](https://requests.readthedocs.io/en/master/)
 * [aiohttp module](https://docs.aiohttp.org/en/stable/)
+* [cryptography](https://cryptography.io/en/latest/)
+* [pydantic](https://pydantic-docs.helpmanual.io/)
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -87,10 +89,22 @@ Please note: providing a client secret is optional (in order to use with OAuth a
 
 
 ### Authentication
+
+#### Password flow
 ```
 login_response = my_dracoon.basic_auth(username, password)
 ```
 Please note: you can only authenticate if OAuth app is correctly configured. Only local accounts can be used via password flow.
+
+#### Authorization code flow
+```
+print(my_dracoon.get_code_url())
+auth_code = 'Your auth code' # input('Enter auth code:')
+login_response = my_dracoon.oauth_code_auth(username, password)
+```
+Please note: you can only authenticate if OAuth app is correctly configured. You will need a custom app with authorization code enabled and you will need to set your redirect uri to https://your.domain.com/oauth/callback 
+
+
 
 ### Send requests
 
