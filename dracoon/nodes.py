@@ -16,7 +16,7 @@
 
 from typing import List
 from pydantic import validate_arguments
-from .nodes_models import ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, ProcessRoomPendingUsers, SetFileKeys, TransferNode, CommentNode, RestoreNode, UpdateFiles, UpdateFolder, UpdateRoom, UpdateRoomGroups, UpdateRoomHooks, UpdateRoomUsers
+from .nodes_models import ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, ProcessRoomPendingUsers, SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFiles, UpdateFolder, UpdateRoom, UpdateRoomGroups, UpdateRoomHooks, UpdateRoomUsers
 
 @validate_arguments
 def get_nodes(roomManager: str = 'false', parentID: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):

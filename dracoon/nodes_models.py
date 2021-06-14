@@ -33,7 +33,7 @@ class SetFileKeysItem(BaseModel):
 
 # required payload for POST /nodes/files/keys
 class SetFileKeys(BaseModel):
-    List[SetFileKeysItem]
+    items: List[SetFileKeysItem]
 
 class Expiration(BaseModel):
     enableExpiration: bool

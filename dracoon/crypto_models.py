@@ -27,13 +27,13 @@ class FileKey(BaseModel):
     key: str
     iv: str
     version: FileKeyVersion
-    tag: str
+    tag: Optional[str]
 
 class PlainFileKey(BaseModel):
     version: PlainFileKeyVersion
     key: str
     iv: str
-    tag: Optional[bytes]
+    tag: Optional[str]
 
 class PublicKeyContainer(BaseModel):
     version: UserKeyPairVersion
