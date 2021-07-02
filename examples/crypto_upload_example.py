@@ -87,10 +87,6 @@ enc_file_key = crypto.encrypt_file_key(
 
 _file.close()
 
-upload_file = {
-    'file': enc_bytes
-}
-
 # obtain file size for upload
 filesize = os.stat(FILENAME).st_size
 
@@ -113,39 +109,50 @@ except core.requests.exceptions.RequestException as e:
 # use upload URL to upload file if upload channel successful
 if upload_channel.status_code == 201:
     uploadURL = upload_channel.json()["uploadUrl"]
-    r = uploads.upload_file(uploadURL, upload_file)
-    try:
-        upload_response = dracoon.post(r)
-    except core.requests.exceptions.RequestException as e:
-        print('An error ocurred with the file upload.')
-        raise SystemExit(e)
 
-    # finalize upload or exit on error
-    if upload_response.status_code == 201:
-        params = {
-            "resolutionStrategy": "autorename",
-            "keepShareLinks": False,
-            "fileName": FILENAME,
-            "fileKey": enc_file_key,
-            "userFileKeyList": { 
-                "items": [
-                {
-                 "fileKey": enc_file_key,
-                 "userId": user_id
-                }
-            ]
-            }
+    for chunk in range(0, filesize, CHUNK_SIZE):
+
+        upload_file = {
+                        'file': enc_bytes[chunk:chunk+CHUNK_SIZE]
         }
-        r = uploads.finalize_upload(uploadURL, params)
-        upload_channel = dracoon.put(r)
 
-        print(f'File uploaded: {upload_channel.status_code}')
-        print(f"Success: {FILENAME} uploaded to parent ID {TARGET}.")
-        # error on uploading file
-    else:
-        print(f'Error uploading file: {upload_response.status_code}')
-        print(f'Details: {upload_response.text}')
-        # error on getting upload channel
+        content_range = f'bytes {chunk}-{chunk+CHUNK_SIZE}/{filesize}'
+
+
+        r = uploads.upload_file(uploadURL=uploadURL, upload_file=upload_file, content_range=content_range,content_length=CHUNK_SIZE)
+        try:
+            upload_response = dracoon.post(r)
+        except core.requests.exceptions.RequestException as e:
+            print('An error ocurred with the file upload.')
+            raise SystemExit(e)
+
+        # finalize upload or exit on error
+        if upload_response.status_code == 201:
+            print(f"Uploaded chunk {chunk}")
+            params = {
+                "resolutionStrategy": "autorename",
+                "keepShareLinks": False,
+                "fileName": FILENAME,
+                "fileKey": enc_file_key,
+                "userFileKeyList": { 
+                    "items": [
+                    {
+                    "fileKey": enc_file_key,
+                    "userId": user_id
+                    }
+                ]
+                }
+            }
+            r = uploads.finalize_upload(uploadURL, params)
+            upload_channel = dracoon.put(r)
+
+            print(f'File uploaded: {upload_channel.status_code}')
+            print(f"Success: {FILENAME} uploaded to parent ID {TARGET}.")
+            # error on uploading file
+        else:
+            print(f'Error uploading file: {upload_response.status_code}')
+            print(f'Details: {upload_response.text}')
+            # error on getting upload channel
 else:
     print(f'Error finalizing upload: {upload_channel.status_code}')
     print(f'Details: {upload_channel.text}')

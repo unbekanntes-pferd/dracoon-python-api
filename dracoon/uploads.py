@@ -19,13 +19,14 @@ from pydantic import validate_arguments, HttpUrl
 
 # upload a file (step 2 of file upload process - to generate an upload url, use nodes.create_upload_channel)
 @validate_arguments
-def upload_file(uploadURL: HttpUrl, upload_file, contentRange: int = None):
+def upload_file(uploadURL: HttpUrl, upload_file, content_range: int = None, content_length: int = None):
     api_call = {
         'url': uploadURL,
         'files': upload_file,
         'method': 'POST'
     }
-    if contentRange != None: api_call["Content-Range"] = contentRange
+    if content_range != None: api_call["Content-Range"] = content_range
+    if content_length != None: api_call["Content-Length"] = content_length
     return api_call
 
 # finalie upload - body/params must be empty for public

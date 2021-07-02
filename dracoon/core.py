@@ -13,7 +13,7 @@ import base64  # base64 encode
 from pydantic import validate_arguments, HttpUrl
 from .core_models import ApiCall, CallMethod, model_to_JSON
 
-USER_AGENT = 'dracoon-python-0.4.0'
+USER_AGENT = 'dracoon-python-0.4.1'
 
 # define DRACOON class object with specific variables (clientID, clientSecret optional)
 class Dracoon:
@@ -105,6 +105,12 @@ class Dracoon:
             raise TypeError('Invalid request method.')
     
     def post(self, api_call: ApiCall):
+        if "Content-Range" in api_call and "Content-Length" in api_call:
+            self.api_call_headers["Content-Range"] = api_call["Content-Range"]
+            self.api_call_headers["Content-Length"] = api_call["Content-Length"]
+        else:
+            self.api_call_headers.pop("Content-Range", None)
+            self.api_call_headers.pop("Content-Length", None)
         if api_call["method"] == CallMethod.POST.value and 'body' in api_call:
             self.api_call_headers["Content-Type"] = api_call["content_type"]
             api_url = self.apiURL + api_call["url"]
