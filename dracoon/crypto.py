@@ -122,7 +122,7 @@ def create_file_key(version: FileKeyVersion) -> PlainFileKey:
     key = os.urandom(32)
     iv = os.urandom(12)
 
-    # base64 encode both strings
+    # base64 encode
     encoded_key = base64.b64encode(key)
     encoded_iv = base64.b64encode(iv)
 
