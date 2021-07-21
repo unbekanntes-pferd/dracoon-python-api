@@ -107,8 +107,6 @@ with open('csv_import.csv', 'r') as f:
             "inheritPermissions": False
         }
 
-
-
             r = nodes.create_room(params)
             try:
                 room_response = my_dracoon.post(r)

@@ -1,5 +1,5 @@
 # ignore Python cache, legacy files and package builds for PyPi
-
+/venv
 /test.py
 /setup.py
 /dracoon/__pycache__

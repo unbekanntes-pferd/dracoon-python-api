@@ -1,3 +1,4 @@
+from io import StringIO
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
@@ -13,6 +14,15 @@ class UserAuthData(BaseModel):
     mustChangePassword: Optional[bool]
     adConfigId: Optional[int]
     oidConfigId: Optional[str]
+
+class UserAuthMethodOption(BaseModel):
+    key: str
+    value: str
+
+class UserAuthMethod(BaseModel):
+    authId: str
+    isEnabled: bool
+    options: Optional[List[UserAuthMethodOption]]
 
 # required payload for POST /users
 class CreateUser(BaseModel):
@@ -38,6 +48,7 @@ class UpdateUser(BaseModel):
     receiverLanguage: Optional[str]
     email: Optional[str]
     authData: Optional[UserAuthData]
+    authMethods: Optional[List[UserAuthMethod]]
     isNonmemberViewer: Optional[bool]
 
 class AttributeEntry(BaseModel):

@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------#
 # DRACOON API Python examples
-# Switch LTS users to OpenID (requires version 4.12 LTS 2019-1)
+# Switch LTS users to OpenID 
 # Requires dracoon package
 # Author: Octavio Simone, 12.05.2021
 # ---------------------------------------------------------------------------#
@@ -44,24 +44,18 @@ else:
         print(login_response.text)
 
 # filter for specific domain 
-f = 'login:cn:@domain.com'
+f = 'userName:cn:@domain.com'
 
 r = users.get_users(offset=0, filter=f)
 user_list = []
 
 user_response = my_dracoon.get(r)
 
-mail_list = ["@geigergruppe.de", "geiger.ro"]
-
-
-
 # if call successful, check if user count exceeds 500 and fill list
 if user_response.status_code == 200:
     total_users = user_response.json()["range"]["total"]
     for user in user_response.json()['items']:
-        if user["email"].split("@")[1] in mail_list:
-            user_list.append(user)
-
+        user_list.append(user)
     print('Added users to list.')
     print(f'User count: {total_users}')
     if total_users > 500:
@@ -83,23 +77,11 @@ for user in user_list:
     # payload for LTS 2019-1 version (4.12)
     params = {
 
-        "authMethods": [
-            
-            {
-                "authId": "openid",
-                "isEnabled": True,
-                "options": [
-                    {
-                        "key": "openid_config_id",
-                        "value": "1"
-                    },
-                    {
-                        "key": "username",
-                        "value": user["email"]
-                    }
-                ]
-            }
-        ]
+        "authData": {
+            "method": "openid",
+            "login": user["email"],
+            "oidConfigId": oidc_id
+        }
     }
 
     # create and send rquest to update user auth info
