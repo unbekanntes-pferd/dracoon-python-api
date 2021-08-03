@@ -100,7 +100,7 @@ for room in room_list:
         ]
     }
 
-    r = nodes.update_room_users()
+    r = nodes.update_room_users(nodeID=room["id"], params=params)
 
     config_response = my_dracoon.put(r)
     if config_response.status_code == 200:
