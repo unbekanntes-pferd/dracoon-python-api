@@ -130,11 +130,11 @@ class UpdateRoomGroupItem(UpdateRoomUserItem):
 
 # required payload for PUT /nodes/rooms/{room_id}/groups
 class UpdateRoomGroups(BaseModel):
-    items: UpdateRoomGroupItem
+    items: List[UpdateRoomGroupItem]
 
 # required payload for PUT /nodes/rooms/{room_id}/users
 class UpdateRoomUsers(BaseModel):
-    items: UpdateRoomUserItem
+    items: List[UpdateRoomUserItem]
 
 class UpdateRoomHookItem(BaseModel):
     webhookId: int
@@ -142,7 +142,7 @@ class UpdateRoomHookItem(BaseModel):
 
 # required payload for PUT /nodes/rooms/{room_id}/webhooks
 class UpdateRoomHooks(BaseModel):
-    items: UpdateRoomHookItem
+    items: List[UpdateRoomHookItem]
 
 
 class ProcessRoomPendingItem(BaseModel):
@@ -154,7 +154,7 @@ class ProcessRoomPendingItem(BaseModel):
 
 # required payload for PUT /nodes/rooms/{room_id}/pending
 class ProcessRoomPendingUsers(BaseModel):
-    items: ProcessRoomPendingItem
+    items: List[ProcessRoomPendingItem]
 
 
 
