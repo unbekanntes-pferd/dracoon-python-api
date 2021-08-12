@@ -43,6 +43,7 @@ else:
         print(login_response.text)
     sys.exit() # exit script if login not successful 
 
+AUTH_ID = [1, 2, 3, 4, 5, 6, 84, 85, 86]
 
 # create list for rooms
 event_list = []
@@ -64,7 +65,7 @@ except core.requests.exceptions.RequestException as e:
 if event_response.status_code == 200:
     total_events = event_response.json()["range"]["total"]
     for event in event_response.json()['items']:
-        if "AUTH" in event["operationName"]:
+        if event["operationId"] in AUTH_ID:
             continue
         else:
            event_list.append(event)
@@ -171,7 +172,7 @@ print(
 # create CSV in current directory, write header, iterate through results
 with open(inactive_fileName, 'w', encoding='utf-8', newline='') as f:
     csv_writer = csv.writer(f, delimiter=',')
-    csv_writer.writerow(['userName', 'email', 'firstName', 'lastName', 'lastLogin' ])
+    csv_writer.writerow(['id', 'userName', 'email', 'firstName', 'lastName', 'lastLogin' ])
 
     for user in inactive_user_list:
 
@@ -183,7 +184,7 @@ with open(inactive_fileName, 'w', encoding='utf-8', newline='') as f:
             lastLogin = "Never logged in."
 
 
-        csv_writer.writerow([user["userName"], user["email"], user["firstName"], user["lastName"], lastLogin])
+        csv_writer.writerow([user["id"], user["userName"], user["email"], user["firstName"], user["lastName"], lastLogin])
 
 print(
     f'CSV report of inactive users from {date_start} to {date_end} saved in ' + os.getcwd() + '/' + inactive_fileName)
