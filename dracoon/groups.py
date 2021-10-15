@@ -17,6 +17,7 @@
 from typing import List
 from pydantic import validate_arguments
 from .groups_models import CreateGroup, UpdateGroup
+from .core_models import IDList
 
 # get list of groups
 @validate_arguments
@@ -131,12 +132,10 @@ def update_group_users(userIDs: List[int], groupID: int):
 
 # delete assigned users (array of user ids) from a group with given group id
 @validate_arguments
-def delete_group_users(userIDs: List[int], groupID: int):
+def delete_group_users(params: IDList, groupID: int):
     api_call = {
         'url': '/groups/' + str(groupID) + '/users',
-        'body': {
-            "ids": userIDs
-        },
+        'body': params,
         'method': 'DELETE',
         'content_type': 'application/json'
     }

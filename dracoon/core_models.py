@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Any, Optional
+from typing import Any, Optional, List
 from enum import Enum
 import json
 
@@ -16,6 +16,13 @@ class ApiCall(BaseModel):
     method: CallMethod
     content_type: Optional[str]
 
+class ApiDestination(Enum):
+    Core = 'core'
+    Reporting = 'reporting'
+    Branding = 'branding'
+
+class IDList(BaseModel):
+    ids: List[int]
 
 def model_to_JSON(model: BaseModel):
 

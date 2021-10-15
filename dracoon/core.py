@@ -11,9 +11,9 @@ import json  # handle JSON
 import requests  # HTTP requests
 import base64  # base64 encode
 from pydantic import validate_arguments, HttpUrl
-from .core_models import ApiCall, CallMethod, model_to_JSON
+from .core_models import ApiCall, ApiDestination, CallMethod, model_to_JSON
 
-USER_AGENT = 'dracoon-python-0.4.1'
+USER_AGENT = 'dracoon-python-0.5.0-beta1'
 
 # define DRACOON class object with specific variables (clientID, clientSecret optional)
 class Dracoon:
@@ -25,13 +25,14 @@ class Dracoon:
             self.clientSecret = clientSecret
         if clientSecret is None:
             self.clientSecret = None
-    
 
     # generate URls necessary for API calls based on passed baseURL
     @validate_arguments
     def set_URLs(self, baseURL: HttpUrl):
         self.baseURL = baseURL
         self.apiURL = baseURL + '/api/v4'
+        self.reportingURL = baseURL + '/reporting/api'
+        self.brandingURL = baseURL + '/branding/api'
 
     # pass oauth token - needed for OAuth2 three-legged flow
     @validate_arguments
@@ -95,7 +96,17 @@ class Dracoon:
     def get(self, api_call: ApiCall):
         self.api_call_headers["Content-Type"] = api_call["content_type"]
         if api_call["method"] == CallMethod.GET.value:
-            api_url = self.apiURL + api_call["url"]
+            # handle different API endpoints 
+            if "destination" in api_call:
+                if api_call["destination"] == ApiDestination.Reporting:
+                    api_url = self.reportingURL + api_call["url"]
+                elif api_call["destination"] == ApiDestination.Branding:
+                    api_url = self.brandingURL + api_call["url"]
+                elif api_call["destination"] == ApiDestination.Core:
+                    api_url = self.apiURL + api_call["url"]
+            else:
+                api_url = self.apiURL + api_call["url"]
+
             if "body" in api_call and api_call["body"] != None:
                 api_response = requests.get(api_url, json=model_to_JSON(api_call["body"]), headers=self.api_call_headers)
             else:
@@ -113,9 +124,19 @@ class Dracoon:
             self.api_call_headers.pop("Content-Length", None)
         if api_call["method"] == CallMethod.POST.value and 'body' in api_call:
             self.api_call_headers["Content-Type"] = api_call["content_type"]
-            api_url = self.apiURL + api_call["url"]
+            
+            # handle different API endpoints 
+            if "destination" in api_call:
+                if api_call["destination"] == ApiDestination.Reporting:
+                    api_url = self.reportingURL + api_call["url"]
+                elif api_call["destination"] == ApiDestination.Branding:
+                    api_url = self.brandingURL + api_call["url"]
+                elif api_call["destination"] == ApiDestination.Core:
+                    api_url = self.apiURL + api_call["url"]
+            else:
+                api_url = self.apiURL + api_call["url"]
+
             if api_call["body"] != None:
-                print(model_to_JSON(api_call["body"]))
                 api_response = requests.post(api_url, json=model_to_JSON(api_call["body"]), headers=self.api_call_headers)
             else:
                 api_response = requests.post(api_url, headers=self.api_call_headers)
@@ -142,7 +163,17 @@ class Dracoon:
     def put(self, api_call: ApiCall):
         self.api_call_headers["Content-Type"] = api_call["content_type"]
         if api_call["method"] == CallMethod.PUT.value:
-            if "body" in api_call: api_url = self.apiURL + api_call["url"] 
+                        # handle different API endpoints 
+            if "destination" in api_call:
+                if api_call["destination"] == ApiDestination.Reporting:
+                    api_url = self.reportingURL + api_call["url"]
+                elif api_call["destination"] == ApiDestination.Branding:
+                    api_url = self.brandingURL + api_call["url"]
+                elif api_call["destination"] == ApiDestination.Core:
+                    api_url = self.apiURL + api_call["url"]
+            else:
+                api_url = self.apiURL + api_call["url"]
+ 
             if "files" in api_call: api_url = api_call["url"]
             if api_call["body"] != None:
                 api_response = requests.put(api_url, json=model_to_JSON(api_call["body"]), headers=self.api_call_headers)

@@ -17,6 +17,11 @@ clientID = 'xxxxx'
 clientSecret = 'xxxxxx'
 baseURL = 'https://dracoon.team'  # replace with own DRACOON url
 
+# OpenID Connect IdP ID - see https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/system-auth-config/requestOpenIdIdpConfigs
+# uncomment next line to import OIDC users
+
+# OIDC_ID = 1 // replace with id (see description above)
+
 # create DRACOON object
 my_dracoon = core.Dracoon(clientID, clientSecret)
 my_dracoon.set_URLs(baseURL)
@@ -71,6 +76,25 @@ with open('csv_import.csv', 'r') as f:
             },
             "isNonmemberViewer": True
         }
+
+        # for data model please refer to API documentation - this model is compatible with current DRACOON Cloud release
+        # for DRACOON Server model see https://demo.dracoon.com/api/swagger-ui.html
+
+        # model required for OpenID Connect users / uncomment block to import OpenID Connect users
+        """        
+             params = {
+            "firstName": firstName,
+            "lastName": lastName,
+            "receiverLanguage": "de-DE",
+            "email": email,
+            "authData": {
+                "method": "openid",
+                "login": email // replace with mapping claim (e.g. upn) if necessary 
+                "oidConfigId": OIDC_ID // uncomment OIDC idp ID on top
+            },
+            "isNonmemberViewer": True
+        } 
+        """
         
         # create and send rquest
         r = users.create_user(params)
