@@ -117,6 +117,8 @@ class Dracoon:
     
     def post(self, api_call: ApiCall):
         if "Content-Range" in api_call and "Content-Length" in api_call:
+            print(api_call["Content-Range"])
+            print(api_call["Content-Length"])
             self.api_call_headers["Content-Range"] = api_call["Content-Range"]
             self.api_call_headers["Content-Length"] = api_call["Content-Length"]
         else:
@@ -147,10 +149,11 @@ class Dracoon:
             if api_call["files"] != None:
                 file_upload_header = {
                     "accept": "application/json",
-
-                    "User-Agent": USER_AGENT
-
+                    "User-Agent": USER_AGENT,
+                    "Content-Range": self.api_call_headers["Content-Range"],
+                    "Content-Length": self.api_call_headers["Content-Length"]
                 }
+                
                 api_response = requests.post(api_url, headers=file_upload_header, files=api_call["files"])
             else:
                 raise ValueError('No file to upload provided.')

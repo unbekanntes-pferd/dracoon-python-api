@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------#
-# Python module to provide DRACOON api calls keypair generation and file 
+# Python module to provide DRACOON api calls keypair generation and file
 # key generation / file encryption
 # Version 0.1.0
 # Author: Octavio Simone, 12.06.2021
@@ -16,87 +16,97 @@ import os
 import base64
 
 # encrypt a private key (requires a plain user keypair container)
+
+
 @validate_arguments
 def encrypt_private_key(secret: str, plain_key: PlainUserKeyPairContainer) -> UserKeyPairContainer:
-    
-    # load plain private key 
+
+    # load plain private key
     private_key_pem = plain_key.privateKeyContainer.privateKey
-    private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(data=private_key_pem.encode('ascii'), password=None)
+    private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(
+        data=private_key_pem.encode('ascii'), password=None)
 
     # serialize key with passphrase (secret)
     encrypted_private_key = private_key.private_bytes(encoding=serialization.Encoding.PEM,
-                                   format=serialization.PrivateFormat.PKCS8,
-                                   encryption_algorithm=serialization.BestAvailableEncryption(secret.encode('ascii')))
+                                                      format=serialization.PrivateFormat.PKCS8,
+                                                      encryption_algorithm=serialization.BestAvailableEncryption(secret.encode('ascii')))
 
     return {
-       
-       "privateKeyContainer": {
-           "version": plain_key.privateKeyContainer.version.value,
-           "privateKey": encrypted_private_key.decode('ascii') 
-       },
-       "publicKeyContainer": {
-           "version": plain_key.publicKeyContainer.version.value,
-           "publicKey": plain_key.publicKeyContainer.publicKey
-       } 
-   }
+
+        "privateKeyContainer": {
+            "version": plain_key.privateKeyContainer.version.value,
+            "privateKey": encrypted_private_key.decode('ascii')
+        },
+        "publicKeyContainer": {
+            "version": plain_key.publicKeyContainer.version.value,
+            "publicKey": plain_key.publicKeyContainer.publicKey
+        }
+    }
 
 # decrypt a private key (requires an encrypted user keypair container)
+
+
 @validate_arguments
 def decrypt_private_key(secret: str, keypair: UserKeyPairContainer) -> PlainUserKeyPairContainer:
 
-    # load encrypted private key 
+    # load encrypted private key
     private_key_pem = keypair.privateKeyContainer.privateKey
-    private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(data=private_key_pem.encode('ascii'), password=secret.encode('ascii'), )
+    private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(
+        data=private_key_pem.encode('ascii'), password=secret.encode('ascii'), )
 
     # export without passphrase
     private_key_pem = private_key.private_bytes(encoding=serialization.Encoding.PEM,
-                                   format=serialization.PrivateFormat.TraditionalOpenSSL,
-                                   encryption_algorithm=serialization.NoEncryption())
+                                                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                                                encryption_algorithm=serialization.NoEncryption())
 
     return {
-       
-       "privateKeyContainer": {
-           "version": keypair.privateKeyContainer.version.value,
-           "privateKey": private_key_pem.decode('ascii')    
-       },
-       "publicKeyContainer": {
-           "version": keypair.publicKeyContainer.version.value,
-           "publicKey": keypair.publicKeyContainer.publicKey
-       } 
-   }
+
+        "privateKeyContainer": {
+            "version": keypair.privateKeyContainer.version.value,
+            "privateKey": private_key_pem.decode('ascii')
+        },
+        "publicKeyContainer": {
+            "version": keypair.publicKeyContainer.version.value,
+            "publicKey": keypair.publicKeyContainer.publicKey
+        }
+    }
 
 # create a plain user keypair (needs to be encrypted)
+
+
 @validate_arguments
 def create_plain_userkeypair(version: UserKeyPairVersion) -> PlainUserKeyPairContainer:
-   
-   # generate asymmetric RSA key based on version
-   if version == UserKeyPairVersion.RSA2048:
-       key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-   elif version == UserKeyPairVersion.RSA4096:
-       key = rsa.generate_private_key(public_exponent=65537, key_size=4096)
-   else:
-    raise ValueError('Invalid keypair version')
-   
-   private_key_pem = key.private_bytes(encoding=serialization.Encoding.PEM,
-                                   format=serialization.PrivateFormat.TraditionalOpenSSL,
-                                   encryption_algorithm=serialization.NoEncryption())
-   public_key = key.public_key()
-   public_key_pem = public_key.public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo)
 
+    # generate asymmetric RSA key based on version
+    if version == UserKeyPairVersion.RSA2048:
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    elif version == UserKeyPairVersion.RSA4096:
+        key = rsa.generate_private_key(public_exponent=65537, key_size=4096)
+    else:
+        raise ValueError('Invalid keypair version')
 
-   return {
-       
-       "privateKeyContainer": {
-           "version": version.value,
-           "privateKey": private_key_pem.decode('ascii')    
-       },
-       "publicKeyContainer": {
-           "version": version.value,
-           "publicKey": public_key_pem.decode('ascii')   
-       } 
-   }
+    private_key_pem = key.private_bytes(encoding=serialization.Encoding.PEM,
+                                        format=serialization.PrivateFormat.TraditionalOpenSSL,
+                                        encryption_algorithm=serialization.NoEncryption())
+    public_key = key.public_key()
+    public_key_pem = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo)
+
+    return {
+
+        "privateKeyContainer": {
+            "version": version.value,
+            "privateKey": private_key_pem.decode('ascii')
+        },
+        "publicKeyContainer": {
+            "version": version.value,
+            "publicKey": public_key_pem.decode('ascii')
+        }
+    }
 
 # get correct file key version using a keypair
+
+
 def get_file_key_version(keypair: UserKeyPairContainer) -> FileKeyVersion:
     if keypair["publicKeyContainer"]["version"] == UserKeyPairVersion.RSA2048.value and keypair["privateKeyContainer"]["version"] == UserKeyPairVersion.RSA2048.value:
         return FileKeyVersion.RSA2048_AES256GCM
@@ -106,6 +116,8 @@ def get_file_key_version(keypair: UserKeyPairContainer) -> FileKeyVersion:
         raise ValueError('Invalid user keypair version')
 
 # get correct file key version using a public key
+
+
 def get_file_key_version_public(public_key: PublicKeyContainer) -> FileKeyVersion:
     if public_key["version"] == UserKeyPairVersion.RSA2048.value:
         return FileKeyVersion.RSA2048_AES256GCM
@@ -115,6 +127,8 @@ def get_file_key_version_public(public_key: PublicKeyContainer) -> FileKeyVersio
         raise ValueError('Invalid user keypair version')
 
 # create a plain file key
+
+
 @validate_arguments
 def create_file_key(version: FileKeyVersion) -> PlainFileKey:
 
@@ -133,31 +147,33 @@ def create_file_key(version: FileKeyVersion) -> PlainFileKey:
         "tag": None
     }
 
+
 def encrypt_file_key_public(plain_file_key: PlainFileKey, public_key: PublicKeyContainer) -> FileKey:
     """
     Encrypts a file key with public key of a user
     To be used with a public user keypair container
     """
 
-    public_key_pem = serialization.load_pem_public_key(public_key["publicKey"].encode('ascii'))
+    public_key_pem = serialization.load_pem_public_key(
+        public_key["publicKey"].encode('ascii'))
     # check correct version
     file_key_version = get_file_key_version_public(public_key)
 
     key = plain_file_key["key"]
-    
+
     # initialize variable for encrypted file key
     encrypted_key = None
 
     # use SHA1 MGF1 and SHA256 hash
     if public_key["version"] == UserKeyPairVersion.RSA2048.value:
-        encrypted_key = public_key_pem.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),    
-                                       algorithm=hashes.SHA1(),
-                                       label=None))
+        encrypted_key = public_key_pem.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                                                                                                     algorithm=hashes.SHA1(),
+                                                                                                     label=None))
     # use SHA256 (hash and MGF1)
     elif public_key["version"] == UserKeyPairVersion.RSA4096.value:
-        encrypted_key = public_key_pem.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),    
-                                       algorithm=hashes.SHA256(),
-                                       label=None))
+        encrypted_key = public_key_pem.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                                                                                                     algorithm=hashes.SHA256(),
+                                                                                                     label=None))
     return {
         "version": file_key_version.value,
         "key": base64.b64encode(encrypted_key).decode(),
@@ -166,6 +182,8 @@ def encrypt_file_key_public(plain_file_key: PlainFileKey, public_key: PublicKeyC
     }
 
 # encrypt a plain file key
+
+
 def encrypt_file_key(plain_file_key: PlainFileKey, keypair: PlainUserKeyPairContainer) -> FileKey:
     """
     Encrypts a file key with public key of a user
@@ -173,33 +191,35 @@ def encrypt_file_key(plain_file_key: PlainFileKey, keypair: PlainUserKeyPairCont
     """
 
     private_key_pem = keypair["privateKeyContainer"]["privateKey"]
-    private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(data=private_key_pem.encode('ascii'), password=None)
+    private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(
+        data=private_key_pem.encode('ascii'), password=None)
     public_key = private_key.public_key()
 
     # check correct version
     file_key_version = get_file_key_version(keypair)
 
     key = plain_file_key["key"]
-    
+
     # initialize variable for encrypted file key
     encrypted_key = None
 
     # use SHA1 MGF1 and SHA256 hash
     if keypair["publicKeyContainer"]["version"] == UserKeyPairVersion.RSA2048.value:
-        encrypted_key = public_key.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),    
-                                       algorithm=hashes.SHA1(),
-                                       label=None))
+        encrypted_key = public_key.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                                                                                                 algorithm=hashes.SHA1(),
+                                                                                                 label=None))
     # use SHA256 (hash and MGF1)
     elif keypair["publicKeyContainer"]["version"] == UserKeyPairVersion.RSA4096.value:
-        encrypted_key = public_key.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),    
-                                       algorithm=hashes.SHA256(),
-                                       label=None))
+        encrypted_key = public_key.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                                                                                                 algorithm=hashes.SHA256(),
+                                                                                                 label=None))
     return {
         "version": file_key_version.value,
         "key": base64.b64encode(encrypted_key).decode(),
         "iv": plain_file_key["iv"],
         "tag": plain_file_key["tag"]
     }
+
 
 def decrypt_file_key(fileKey: FileKey, keypair: PlainUserKeyPairContainer) -> PlainFileKey:
     """
@@ -209,31 +229,31 @@ def decrypt_file_key(fileKey: FileKey, keypair: PlainUserKeyPairContainer) -> Pl
 
     file_key = base64.b64decode(fileKey["key"])
     private_key_pem = keypair["privateKeyContainer"]["privateKey"]
-    private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(data=private_key_pem.encode('ascii'), password=None)
+    private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(
+        data=private_key_pem.encode('ascii'), password=None)
 
     file_key_version = get_file_key_version(keypair)
 
     plain_key = None
 
     if keypair["publicKeyContainer"]["version"] == UserKeyPairVersion.RSA2048.value:
-        plain_key = private_key.decrypt(ciphertext=file_key, padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),    
-                                       algorithm=hashes.SHA1(),
-                                       label=None))
+        plain_key = private_key.decrypt(ciphertext=file_key, padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                                                                                  algorithm=hashes.SHA1(),
+                                                                                  label=None))
     # use SHA256 (hash and MGF1)
     elif keypair["publicKeyContainer"]["version"] == UserKeyPairVersion.RSA4096.value:
-        plain_key = private_key.decrypt(ciphertext=file_key, padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),    
-                                       algorithm=hashes.SHA256(),
-                                       label=None))
-        
-    
+        plain_key = private_key.decrypt(ciphertext=file_key, padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                                                                                  algorithm=hashes.SHA256(),
+                                                                                  label=None))
+
     if plain_key != None:
         return {
-        "version": fileKey["version"],
-        "key": base64.b64encode(plain_key).decode('ascii'),
-        "iv": fileKey["iv"],
-        "tag": fileKey["tag"]
-    }
-    else: 
+            "version": fileKey["version"],
+            "key": base64.b64encode(plain_key).decode('ascii'),
+            "iv": fileKey["iv"],
+            "tag": fileKey["tag"]
+        }
+    else:
         raise ValueError('Could not encrypt file key.')
 
 
@@ -246,14 +266,14 @@ def decrypt_bytes(enc_data: bytes, plain_file_key: PlainFileKey) -> bytes:
     if enc_data == None:
         raise ValueError('No data to process.')
 
-    
     key = base64.b64decode(plain_file_key["key"])
     iv = base64.b64decode(plain_file_key["iv"])
     tag = base64.b64decode(plain_file_key["tag"])
 
-    decryptor = Cipher(algorithm=algorithms.AES(key), mode=modes.GCM(iv, tag)).decryptor()
+    decryptor = Cipher(algorithm=algorithms.AES(
+        key), mode=modes.GCM(iv, tag)).decryptor()
 
-    plain_bytes = decryptor.update(data=enc_data) + decryptor.finalize() 
+    plain_bytes = decryptor.update(data=enc_data) + decryptor.finalize()
 
     return plain_bytes
 
@@ -270,7 +290,8 @@ def encrypt_bytes(plain_data: bytes, plain_file_key: PlainFileKey) -> Tuple[byte
     key = base64.b64decode(plain_file_key["key"])
     iv = base64.b64decode(plain_file_key["iv"])
 
-    encryptor = Cipher(algorithm=algorithms.AES(key), mode=modes.GCM(iv)).encryptor()
+    encryptor = Cipher(algorithm=algorithms.AES(key),
+                       mode=modes.GCM(iv)).encryptor()
     enc_bytes = encryptor.update(plain_data) + encryptor.finalize()
 
     plain_file_key["tag"] = base64.b64encode(encryptor.tag).decode('ascii')
@@ -286,7 +307,7 @@ class FileEncryptionCipher:
 
     Usage: 
     cipher = FileEncryptionCipher(plain_file_key)
-    
+
     with open(some_file, 'rb') as plain_file:
         while True:
             chunk = plain_file.read(CHUNK_SIZE)
@@ -295,28 +316,34 @@ class FileEncryptionCipher:
             cipher.encode_bytes(chunk)
 
         enc_bytes, plain_file_key = cipher.finalize()
-        
+
     """
+
     def __init__(self, plain_file_key: PlainFileKey):
 
-        if plain_file_key.__class__ is not Type[PlainFileKey]:
-            raise ValueError('Invalid file key format.')
-        
+        if "version" not in plain_file_key or "key" not in plain_file_key or "iv" not in plain_file_key:
+            raise TypeError('Invalid file key.')
+        if plain_file_key["version"] != FileKeyVersion.RSA_4096_AES256GCM.value and plain_file_key["version"] != FileKeyVersion.RSA2048_AES256GCM:
+            raise ValueError('Invalid / unknown file key version.')
+
         self.plain_file_key = plain_file_key
 
         self.key = base64.b64decode(plain_file_key["key"])
         self.iv = base64.b64decode(plain_file_key["iv"])
 
-        self.encryptor = Cipher(algorithm=algorithms.AES(self.key), mode=modes.GCM(self.iv)).encryptor()
+        self.encryptor = Cipher(algorithm=algorithms.AES(
+            self.key), mode=modes.GCM(self.iv)).encryptor()
 
     def encode_bytes(self, plain_data: bytes) -> bytes:
-        self.encryptor.update(plain_data)
+        return self.encryptor.update(plain_data)
 
     def finalize(self) -> Tuple[bytes, PlainFileKey]:
         enc_bytes = self.encryptor.finalize()
-        self.plain_file_key["tag"] = base64.b64encode(self.encryptor.tag).decode('ascii')
+        self.plain_file_key["tag"] = base64.b64encode(
+            self.encryptor.tag).decode('ascii')
 
         return enc_bytes, self.plain_file_key
+
 
 class FileDecryptionCipher:
     """
@@ -326,7 +353,7 @@ class FileDecryptionCipher:
 
     Usage: 
     cipher = FileDecryptionCipher(plain_file_key)
-    
+
     with open(some_file, 'rb') as encoded_file:
         while True:
             chunk = encoded_file.read(CHUNK_SIZE)
@@ -335,28 +362,29 @@ class FileDecryptionCipher:
             cipher.decode_bytes(chunk)
 
         plain_bytes = cipher.finalize()
-        
+
     """
+
     def __init__(self, plain_file_key: PlainFileKey):
 
-        if plain_file_key.__class__ is not Type[PlainFileKey]:
-            raise ValueError('Invalid file key format.')
-        
+        if "version" not in plain_file_key or "key" not in plain_file_key or "iv" not in plain_file_key:
+            raise TypeError('Invalid file key.')
+        if plain_file_key["version"] != FileKeyVersion.RSA_4096_AES256GCM.value and plain_file_key["version"] != FileKeyVersion.RSA2048_AES256GCM:
+            raise ValueError('Invalid / unknown file key version.')
+
         self.plain_file_key = plain_file_key
 
         self.key = base64.b64decode(plain_file_key["key"])
         self.iv = base64.b64decode(plain_file_key["iv"])
         self.tag = base64.b64decode(plain_file_key["tag"])
 
-        self.encryptor = Cipher(algorithm=algorithms.AES(self.key), mode=modes.GCM(self.iv, self.tag)).decryptor()
+        self.encryptor = Cipher(algorithm=algorithms.AES(
+            self.key), mode=modes.GCM(self.iv, self.tag)).decryptor()
 
     def decode_bytes(self, enc_data: bytes) -> bytes:
-        self.encryptor.update(enc_data)
+        return self.encryptor.update(enc_data)
 
     def finalize(self) -> bytes:
         plain_bytes = self.encryptor.finalize()
 
         return plain_bytes
-
-
-    

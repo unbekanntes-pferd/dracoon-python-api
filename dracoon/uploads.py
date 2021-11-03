@@ -19,7 +19,7 @@ from pydantic import validate_arguments, HttpUrl
 
 # upload a file (step 2 of file upload process - to generate an upload url, use nodes.create_upload_channel)
 @validate_arguments
-def upload_file(uploadURL: HttpUrl, upload_file, content_range: int = None, content_length: int = None):
+def upload_file(uploadURL: HttpUrl, upload_file, content_range: str, content_length: str):
     api_call = {
         'url': uploadURL,
         'files': upload_file,
