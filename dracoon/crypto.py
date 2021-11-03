@@ -278,7 +278,7 @@ def encrypt_bytes(plain_data: bytes, plain_file_key: PlainFileKey) -> Tuple[byte
     return (enc_bytes, plain_file_key)
 
 
-class FileEncryptionCipher():
+class FileEncryptionCipher:
     """
     Instantiates an encryption cipher
     To be used for chunking
@@ -318,7 +318,7 @@ class FileEncryptionCipher():
 
         return enc_bytes, self.plain_file_key
 
-class FileDecryptionCipher():
+class FileDecryptionCipher:
     """
     Instantiates a decryption cipher
     To be used for chunking
