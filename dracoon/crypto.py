@@ -6,7 +6,7 @@
 # Part of dracoon Python package
 # ---------------------------------------------------------------------------#
 
-from typing import Tuple
+from typing import Tuple, Type
 from pydantic import validate_arguments
 from .crypto_models import FileKey, FileKeyVersion, PlainFileKey, PlainFileKeyVersion, PlainUserKeyPairContainer, PrivateKeyContainer, PublicKeyContainer, UserKeyPairContainer, UserKeyPairVersion
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -133,7 +133,12 @@ def create_file_key(version: FileKeyVersion) -> PlainFileKey:
         "tag": None
     }
 
-def encrypt_file_key_public(plain_file_key: PlainFileKey, public_key: PublicKeyContainer):
+def encrypt_file_key_public(plain_file_key: PlainFileKey, public_key: PublicKeyContainer) -> FileKey:
+    """
+    Encrypts a file key with public key of a user
+    To be used with a public user keypair container
+    """
+
     public_key_pem = serialization.load_pem_public_key(public_key["publicKey"].encode('ascii'))
     # check correct version
     file_key_version = get_file_key_version_public(public_key)
@@ -162,6 +167,10 @@ def encrypt_file_key_public(plain_file_key: PlainFileKey, public_key: PublicKeyC
 
 # encrypt a plain file key
 def encrypt_file_key(plain_file_key: PlainFileKey, keypair: PlainUserKeyPairContainer) -> FileKey:
+    """
+    Encrypts a file key with public key of a user
+    To be used with a plain user keypair container
+    """
 
     private_key_pem = keypair["privateKeyContainer"]["privateKey"]
     private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(data=private_key_pem.encode('ascii'), password=None)
@@ -193,7 +202,11 @@ def encrypt_file_key(plain_file_key: PlainFileKey, keypair: PlainUserKeyPairCont
     }
 
 def decrypt_file_key(fileKey: FileKey, keypair: PlainUserKeyPairContainer) -> PlainFileKey:
-    
+    """
+    Decrypts a file key with private key of a user
+    To be used with a plain user keypair container
+    """
+
     file_key = base64.b64decode(fileKey["key"])
     private_key_pem = keypair["privateKeyContainer"]["privateKey"]
     private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(data=private_key_pem.encode('ascii'), password=None)
@@ -225,6 +238,11 @@ def decrypt_file_key(fileKey: FileKey, keypair: PlainUserKeyPairContainer) -> Pl
 
 
 def decrypt_bytes(enc_data: bytes, plain_file_key: PlainFileKey) -> bytes:
+    """
+    Decrypts a a file with a given plain file key
+    To be used only for small chunks of data (all bytes processed at once!)
+    Returns plain unencoded bytes
+    """
     if enc_data == None:
         raise ValueError('No data to process.')
 
@@ -241,6 +259,11 @@ def decrypt_bytes(enc_data: bytes, plain_file_key: PlainFileKey) -> bytes:
 
 
 def encrypt_bytes(plain_data: bytes, plain_file_key: PlainFileKey) -> Tuple[bytes, PlainFileKey]:
+    """
+    Encrypts a a file with a given plain file key
+    To be used only for small chunks of data (all bytes processed at once!)
+    Returns plain encoded bytes and the updated plain file key (tag added)
+    """
     if not bytes:
         raise ValueError('No data to process.')
 
@@ -253,4 +276,87 @@ def encrypt_bytes(plain_data: bytes, plain_file_key: PlainFileKey) -> Tuple[byte
     plain_file_key["tag"] = base64.b64encode(encryptor.tag).decode('ascii')
 
     return (enc_bytes, plain_file_key)
+
+
+class FileEncryptionCipher():
+    """
+    Instantiates an encryption cipher
+    To be used for chunking
+    Initialized with plain file key
+
+    Usage: 
+    cipher = FileEncryptionCipher(plain_file_key)
+    
+    with open(some_file, 'rb') as plain_file:
+        while True:
+            chunk = plain_file.read(CHUNK_SIZE)
+            if not chunk: break
+
+            cipher.encode_bytes(chunk)
+
+        enc_bytes, plain_file_key = cipher.finalize()
+        
+    """
+    def __init__(self, plain_file_key: PlainFileKey):
+
+        if plain_file_key.__class__ is not Type[PlainFileKey]:
+            raise ValueError('Invalid file key format.')
+        
+        self.plain_file_key = plain_file_key
+
+        self.key = base64.b64decode(plain_file_key["key"])
+        self.iv = base64.b64decode(plain_file_key["iv"])
+
+        self.encryptor = Cipher(algorithm=algorithms.AES(self.key), mode=modes.GCM(self.iv)).encryptor()
+
+    def encode_bytes(self, plain_data: bytes) -> bytes:
+        self.encryptor.update(plain_data)
+
+    def finalize(self) -> Tuple[bytes, PlainFileKey]:
+        enc_bytes = self.encryptor.finalize()
+        self.plain_file_key["tag"] = base64.b64encode(self.encryptor.tag).decode('ascii')
+
+        return enc_bytes, self.plain_file_key
+
+class FileDecryptionCipher():
+    """
+    Instantiates a decryption cipher
+    To be used for chunking
+    Initialized with plain file key
+
+    Usage: 
+    cipher = FileDecryptionCipher(plain_file_key)
+    
+    with open(some_file, 'rb') as encoded_file:
+        while True:
+            chunk = encoded_file.read(CHUNK_SIZE)
+            if not chunk: break
+
+            cipher.decode_bytes(chunk)
+
+        plain_bytes = cipher.finalize()
+        
+    """
+    def __init__(self, plain_file_key: PlainFileKey):
+
+        if plain_file_key.__class__ is not Type[PlainFileKey]:
+            raise ValueError('Invalid file key format.')
+        
+        self.plain_file_key = plain_file_key
+
+        self.key = base64.b64decode(plain_file_key["key"])
+        self.iv = base64.b64decode(plain_file_key["iv"])
+        self.tag = base64.b64decode(plain_file_key["tag"])
+
+        self.encryptor = Cipher(algorithm=algorithms.AES(self.key), mode=modes.GCM(self.iv, self.tag)).decryptor()
+
+    def decode_bytes(self, enc_data: bytes) -> bytes:
+        self.encryptor.update(enc_data)
+
+    def finalize(self) -> bytes:
+        plain_bytes = self.encryptor.finalize()
+
+        return plain_bytes
+
+
     
