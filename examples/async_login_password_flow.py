@@ -5,8 +5,7 @@ Example script showing the new async API with password flow login
 
 """
 
-from dracoon.dc import DRACOON
-from dracoon.core import OAuth2ConnectionType
+from dracoon import DRACOON, OAuth2ConnectionType
 import asyncio
 
 async def main():

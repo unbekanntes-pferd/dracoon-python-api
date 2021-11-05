@@ -123,6 +123,19 @@ connected = dracoon.test_connection()
 This will provide a true / false result depending on the connection.
 An authenticated ping is used to verify the tokens are valid.
 
+#### Refresh token
+
+All functions check for access token validity and fetch new tokens, if the access tokens expire.
+Therefore it should not be necessary to manually request it.
+
+You can manually use the refresh token auth as follows:
+
+```
+connection = await dracoon.client.connect(OAuth2ConnectionType.refresh_token)
+```
+
+Every connect process will update the connection.
+
 
 #### Log out
 ```
@@ -252,6 +265,17 @@ res = await dracoon.uploads.upload_encrypted(file_path=file_path, target_id=9999
 The default chunk size is 5 MB but can be passed as an option (chunksize, in bytes).
 
 The main API wrapper will include more comfortable upload APIs in the future (1 line approach).
+
+
+## Examples
+
+1. Authentication
+
+* [Login via password flow](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_login_password_flow.py)
+* [Login via auth code](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_login_auth_code_flow.py)
+* [Create a user](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_create_user.py)
+* [Set a new keypair](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_create_new_keypair.py)
+* [Upload an encrypted file](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_encrypted_upload.py)
 
 <!-- ROADMAP -->
 ## Roadmap
