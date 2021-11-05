@@ -17,20 +17,8 @@ async def main():
 
     connection = await dracoon.connect()
 
-    user = {
-            "firstName": 'TEST',
-            "lastName": 'TEST',
-            "userName": 'xxx@xxx.com',
-            "receiverLanguage": "de-DE",
-            "email": 'xxx@xxx.com',
-            "notifyUser": True,
-            "authData": {
-                "method": "basic",
-                "mustChangePassword": True,
-            },
-            "isNonmemberViewer": True
-        }
-
+    user = dracoon.users.make_local_user('TEST', 'TEST', 'pferd@unbekanntespferd.com', 'testdc1')
+    
     res = await dracoon.users.create_user(user)
 
     print(res)

@@ -6,7 +6,6 @@ Example script showing the new async API with keypair reset (delete old keypair,
 """
 
 from dracoon import DRACOON
-from dracoon.crypto_models import UserKeyPairVersion
 import asyncio
 
 async def main():

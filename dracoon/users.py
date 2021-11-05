@@ -15,15 +15,22 @@ Please note: maximum 500 items are returned in GET requests
 """
 
 
+from typing import List
 import httpx
 from pydantic import validate_arguments
 
 from .core import DRACOONClient, OAuth2ConnectionType
-from .users_models import CreateUser, SetUserAttributes, UpdateUser, UpdateUserAttributes
+from .users_models import AttributeEntry, CreateUser, Expiration, SetUserAttributes, UpdateUser, UpdateUserAttributes, UserAuthData
 
 class DRACOONUsers:
 
+    """
+    API wrapper for DRACOON users endpoint:
+    User management - requires user manager role.
+    """
+
     def __init__(self, dracoon_client: DRACOONClient):
+        """ requires a DRACOONClient to perform any request """
 
         if not isinstance(dracoon_client, DRACOONClient):
             raise TypeError('Invalid DRACOON client format.')
@@ -35,6 +42,8 @@ class DRACOONUsers:
 
     @validate_arguments
     async def create_user(self, user: CreateUser):
+        """ creates a new user """
+
 
         payload = user.dict()
 
@@ -48,10 +57,108 @@ class DRACOONUsers:
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
 
         return res
-    
-    @validate_arguments
-    async def get_users(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
 
+    def make_local_user(self, first_name: str, last_name: str, email: str, login: str = None,
+                        language: str = None, notify: bool = None, expiration: Expiration = None, phone: str = None) -> CreateUser:
+        """ makes a new local (basic) user required for create_user() """
+        auth = self.make_auth_data(method='basic')
+
+        user = {
+            "firstName": first_name,
+            "lastName": last_name, 
+            "email": email,
+            "userName": email,
+            "authData": auth  
+        }
+
+        if login: user["userName"] = login
+        if language: user["receiverLanguage"] = language
+        if notify: user["notifyUser"] = notify
+        if expiration: user["expiration"] = expiration
+        if phone: user["phone"] = phone
+
+        return user
+
+    def make_oidc_user(self, first_name: str, last_name: str, email: str, login: str, oidc_id: int, 
+                       language: str = None, notify: bool = None, expiration: Expiration = None, phone: str = None) -> CreateUser:
+        """ makes a new OpenID Connect (openid) user required for create_user() """
+        auth = self.make_auth_data(method='openid', oidc_id=oidc_id, login=login)
+           
+        user = {
+            "firstName": first_name,
+            "lastName": last_name, 
+            "email": email,
+            "authData": auth  
+        }    
+
+        if language: user["receiverLanguage"] = language
+        if notify: user["notifyUser"] = notify
+        if expiration: user["expiration"] = expiration
+        if phone: user["phone"] = phone
+        
+        return user
+
+    def make_ad_user(self, first_name: str, last_name: str, email: str, login: str, ad_id: int,
+                     language: str = None, notify: bool = None, expiration: Expiration = None, phone: str = None) -> CreateUser:
+        """ makes a new Active Directory (active_directory) user required for create_user() """
+        auth = self.make_auth_data(method='active_directory', ad_id=ad_id, login=login)
+        
+        user = {
+            "firstName": first_name,
+            "lastName": last_name, 
+            "email": email,
+            "authData": auth,
+            "userName": login 
+        }    
+
+        if language: user["receiverLanguage"] = language
+        if notify: user["notifyUser"] = notify
+        if expiration: user["expiration"] = expiration
+        if phone: user["phone"] = phone   
+        
+        return user
+
+    def make_user_update(self, first_name: str = None, last_name: str = None, email: str = None, user_name: str = None, 
+                         locked: bool = None, phone: str = None, expiration: Expiration = None, language: str = None,
+                         auth_data: UserAuthData = None, non_member_viewer: bool = None) -> UpdateUser:
+        """ makes an user update payload required for update_user() """
+        user_update = {
+
+            }
+        
+        if language: user_update["receiverLanguage"] = language
+        if locked: user_update["isLocked"] = locked
+        if expiration: user_update["expiration"] = expiration
+        if phone: user_update["phone"] = phone
+        if first_name: user_update["firstName"] = first_name  
+        if last_name: user_update["lastName"] = last_name   
+        if non_member_viewer: user_update["isNonmemberViewer"] = non_member_viewer   
+        if auth_data: user_update["authData"] = auth_data   
+        if email: user_update["email"] = email 
+        if user_name: user_update["userName"] = user_name
+
+        return user_update
+
+        
+    def make_auth_data(self, method: str, login: str = None, password: str = None, 
+                      change_password: bool = None, ad_id: int = None, oidc_id: int = None) -> UserAuthData:
+        """ makes authentication data required for user creation / modification """
+        auth =  {
+            "method": method
+        }
+
+        if login: auth["login"] = login
+        if password: auth["password"] = password
+        if change_password: auth["mustChangePassword"] = change_password
+        if ad_id: auth["adConfigId"] = ad_id
+        if oidc_id: auth["oidConfigId"] = oidc_id
+
+        return auth
+
+
+    @validate_arguments
+    async def get_users(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):     
+        """ list (all) users """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -72,7 +179,7 @@ class DRACOONUsers:
     # get user details for given user id
     @validate_arguments
     async def get_user(self, user_id: int):
-
+        """ get user details for specific user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -89,7 +196,7 @@ class DRACOONUsers:
     # update user's meta data for given user id
     @validate_arguments
     async def update_user(self, user_id: int, user_update: UpdateUser):
-        
+        """ update user details for specific user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -108,6 +215,7 @@ class DRACOONUsers:
     # delete user for given user id
     @validate_arguments
     async def delete_user(self, user_id: int):
+        """ delete specific user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -124,7 +232,7 @@ class DRACOONUsers:
     # get user details for given user id
     @validate_arguments
     async def get_user_groups(self, user_id: int, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
-
+        """ list all groups for specific user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -144,7 +252,7 @@ class DRACOONUsers:
     # get rooms in which user is last remaining admin (prevents user deletion!)
     @validate_arguments
     async def get_user_last_admin_rooms(self, user_id: int):
-
+        """ list all rooms, in which user is last admin """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -161,7 +269,7 @@ class DRACOONUsers:
     # get roles assigned to user
     @validate_arguments
     async def get_user_roles(self, user_id: int):
-
+        """ get user roles """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -178,7 +286,7 @@ class DRACOONUsers:
     # get custom user attributes (key, value)
     @validate_arguments
     async def get_user_attributes(self, user_id: int, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
-
+        """ get custom user attributes """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -198,7 +306,7 @@ class DRACOONUsers:
     # set custom user attributes (key, value)
     @validate_arguments
     async def delete_user_attribute(self, user_id: int, key: str):
-
+        """ delete custom user attribute """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -215,7 +323,7 @@ class DRACOONUsers:
     # update custom user attributes (key, value)
     @validate_arguments
     async def update_user_attributes(self, user_id: int, attributes: UpdateUserAttributes):
-
+        """ create / update custom user attribute """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -229,6 +337,19 @@ class DRACOONUsers:
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
 
         return res
+
+    def make_custom_user_attribute(key: str, value: str) -> AttributeEntry:
+        """ make a custom user attribute required for update_user_attributes() """
+        return {
+            "key": key,
+            "value": value
+        }
+
+    def make_attributes_update(list: List[AttributeEntry]) -> UpdateUserAttributes:
+        """ consolidate mulitple attributes into list - required for update_user_attributes() """
+        return {
+            "items": list
+        }
 
 """
 LEGACY API (0.4.x) - DO NOT MODIFY
