@@ -2,7 +2,10 @@ from pydantic import BaseModel
 from typing import Optional, List
 from .crypto_models import FileKey
 
-
+class UploadChannelResponse(BaseModel):
+    uploadUrl: str
+    uploadId: str
+    token: str
 
 class UserFileKey(BaseModel):
     userId: int

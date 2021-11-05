@@ -51,6 +51,23 @@ class CreateUploadChannel(BaseModel):
     timestampCreation: Optional[datetime]
     timestampModificiation: Optional[datetime]
 
+
+class S3Part(BaseModel):
+    partNumber: int
+    partEtag: str
+
+class CompleteS3Upload(BaseModel):
+    parts: List[S3Part]
+    resolutionStrategy: Optional[str]
+    keepShareLinks: Optional[bool]
+    fileName: Optional[str]
+    fileKey: Optional[FileKey]
+
+class GetS3Urls(BaseModel):
+    firstPartNumber: int
+    lastPartNumber: int
+    size: int
+
 # required payload for POST /nodes/folders
 class CreateFolder(BaseModel):
     parentId: int

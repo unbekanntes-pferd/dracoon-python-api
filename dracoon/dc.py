@@ -15,10 +15,11 @@ All requests with bodies use generic params variable to pass JSON body
 
 """
 
-from .core import DRACOONClient, OAuth2ConnectionType
-from .eventlog import DRACOONEvents
-from .nodes import DRACOONNodes
-from .shares import DRACOONShares
+from dracoon.core import DRACOONClient, OAuth2ConnectionType
+from dracoon.eventlog import DRACOONEvents
+from dracoon.nodes import DRACOONNodes
+from dracoon.shares import DRACOONShares
+
 from .user import DRACOONUser
 from .users import DRACOONUsers
 from .groups import DRACOONGroups

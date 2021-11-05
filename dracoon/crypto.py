@@ -1,12 +1,25 @@
-# ---------------------------------------------------------------------------#
-# Python module to provide DRACOON api calls keypair generation and file
-# key generation / file encryption
-# Version 0.1.0
-# Author: Octavio Simone, 12.06.2021
-# Part of dracoon Python package
-# ---------------------------------------------------------------------------#
 
-from typing import Tuple, Type
+"""
+DRACOON Crypto utils based on cryptography
+V1.0.0
+
+(c) Octavio Simone, November 2021 
+
+Collection of DRACOON API calls
+Documentation: https://dracoon.team/api
+
+Please note: maximum 500 items are returned in GET requests 
+
+ - refer to documentation for details on filtering and offset 
+ - use documentation for payload description 
+ 
+Encryption: 
+ - Files are encrypted with AES 256 GCM cipher
+ - Keypair (public and private key) is RSA-4096 (2048 supported as well)
+
+"""
+
+from typing import Tuple
 from pydantic import validate_arguments
 from .crypto_models import FileKey, FileKeyVersion, PlainFileKey, PlainFileKeyVersion, PlainUserKeyPairContainer, PrivateKeyContainer, PublicKeyContainer, UserKeyPairContainer, UserKeyPairVersion
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -16,7 +29,6 @@ import os
 import base64
 
 # encrypt a private key (requires a plain user keypair container)
-
 
 @validate_arguments
 def encrypt_private_key(secret: str, plain_key: PlainUserKeyPairContainer) -> UserKeyPairContainer:

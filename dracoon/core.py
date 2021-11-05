@@ -1,19 +1,203 @@
-# ---------------------------------------------------------------------------#
-# Python module to provide DRACOON object
-# Authentication and call handlers 
-# Version 0.3.0
-# Author: Octavio Simone, 06.03.2021
-# Part of dracoon Python package
-# ---------------------------------------------------------------------------#
+"""
+Async DRACOON client based on httpx
+V1.0.0
 
+(c) Octavio Simone, November 2021 
 
-import json  # handle JSON
-import requests  # HTTP requests
-import base64  # base64 encode
+The client implements all login and logout procedures and is part of every API adapter.
+
+"""
+import json  
+import requests  
+import base64 
+import httpx
+from enum import Enum
+from dataclasses import dataclass
+import base64
+import asyncio
+from datetime import datetime
 from pydantic import validate_arguments, HttpUrl
+
+
 from .core_models import ApiCall, ApiDestination, CallMethod, model_to_JSON
 
-USER_AGENT = 'dracoon-python-0.5.0-beta1'
+USER_AGENT = 'dracoon-python-1.0.0-alpha1'
+
+class OAuth2ConnectionType(Enum):
+    password_flow = 1
+    auth_code = 2
+    refresh_token = 3
+
+@dataclass
+class DRACOONConnection:
+    connected_at: datetime
+    access_token: str
+    access_token_validity: int
+    refresh_token: str
+    refresh_token_validity: int
+
+
+class DRACOONClient:
+
+    api_base_url = '/api/v4'
+    branding_base_url = '/branding/api'
+    reporting_base_url = '/reporting/api'
+    headers = {
+        "User-Agent": USER_AGENT
+
+    }
+
+    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = ''):
+        self.base_url = base_url
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.http = httpx.AsyncClient(headers=self.headers)
+        self.connected = False
+        self.connection: DRACOONConnection = None
+
+    def __del__(self):
+
+        loop = asyncio.get_event_loop()
+
+        if loop.is_running():
+            loop.create_task(self.http.aclose())
+        else:
+             loop.run_until_complete(self.http.aclose())
+        
+
+    async def connect(self, connection_type: OAuth2ConnectionType, username: str = None, password: str = None) -> DRACOONConnection:
+        token_url = self.base_url + '/oauth/token'
+        now = datetime.now()
+
+        # handle missing credentials for password flow
+        if connection_type == OAuth2ConnectionType.password_flow and username == None and password == None:
+            raise ValueError(
+                'Username and password are mandatory for OAuth2 password flow.')
+
+        # get connection via OAuth2 password flow
+        if connection_type == OAuth2ConnectionType.password_flow:
+            data = {'grant_type': 'password',
+                'username': username, 'password': password}
+            
+            token_payload = base64.b64encode(
+                bytes(self.client_id + ':' + self.client_secret, 'ascii'))
+
+            self.http.headers["Authorization"] = "Basic " + \
+                    token_payload.decode('ascii')
+            try:
+                res = await self.http.post(url=token_url, data=data)
+                res.raise_for_status()
+            except httpx.RequestError as e:
+                raise httpx.RequestError(f'Could not connect to DRACOON: {e.request.url}')
+                
+                
+            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
+                                         res.json()["refresh_token"], res.json()["expires_in"])
+
+
+        if connection_type == OAuth2ConnectionType.auth_code:
+            print('Please get an authorization code:')
+            print(self.get_code_url())
+
+            auth_code = input('Enter auth code:')
+            data = {'grant_type': 'authorization_code', 'code': auth_code, 'client_id': self.client_id, 'client_secret': self.client_secret, 'redirect_uri': self.base_url + '/oauth/callback'}
+
+            try:
+                res = await self.http.post(url=token_url, data=data)
+                res.raise_for_status()
+            except httpx.RequestError as e:
+                raise httpx.RequestError(f'Could not connect to DRACOON: {e.request.url}')
+            except httpx.HTTPStatusError as e:
+                raise ValueError(
+                        f'Authentication failed: {e.response.status_code}')
+
+            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
+                                         res.json()["refresh_token"], res.json()["expires_in"])
+
+
+        if connection_type == OAuth2ConnectionType.refresh_token:
+            data = {'grant_type': 'refresh_token', 'refresh_token': self.connection.refresh_token, 'client_id': self.client_id, 'client_secret': self.client_secret}
+
+
+            try:
+                res = await self.http.post(url=token_url, data=data)
+                res.raise_for_status()
+            except httpx.RequestError as e:
+                raise httpx.RequestError(
+                        f'Could not connect to DRACOON: {e.request.url}')
+            except httpx.HTTPStatusError as e:
+                raise httpx.HTTPStatusError(f'Authentication failed: {e.response.status_code}')
+
+            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
+                                         res.json()["refresh_token"], res.json()["expires_in"])
+
+
+        self.connected = True
+        self.http.headers["Authorization"] = "Bearer " + self.connection.access_token
+  
+
+        return self.connection
+
+
+    # generate URL string for OAuth auth code flow
+    def get_code_url(self):
+        return self.base_url + f'/oauth/authorize?branding=full&response_type=code&client_id={self.client_id}&redirect_uri={self.base_url}/oauth/callback&scope=all'
+
+
+    async def logout(self):
+
+        revoke_url = self.base_url + '/oauth/revoke'
+    
+        access_data = {'token': self.connection.access_token, 'token_type_hint': 'access_token', 'client_id': self.client_id, 'client_secret': self.client_secret}
+        refresh_data = {'token': self.connection.refresh_token, 'token_type_hint': 'refresh_token', 'client_id': self.client_id, 'client_secret': self.client_secret}
+
+
+        try:
+            res_a = await self.http.post(url=revoke_url, data=access_data)
+            res_a.raise_for_status()
+            res_r = await self.http.post(url=revoke_url, data=refresh_data)
+            res_r.raise_for_status()
+        except httpx.RequestError as e:
+            raise httpx.RequestError(f'Could not connect to DRACOON: {e.request.url}')
+
+        self.connected = False
+        self.connection = None
+
+    
+    def check_access_token(self, test: bool = False):
+        if not test and self.connection:
+            now = datetime.now()
+            return (now - self.connection.connected_at).seconds < self.connection.access_token_validity
+
+    def check_refresh_token(self, test: bool = False):
+        if not test and self.connection:
+            now = datetime.now()
+            return (now - self.connection.connected_at).seconds < self.connection.refresh_token_validity
+
+    async def test_connection(self) -> bool:
+
+        if not self.connection or not self.connected:
+            return False
+
+        test_url = self.base_url + '/api/v4/user/ping'
+
+        try:
+            res = await self.http.get(url=test_url)
+            res.raise_for_status()
+
+        except httpx.RequestError as e:
+            raise httpx.RequestError(
+                        f'Could not connect to DRACOON: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            return False
+
+        return True
+
+
+
+
+
+
 
 # define DRACOON class object with specific variables (clientID, clientSecret optional)
 class Dracoon:
@@ -116,14 +300,7 @@ class Dracoon:
             raise TypeError('Invalid request method.')
     
     def post(self, api_call: ApiCall):
-        if "Content-Range" in api_call and "Content-Length" in api_call:
-            print(api_call["Content-Range"])
-            print(api_call["Content-Length"])
-            self.api_call_headers["Content-Range"] = api_call["Content-Range"]
-            self.api_call_headers["Content-Length"] = api_call["Content-Length"]
-        else:
-            self.api_call_headers.pop("Content-Range", None)
-            self.api_call_headers.pop("Content-Length", None)
+        
         if api_call["method"] == CallMethod.POST.value and 'body' in api_call:
             self.api_call_headers["Content-Type"] = api_call["content_type"]
             
@@ -149,11 +326,14 @@ class Dracoon:
             if api_call["files"] != None:
                 file_upload_header = {
                     "accept": "application/json",
-                    "User-Agent": USER_AGENT,
-                    "Content-Range": self.api_call_headers["Content-Range"],
-                    "Content-Length": self.api_call_headers["Content-Length"]
+                    "User-Agent": USER_AGENT
                 }
                 
+                # required for chunked upload 
+                if "Content-Range" in api_call and "Content-Length" in api_call:
+                    file_upload_header["Content-Length"] = api_call["Content-Length"]
+                    file_upload_header["Content-Range"] = api_call["Content-Range"]
+
                 api_response = requests.post(api_url, headers=file_upload_header, files=api_call["files"])
             else:
                 raise ValueError('No file to upload provided.')
@@ -263,6 +443,8 @@ class Dracoon:
         else:
             raise TypeError('Invalid request method.')
 
-    
+
+
+
 
 

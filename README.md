@@ -36,8 +36,8 @@ https://dracoon.team/api/
 
 ### Built With
 
-* [Python 3.7.3](https://www.python.org/)
-* [requests module](https://requests.readthedocs.io/en/master/)
+* [Python 3.9.0](https://www.python.org/)
+* [httpx module](https://www.python-httpx.org/)
 * [aiohttp module](https://docs.aiohttp.org/en/stable/)
 * [cryptography](https://cryptography.io/en/latest/)
 * [pydantic](https://pydantic-docs.helpmanual.io/)
@@ -69,111 +69,197 @@ python3 -m pip install dracoon
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-### Import required modules
+### Import DRACOON
 ```
-from dracoon import core, users
+from dracoon import DRACOON
 ```
 
-Modules are named after API endpoints (see documentation for further details).<br>
-_Exception: core module - this is required to create Dracoon object and to send authenticated requests to the API._
+This is the main class and contains all other adapters to access DRACOON API endpoints. 
+The object contains a client (DRACOONClient) which handles all http connections via httpx (async). 
+
 
 ### Object creation
 ```
-my_dracoon = core.Dracoon(clientID, clientSecret)
-my_dracoon.set_URLs(baseURL)
+dracoon = DRACOON(base_url, client_id, client_secret)
 ```
-Please note: providing a client secret is optional (in order to use with OAuth apps that don't have one).
-* _clientID_; please register your OAuth app or use dracoon_legacy_scripting
-* _clientSecret_; please register your OAuth app or use dracoon_legacy_scripting
-* _baseURL_: Your DRACOON URL instance (e.g. https://dracoon.team)
+
+* _client_id_; please register your OAuth app or use dracoon_legacy_scripting (default)
+* _client_secret_; please register your OAuth app or use dracoon_legacy_scripting - secret is an empty string (no secret)
+* _base_url_: Your DRACOON URL instance (e.g. https://dracoon.team)
 
 
 ### Authentication
 
 #### Password flow
+
 ```
-login_response = my_dracoon.basic_auth(username, password)
+connection = await dracoon.connect(OAuth2ConnectionType.password_flow, username, password)
 ```
-Please note: you can only authenticate if OAuth app is correctly configured. Only local accounts can be used via password flow.
+
+The connection result contains the tokens (access and refresh, including validity).
+
+You need pass one of the supported OAuth2 connection types. 
+To access the enums, import OAuth2ConnectionType:
+
+```
+from dracoon import DRACOON, OAuth2Connectiontype
+```
+
+Please note: you can only authenticate if OAuth app is correctly configured. Only local accounts (including Active Directory) can be used via password flow.
 
 #### Authorization code flow
 ```
-print(my_dracoon.get_code_url())
-auth_code = 'Your auth code' # input('Enter auth code:')
-login_response = my_dracoon.oauth_code_auth(username, password)
+connection = await dracoon.connect()
 ```
-Please note: you can only authenticate if OAuth app is correctly configured. You will need a custom app with authorization code enabled and you will need to set your redirect uri to https://your.domain.com/oauth/callback 
+If you do not provide a connection type, the default will be auth code.
+You will be prompted and asked for an authorization code.
 
+Please note: you can only authenticate if OAuth app is correctly configured. You will need a custom app with authorization code flow enabled and you will need to set your redirect uri to https://your.domain.com/oauth/callback 
+
+#### Test connection
+```
+connected = dracoon.test_connection()
+```
+This will provide a true / false result depending on the connection.
+An authenticated ping is used to verify the tokens are valid.
+
+
+#### Log out
+```
+await dracoon.logout()
+```
+This will revoke both access and refresh tokens.
 
 
 ### Send requests
 
-1. First you will need to build a request with specific parameters:
+1. You can access specific API endpoints by accessing the related adapter, e.g. for users, once you have connected:
+
 ```
-r = users.get_users(offset=0, filter=f)
+result = await dracoon.users.get_users()
 ```
 
 Please note: 
 * GET requests are limited to returning 500 items. Therefore all such requests contain an offset parameter (default is 0)
 * Providing a filter is optional - see API documentation and examples on usage
-* Sorting not implemented - sorting results should occur via client
+* If you do not connect the client, the adapters are not instantiated and 
+cannot be accessed!
+* All (!) calls are async functions and need to be awaited
 
-2. you can then send the request as an authenticated user
+Avalailble adapters:
+
 ```
-user_response = my_dracoon.get(r)
+dracoon.config - config API including webhooks
+dracoon.users - users management
+dracoon.groups - groups management
+dracoon.user - user account and keypair setup
+dracoon.nodes - nodes (up- and download including S3 direct up)
+dracoon.shares - shares and file requests
+dracoon.uploads - upload API
+dracoon.reports - new reporting API
+dracoon.eventlog - old eventlog API
 ```
-Supported request types:
-* GET (object.get(request))
-* POST (oject.post(request))
-* PUT (object.put(reqest))
-* DELETE (object.delete(request))
+
+
+2. This package contains type hints and includes models for all payloads (updates and create payloads).
+To faciliate compliant object creation, there are several helper functions which can be found via make_, e.g.:
+
+```
+room = dracoon.nodes.make_room(...)
+```
+
+This helps finding the right parameters and building objects that are compliant with the DRACOON models.
+
 
 _For examples, check out the example files:_<br>
 
-* [DRACOON authentication](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/authentication_example.py)
-* [Export user list to CSV](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/user_csv_example.py)
-* [Import users from CSV](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/import_csv_example.py)
-* [Export room permissions to CSV](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/permissions_csv_example.py)
-* [Export room log to CSV](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/room_events_csv_example.py)
-* [Upload files (generate room logs for root rooms and upload them to target room)](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/file_upload_example.py)
-* [Create personal rooms](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/personal_rooms_example.py)
-* [Bulk update file metadata (epiration example)](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/bulk_file_meta_update_example.py)
-* [Bulk room config (recycle bin period example)](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/bulk_room_config_example.py)
-* [Convert folders into rooms with inheritance](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/folder_room_converter_example.py)
+## Cryptography
 
-### Send async requests
+DRACOON cryptography is fully supported by the package. In order to use it, import the relevant functions or en- and decryptors:
 
-1. First you will need to build a request with specific parameters:
 ```
-r = users.get_users(offset=0, filter=f)
+from dracoon.crypto import create_plain_userkeypair
+from dracoon.crypto import create_file_key
 ```
 
-Please note: 
-* GET requests are limited to returning 500 items. Therefore all such requests contain an offset parameter (default is 0)
-* Providing a filter is optional - see API documentation and examples on usage
-* Sorting not implemented - sorting results should occur via client
+### Create a new keypair
 
-2. you will need to call async requests inside an async function (e.g. main()) and pass a client session
+The account adapter (user) includes a function to set a new keypair:
+
 ```
-         async with aiohttp.ClientSession() as session:
-             user_response = await my_dracoon.async_get(r, session)
+dracoon.user.set_keypair(secret)
+
 ```
-Supported request types:
-* GET (object.async_get(request, session))
-* POST (oject.async_post(request, session))
-* PUT (object.async_put(reqest, session))
-* DELETE (object.async_delete(request, session))
+A new keypair will be generated (4096bit RSA asymmetric).
+Prior to setting a new keypair you always need to delete the old one!
+Please note: Deleting a keypair can cause data loss.
 
-_For examples, check out the example file:_<br>
+### Getting your (plain) keypair
 
-* [Async requests](https://github.com/unbekanntes-pferd/DRACOON-PYTHON-API/blob/master/examples/async_requests_example.py)
+In order to work with encrypted rooms you will need to access your keypair:
+
+```
+await dracoon.get_keypair()
+
+```
+This function of the main API wrapper will prompt for your secret and return a plain keypair for further handling.
+
+
+### En- and decode on the fly (in memory)
+
+For smaller payload you can directly use the functions returning either
+plain or encrypted bytes like this:
+
+```
+plain_bytes = decrypt_bytes(enc_data, plain_file_key)
+enc_bytes = encrypt_bytes(plain_data, plain_file_key)
+
+```
+
+### Chunking
+
+For larger files it is recommended to encrypt (and upload) in chunks.
+An example of encryptor usage:
+
+```
+dracoon_cipher = FileEncryptionCipher(plain_file_key=plain_file_key)
+enc_chunk = dracoon_cipher.encode_bytes(chunk)
+last_data, plain_file_key = dracoon_cipher.finalize()
+
+```
+You can instantiate an encryptor / decryptor by passing a plain file key.
+When finalizing, you need to add the last data to the last chunk.
+The result of the completed encryption is an updated plain_file_key with a specific tag.
+
+Hint: You do not need to implement the upload process and can directly use full methods in the uploads adapter (see next chapter).
+
+## Uploads
+
+The uploads adapter includes full methods to upload data to DRACOON and includes chunking and encryption support.
+
+Here is an example of uploading a file to an encrypted room with only a few lines of code:
+
+```
+upload_channel = CreateUploadChannel(parentId=9999, name=file_path.split('/')[-1])
+
+res = await dracoon.nodes.create_upload_channel(upload_channel=upload_channel)
+channel_res = res.json()
+
+res = await dracoon.uploads.upload_encrypted(file_path=file_path, target_id=9999, upload_channel=channel_res, plain_keypair=plain_keypair)
+    
+```
+
+The default chunk size is 5 MB but can be passed as an option (chunksize, in bytes).
+
+The main API wrapper will include more comfortable upload APIs in the future (1 line approach).
 
 <!-- ROADMAP -->
 ## Roadmap
-* Implement workflows (based on examples - e.g. user csv import, log csv export, file upload)
-* Implement CLI for workflows 
-* Implement refresh token storage
-* Update examples to async
+
+* Add download functionality (chunked, analogue to upload)
+* Add S3 direct upload
+* Add branding API 
+* Improve main wrapper functions (1 line up- and download)
 
 <!-- LICENSE -->
 ## License
