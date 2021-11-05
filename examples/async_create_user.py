@@ -5,7 +5,7 @@ Example script showing the new async API with simple user creation
 
 """
 
-from dracoon.dc import DRACOON
+from dracoon import DRACOON
 import asyncio
 
 async def main():

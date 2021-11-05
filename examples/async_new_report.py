@@ -5,7 +5,7 @@ Example script showing the new async API and the creation of reports
 
 """
 
-from dracoon.dc import DRACOON
+from dracoon import DRACOON
 
 import asyncio
 
