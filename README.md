@@ -47,7 +47,7 @@ https://dracoon.team/api/
 ## Getting Started
 
 To get started, create a virtual environment in Python and install the dracoon package:
-```
+```bash
 virtualenv <DIR>
 source <DIR>/bin/activate 
 python3 -m pip install dracoon
@@ -57,21 +57,21 @@ python3 -m pip install dracoon
 
 You will need a working Python 3 installation - check your version:
 * Python
-```
+```bash
 python3 --version
 ```
 
 ### Installation
 
 1. Install the package from PyPi
-```
+```bash
 python3 -m pip install dracoon
 ```
 
 <!-- USAGE EXAMPLES -->
 ## Usage
 ### Import DRACOON
-```
+```Python
 from dracoon import DRACOON
 ```
 
@@ -80,7 +80,7 @@ The object contains a client (DRACOONClient) which handles all http connections 
 
 
 ### Object creation
-```
+```Python
 dracoon = DRACOON(base_url, client_id, client_secret)
 ```
 
@@ -93,7 +93,7 @@ dracoon = DRACOON(base_url, client_id, client_secret)
 
 #### Password flow
 
-```
+```Python
 connection = await dracoon.connect(OAuth2ConnectionType.password_flow, username, password)
 ```
 
@@ -102,7 +102,7 @@ The connection result contains the tokens (access and refresh, including validit
 You need pass one of the supported OAuth2 connection types. 
 To access the enums, import OAuth2ConnectionType:
 
-```
+```Python
 from dracoon import DRACOON, OAuth2Connectiontype
 ```
 
@@ -122,7 +122,7 @@ Full example: [Login via auth code](https://github.com/unbekanntes-pferd/dracoon
 Please note: you can only authenticate if OAuth app is correctly configured. You will need a custom app with authorization code flow enabled and you will need to set your redirect uri to https://your.domain.com/oauth/callback 
 
 #### Test connection
-```
+```Python
 connected = dracoon.test_connection()
 ```
 This will provide a true / false result depending on the connection.
@@ -143,7 +143,7 @@ Every connect process will update the connection.
 
 
 #### Log out
-```
+```Python
 await dracoon.logout()
 ```
 This will revoke both access and refresh tokens.
@@ -153,7 +153,7 @@ This will revoke both access and refresh tokens.
 
 1. You can access specific API endpoints by accessing the related adapter, e.g. for users, once you have connected:
 
-```
+```Python
 result = await dracoon.users.get_users()
 ```
 
@@ -164,25 +164,25 @@ Please note:
 cannot be accessed!
 * All (!) calls are async functions and need to be awaited
 
-Avalailble adapters:
+Available adapters:
 
-```
-dracoon.config - config API including webhooks
-dracoon.users - users management
-dracoon.groups - groups management
-dracoon.user - user account and keypair setup
-dracoon.nodes - nodes (up- and download including S3 direct up)
-dracoon.shares - shares and file requests
-dracoon.uploads - upload API
-dracoon.reports - new reporting API
-dracoon.eventlog - old eventlog API
+```Python
+dracoon.config  # config API including webhooks
+dracoon.users  # users management
+dracoon.groups # groups management
+dracoon.user # user account and keypair setup
+dracoon.nodes # nodes (up- and download including S3 direct up)
+dracoon.shares # shares and file requests
+dracoon.uploads # upload API
+dracoon.reports # new reporting API
+dracoon.eventlog # old eventlog API
 ```
 
 
 2. This package contains type hints and includes models for all payloads (updates and create payloads).
 To faciliate compliant object creation, there are several helper functions which can be found via make_, e.g.:
 
-```
+```Python
 room = dracoon.nodes.make_room(...)
 ```
 
@@ -192,7 +192,7 @@ This helps finding the right parameters and building objects that are compliant 
 
 DRACOON cryptography is fully supported by the package. In order to use it, import the relevant functions or en- and decryptors:
 
-```
+```Python
 from dracoon.crypto import create_plain_userkeypair
 from dracoon.crypto import create_file_key
 ```
@@ -201,7 +201,7 @@ from dracoon.crypto import create_file_key
 
 The account adapter (user) includes a function to set a new keypair:
 
-```
+```Python
 dracoon.user.set_keypair(secret)
 
 ```
@@ -213,7 +213,7 @@ Please note: Deleting a keypair can cause data loss.
 
 In order to work with encrypted rooms you will need to access your keypair:
 
-```
+```Python
 await dracoon.get_keypair(secret=secret)
 
 ```
@@ -226,7 +226,7 @@ the client for the current session.
 For smaller payload you can directly use the functions returning either
 plain or encrypted bytes like this:
 
-```
+```Python
 plain_bytes = decrypt_bytes(enc_data, plain_file_key)
 enc_bytes = encrypt_bytes(plain_data, plain_file_key)
 
@@ -255,7 +255,7 @@ The uploads adapter includes full methods to upload data to DRACOON and includes
 
 Here is an example of uploading a file to an encrypted room with only a few lines of code:
 
-```
+```Python
 upload_channel = CreateUploadChannel(parentId=9999, name=file_path.split('/')[-1])
 
 res = await dracoon.nodes.create_upload_channel(upload_channel=upload_channel)
@@ -267,7 +267,8 @@ res = await dracoon.uploads.upload_encrypted(file_path=file_path, target_id=9999
 
 The default chunk size is 5 MB but can be passed as an option (chunksize, in bytes).
 
-The main API wrapper will include more comfortable upload APIs in the future (1 line approach).
+The main API wrapper includes a method that includes upload for encrypted and unencrypted files.
+Full example: [File upload](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_upload.py)
 
 
 ## Examples
