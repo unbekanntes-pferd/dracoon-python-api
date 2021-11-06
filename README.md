@@ -110,7 +110,7 @@ Please note: you can only authenticate if OAuth app is correctly configured. Onl
 Full example: [Login via password flow](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_login_password_flow.py)
 
 #### Authorization code flow
-```
+```Python
 print(dracoon.get_code_url())
 auth_code = input('Enter auth code:')
 connection = await dracoon.connect(auth_code=auth_code)
@@ -135,7 +135,7 @@ Therefore it should not be necessary to manually request it.
 
 You can manually use the refresh token auth as follows:
 
-```
+```Python
 connection = await dracoon.client.connect(OAuth2ConnectionType.refresh_token)
 ```
 
@@ -237,7 +237,7 @@ enc_bytes = encrypt_bytes(plain_data, plain_file_key)
 For larger files it is recommended to encrypt (and upload) in chunks.
 An example of encryptor usage:
 
-```
+```Python
 dracoon_cipher = FileEncryptionCipher(plain_file_key=plain_file_key)
 enc_chunk = dracoon_cipher.encode_bytes(chunk)
 last_data, plain_file_key = dracoon_cipher.finalize()
