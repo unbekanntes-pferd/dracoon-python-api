@@ -24,12 +24,15 @@ from .core_models import ApiCall, ApiDestination, CallMethod, model_to_JSON
 USER_AGENT = 'dracoon-python-1.0.0-alpha1'
 
 class OAuth2ConnectionType(Enum):
+    """ enum as connection type for DRACOONClient """
+    """ supports authorization code flow, password flow and refresh token """
     password_flow = 1
     auth_code = 2
     refresh_token = 3
 
 @dataclass
 class DRACOONConnection:
+    """ DRACOON connection with tokens and validity """
     connected_at: datetime
     access_token: str
     access_token_validity: int
@@ -38,7 +41,8 @@ class DRACOONConnection:
 
 
 class DRACOONClient:
-
+    """ DRACOON client with an httpx async client """
+    """ requires OAuth connection details and base url """
     api_base_url = '/api/v4'
     branding_base_url = '/branding/api'
     reporting_base_url = '/reporting/api'
@@ -48,6 +52,7 @@ class DRACOONClient:
     }
 
     def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = ''):
+        """ client is initialized with DRACOON instance details (url and OAuth client credentials) """
         self.base_url = base_url
         self.client_id = client_id
         self.client_secret = client_secret
@@ -56,7 +61,7 @@ class DRACOONClient:
         self.connection: DRACOONConnection = None
 
     def __del__(self):
-
+        """ on client destroy terminate async client """
         loop = asyncio.get_event_loop()
 
         if loop.is_running():
@@ -66,6 +71,7 @@ class DRACOONClient:
         
 
     async def connect(self, connection_type: OAuth2ConnectionType, username: str = None, password: str = None) -> DRACOONConnection:
+        """ connects based on given OAuth2ConnectionType """
         token_url = self.base_url + '/oauth/token'
         now = datetime.now()
 
@@ -139,18 +145,19 @@ class DRACOONClient:
         return self.connection
 
 
-    # generate URL string for OAuth auth code flow
+    
     def get_code_url(self):
+        """ builds OAuth authorization code url to visit – requires OAuth app to use redirect uri ($host/oauth/callback) """
+        # generate URL string for OAuth auth code flow
         return self.base_url + f'/oauth/authorize?branding=full&response_type=code&client_id={self.client_id}&redirect_uri={self.base_url}/oauth/callback&scope=all'
 
 
     async def logout(self):
-
+        """ revoke tokens """
         revoke_url = self.base_url + '/oauth/revoke'
     
         access_data = {'token': self.connection.access_token, 'token_type_hint': 'access_token', 'client_id': self.client_id, 'client_secret': self.client_secret}
         refresh_data = {'token': self.connection.refresh_token, 'token_type_hint': 'refresh_token', 'client_id': self.client_id, 'client_secret': self.client_secret}
-
 
         try:
             res_a = await self.http.post(url=revoke_url, data=access_data)
@@ -165,17 +172,19 @@ class DRACOONClient:
 
     
     def check_access_token(self, test: bool = False):
+        """ check access token validity (based on connection time and token validity) """
         if not test and self.connection:
             now = datetime.now()
             return (now - self.connection.connected_at).seconds < self.connection.access_token_validity
 
     def check_refresh_token(self, test: bool = False):
+        """ check refresh token validity (based on connection time and token validity) """
         if not test and self.connection:
             now = datetime.now()
             return (now - self.connection.connected_at).seconds < self.connection.refresh_token_validity
 
     async def test_connection(self) -> bool:
-
+        """ test authenticated connection via authenticated ping """
         if not self.connection or not self.connected:
             return False
 
@@ -197,7 +206,10 @@ class DRACOONClient:
 
 
 
+"""
+LEGACY API (0.4.x) - DO NOT MODIFY
 
+"""
 
 # define DRACOON class object with specific variables (clientID, clientSecret optional)
 class Dracoon:

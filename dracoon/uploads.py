@@ -23,8 +23,13 @@ from tqdm import tqdm
 
 class DRACOONUploads:
 
-    def __init__(self, dracoon_client: DRACOONClient):
+    """
+    API wrapper for DRACOON uploads endpoint:
+    Upload files via proxy upload with given open upload channel.
+    """
 
+    def __init__(self, dracoon_client: DRACOONClient):
+        """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
             raise TypeError('Invalid DRACOON client format.')
         if dracoon_client.connection:
@@ -35,6 +40,7 @@ class DRACOONUploads:
                 'DRACOON client must be connected: client.connect()')
 
     def read_in_chunks(self, file_obj, chunksize = 5242880):
+        """ iterator to read a file object in chunks (default chunk size: 5 MB) """
         while True:
             data = file_obj.read(chunksize)
             if not data:
@@ -43,6 +49,7 @@ class DRACOONUploads:
 
     async def upload_unencrypted(self, file_path: str, upload_channel: UploadChannelResponse, 
                                  keep_shares: bool = False, resolution_strategy: str = 'autorename', chunksize: int = 5242880):
+        """ uploads a file to an unencrypted data room – upload channel required """
         file = Path(file_path)
         
         if not file.is_file():
@@ -118,6 +125,7 @@ class DRACOONUploads:
     # encrypted upload
     async def upload_encrypted(self, file_path: str, upload_channel: UploadChannelResponse, user_id: int, plain_keypair: PlainUserKeyPairContainer, 
                             keep_shares: bool = False, resolution_strategy: str = 'autorename', chunksize: int = 5242880):
+        """ uploads a file to an encrypted data room – upload channel and plain user keypair required """
         file = Path(file_path)
         if not file.is_file():
             raise ValueError(f'A file needs to be provided. {file_path} is not a file.')
