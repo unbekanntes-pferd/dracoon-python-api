@@ -5,7 +5,7 @@ Example script showing the new async API with authorization code flow login
 
 """
 
-from dracoon import DRACOON, OAuth2ConnectionType
+from dracoon import DRACOON
 import asyncio
 
 async def main():
@@ -15,7 +15,10 @@ async def main():
 
     dracoon = DRACOON(base_url=baseURL, client_id=client_id, client_secret=client_secret)
 
-    connection = await dracoon.connect(OAuth2ConnectionType.auth_code)
+    print(dracoon.get_code_url())
+    auth_code = input('Enter auth code:')
+    connection = await dracoon.connect(auth_code=auth_code)
+
     print(connection) # returns token and validity
 
     connected = await dracoon.test_connection() # test connection as authenticated user

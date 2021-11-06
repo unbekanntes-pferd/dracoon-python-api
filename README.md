@@ -28,17 +28,16 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 __Disclaimer: this is an unofficial repo and is not supported by DRACOON__<br>
-This package provides a connector to DRACOON API. 
+This package provides a wrapper for the DRACOON API including full crypto support. 
 DRACOON is a cloud storage product / service (SaaS) by DRACOON GmbH (http://dracoon.com). 
 DRACOON API documentation can be found here (Swagger UI):
-https://dracoon.team/api/
 
+https://dracoon.team/api/
 
 ### Built With
 
 * [Python 3.9.0](https://www.python.org/)
 * [httpx module](https://www.python-httpx.org/)
-* [aiohttp module](https://docs.aiohttp.org/en/stable/)
 * [cryptography](https://cryptography.io/en/latest/)
 * [pydantic](https://pydantic-docs.helpmanual.io/)
 
@@ -108,13 +107,17 @@ from dracoon import DRACOON, OAuth2Connectiontype
 ```
 
 Please note: you can only authenticate if OAuth app is correctly configured. Only local accounts (including Active Directory) can be used via password flow.
+Full example: [Login via password flow](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_login_password_flow.py)
 
 #### Authorization code flow
 ```
-connection = await dracoon.connect()
+print(dracoon.get_code_url())
+auth_code = input('Enter auth code:')
+connection = await dracoon.connect(auth_code=auth_code)
 ```
 If you do not provide a connection type, the default will be auth code.
-You will be prompted and asked for an authorization code.
+You should prompt (or fetch) the auth code via the respective url.
+Full example: [Login via auth code](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_login_auth_code_flow.py)
 
 Please note: you can only authenticate if OAuth app is correctly configured. You will need a custom app with authorization code flow enabled and you will need to set your redirect uri to https://your.domain.com/oauth/callback 
 
