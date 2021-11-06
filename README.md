@@ -188,9 +188,6 @@ room = dracoon.nodes.make_room(...)
 
 This helps finding the right parameters and building objects that are compliant with the DRACOON models.
 
-
-_For examples, check out the example files:_<br>
-
 ## Cryptography
 
 DRACOON cryptography is fully supported by the package. In order to use it, import the relevant functions or en- and decryptors:
@@ -217,10 +214,11 @@ Please note: Deleting a keypair can cause data loss.
 In order to work with encrypted rooms you will need to access your keypair:
 
 ```
-await dracoon.get_keypair()
+await dracoon.get_keypair(secret=secret)
 
 ```
-This function of the main API wrapper will prompt for your secret and return a plain keypair for further handling.
+This function of the main API wrapper will accept a secret (that you need to pass or prompt) returns the plain keypair and stores in in 
+the client for the current session.
 
 
 ### En- and decode on the fly (in memory)
@@ -274,7 +272,7 @@ The main API wrapper will include more comfortable upload APIs in the future (1 
 
 ## Examples
 
-1. Authentication
+_For examples, check out the example files:_<br>
 
 * [Login via password flow](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_login_password_flow.py)
 * [Login via auth code](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_login_auth_code_flow.py)
