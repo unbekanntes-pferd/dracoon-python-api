@@ -42,6 +42,8 @@ https://dracoon.team/api/
 * [cryptography](https://cryptography.io/en/latest/)
 * [pydantic](https://pydantic-docs.helpmanual.io/)
 
+[List all dependencies](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/requirements.txt)
+
 <!-- GETTING STARTED -->
 ## Getting Started
 
