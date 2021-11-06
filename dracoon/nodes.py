@@ -94,6 +94,37 @@ class DRACOONNodes:
 
         return res
 
+    async def get_node_from_path(self, path: str, filter: str = None) -> int:
+        """ get node id """
+
+        last_node = path.split('/')[-2]
+        parent_path = '/'.join(path.split('/')[:-2])
+
+        filter_str = f'&filter=parentPath:eq:{parent_path}/'
+
+        depth = len(path.split('/')[:-1]) - 1
+
+        if filter: filter_str += f'|{filter}'
+
+        if not await self.dracoon.test_connection() and self.dracoon.connection:
+            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        api_url = self.api_url + f'/search?search_string={last_node}{filter_str}&depth_level={str(depth)}'
+
+        try:
+            res = await self.dracoon.http.get(url=api_url)
+        except httpx.RequestError as e:
+            raise httpx.RequestError(
+                f'Connection to DRACOON failed: {e.request.url}')
+
+        if res.status_code == 200 and len(res.json()["items"]) > 0:
+            return res.json()["items"][0]
+        else:
+            print(res.json())
+            print(res.request.url)
+            raise httpx.RequestError(f'Node not found: {res.status_code}')
+
+
     @validate_arguments
     async def complete_s3_upload(self, upload_id: int, upload: CompleteS3Upload):
         """ finalize an S3 direct upload """
@@ -333,7 +364,6 @@ class DRACOONNodes:
 
         return res
 
-    # empty recycle bin of a given parent id
 
     @validate_arguments
     async def empty_node_recyclebin(self, parent_id: int):
