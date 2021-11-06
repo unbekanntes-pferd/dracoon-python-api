@@ -56,7 +56,7 @@ class DRACOONClient:
         self.base_url = base_url
         self.client_id = client_id
         self.client_secret = client_secret
-        self.http = httpx.AsyncClient(headers=self.headers)
+        self.http = httpx.AsyncClient(headers=self.headers, timeout=30)
         self.connected = False
         self.connection: DRACOONConnection = None
 
