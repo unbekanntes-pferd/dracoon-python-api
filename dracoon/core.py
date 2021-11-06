@@ -70,7 +70,7 @@ class DRACOONClient:
              loop.run_until_complete(self.http.aclose())
         
 
-    async def connect(self, connection_type: OAuth2ConnectionType, username: str = None, password: str = None) -> DRACOONConnection:
+    async def connect(self, connection_type: OAuth2ConnectionType, username: str = None, password: str = None, auth_code: str = None) -> DRACOONConnection:
         """ connects based on given OAuth2ConnectionType """
         token_url = self.base_url + '/oauth/token'
         now = datetime.now()
@@ -79,6 +79,11 @@ class DRACOONClient:
         if connection_type == OAuth2ConnectionType.password_flow and username == None and password == None:
             raise ValueError(
                 'Username and password are mandatory for OAuth2 password flow.')
+
+        # handle missing auth code for authorization code flow 
+        if connection_type == OAuth2ConnectionType.auth_code and auth_code == None:
+            raise ValueError(
+                'Auth code is mandatory for OAuth2 authorization code flow.')
 
         # get connection via OAuth2 password flow
         if connection_type == OAuth2ConnectionType.password_flow:
@@ -102,10 +107,7 @@ class DRACOONClient:
 
 
         if connection_type == OAuth2ConnectionType.auth_code:
-            print('Please get an authorization code:')
-            print(self.get_code_url())
 
-            auth_code = input('Enter auth code:')
             data = {'grant_type': 'authorization_code', 'code': auth_code, 'client_id': self.client_id, 'client_secret': self.client_secret, 'redirect_uri': self.base_url + '/oauth/callback'}
 
             try:
@@ -145,7 +147,6 @@ class DRACOONClient:
         return self.connection
 
 
-    
     def get_code_url(self):
         """ builds OAuth authorization code url to visit – requires OAuth app to use redirect uri ($host/oauth/callback) """
         # generate URL string for OAuth auth code flow

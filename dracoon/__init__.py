@@ -27,13 +27,16 @@ from .settings import DRACOONSettings
 from .reports import DRACOONReports
 from .crypto import decrypt_private_key
 
-class DRACOON: 
+class DRACOON:
+    """ DRACOON main API wrapper with all adapters to specific endpoints """ 
 
     def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = ''):
+        """ intialize with instance information: base DRACOON url and OAuth app client credentials """
         self.client = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret)
 
-    async def connect(self, connection_type: OAuth2ConnectionType = OAuth2ConnectionType.auth_code, username: str = None, password: str = None):
-        connection = await self.client.connect(connection_type=connection_type, username=username, password=password)
+    async def connect(self, connection_type: OAuth2ConnectionType = OAuth2ConnectionType.auth_code, username: str = None, password: str = None, auth_code = None):
+        """ establishes a connection required for all adapters """
+        connection = await self.client.connect(connection_type=connection_type, username=username, password=password, auth_code=auth_code)
 
         self.nodes = DRACOONNodes(self.client)
         self.users = DRACOONUsers(self.client)
@@ -46,18 +49,23 @@ class DRACOON:
         self.eventlog = DRACOONEvents(self.client)
 
     async def logout(self) -> None:
+        """ closes the httpx client and revokes tokens """
         await self.client.logout()
 
     async def test_connection(self) -> bool:
+        """ test authenticated connection via authenticated ping """
         return await self.client.test_connection()
     
     def valid_access_token(self) -> bool:
+        """ check access token validity based on expiration """
         return self.client.check_access_token()
     
     def valid_refresh_token(self) -> bool:
+        """ check refresh token validity based on expiration """
         return self.client.check_refresh_token()
 
     async def get_keypair(self, secret: str):
+        """ get user keypair """
         if not self.client.connection:
             raise ValueError('DRACOON client not connected.')
 
@@ -74,7 +82,12 @@ class DRACOON:
         return plain_keypair
 
     async def upload(self, file_path: str, target_path: str, options = None):
+        """ upload a file to a target """
         if not self.client.connection:
             raise ValueError('DRACOON client not connected.')
         
         pass
+
+    def get_code_url(self) -> str:
+        """ get code url for authorization code flow """
+        return self.client.get_code_url()
