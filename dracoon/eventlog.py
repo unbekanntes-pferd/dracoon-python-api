@@ -1,17 +1,18 @@
-# ---------------------------------------------------------------------------#
-# Python module to provide DRACOON api calls for system events log
-# Requires Dracoon call handlers
-# Version 0.1.0
-# Author: Octavio Simone, 10.10.2020
-# Part of dracoon Python package
-# ---------------------------------------------------------------------------#
+"""
+Async DRACOON eventlog adapter based on httpx and pydantic
+V1.0.0
+(c) Octavio Simone, November 2021 
+
+Collection of DRACOON API calls for user management
+Documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/eventlog
+
+Please note: maximum 500 items are returned in GET requests 
+
+ - refer to documentation for details on filtering and offset 
+ - use documentation for payload description 
 
 
-# collection of DRACOON API calls for system events log
-# documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/eventlog
-# Please note: maximum 500 items are returned in GET requests
-# - refer to documentation for details on filtering and offset
-# Important: role log auditor required (!)
+"""
 
 import httpx
 from pydantic import validate_arguments
@@ -20,8 +21,15 @@ from .core import DRACOONClient, OAuth2ConnectionType
 
 class DRACOONEvents:
 
-    def __init__(self, dracoon_client: DRACOONClient):
+    """
+    API wrapper for DRACOON eventlog endpoint:
+    Events and permissions audit management - requires user auditor role.
+    Please note: using the eventlog API for events is discouraged. Please 
+    use the reports API wrapper instead.
+    """
 
+    def __init__(self, dracoon_client: DRACOONClient):
+        """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
             raise TypeError('Invalid DRACOON client format.')
         if dracoon_client.connection:
@@ -32,7 +40,7 @@ class DRACOONEvents:
    
     @validate_arguments
     async def get_permissions(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
-
+        """ get permissions for all nodes (rooms) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -53,7 +61,7 @@ class DRACOONEvents:
     @validate_arguments
     async def get_events(self, offset: int = 0, filter: str = None, limit: int = None, 
                         sort: str = None, date_start: str = None, date_end: str = None, operation_id: int = None, user_id: int = None):
-
+        """ get events (audit log) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -75,7 +83,10 @@ class DRACOONEvents:
         return res
 
 
+"""
+LEGACY API (0.4.x) - DO NOT MODIFY
 
+"""
 
 # get assigned users per node
 @validate_arguments

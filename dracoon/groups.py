@@ -19,13 +19,18 @@ import httpx
 from pydantic import validate_arguments
 
 from .core import DRACOONClient, OAuth2ConnectionType
-from .groups_models import CreateGroup, UpdateGroup
+from .groups_models import CreateGroup, Expiration, UpdateGroup
 from .core_models import IDList
 
 class DRACOONGroups:
 
-    def __init__(self, dracoon_client: DRACOONClient):
+    """
+    API wrapper for DRACOON groups endpoint:
+    Group management - requires group manager role.
+    """
 
+    def __init__(self, dracoon_client: DRACOONClient):
+        """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
             raise TypeError('Invalid DRACOON client format.')
         if dracoon_client.connection:
@@ -36,6 +41,7 @@ class DRACOONGroups:
 
     @validate_arguments
     async def create_group(self, user: CreateGroup):
+        """ creates a new group """
 
         payload = user.dict()
 
@@ -49,10 +55,21 @@ class DRACOONGroups:
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
 
         return res
+
+    def make_group(self, name: str, expiration: Expiration = None) -> CreateGroup:
+        """ makes a group required for create_group() """
+
+        group = {
+            "name": name
+        }
+        
+        if expiration: group["expiration"] = group
+
+        return group
     
     @validate_arguments
     async def get_groups(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
-
+        """ list (all) groups """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -70,10 +87,10 @@ class DRACOONGroups:
 
         return res
 
-    # get user details for given user id
+
     @validate_arguments
     async def get_group(self, group_id: int):
-
+        """ get user details for specific group (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -90,7 +107,7 @@ class DRACOONGroups:
 
     @validate_arguments
     async def update_group(self, group_id: int, user_update: UpdateGroup):
-        
+        """ update user details for specific group (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -106,8 +123,18 @@ class DRACOONGroups:
 
         return res
 
+    def make_group_update(self, name: str = None, expiration: Expiration = None) -> UpdateGroup:
+        """ make a group update payload required for update_group() """
+        group_update = {}
+
+        if name: group_update["name"] = name
+        if expiration: group_update["expiration"] = name
+
+        return group_update
+
     @validate_arguments
     async def delete_group(self, group_id: int):
+        """ delete specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -124,7 +151,7 @@ class DRACOONGroups:
     # get user details for given user id
     @validate_arguments
     async def get_group_users(self, group_id: int, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
-
+        """ list all users for a specific group (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -144,7 +171,7 @@ class DRACOONGroups:
     # get rooms in which group is last remaining admin (prevents user deletion!)
     @validate_arguments
     async def get_group_last_admin_rooms(self, group_id: int):
-
+        """ list all rooms, in which group is last admin (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -161,7 +188,7 @@ class DRACOONGroups:
     # get roles assigned to group
     @validate_arguments
     async def get_group_roles(self, group_id: int):
-
+        """ get group roles for specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -176,9 +203,10 @@ class DRACOONGroups:
         return res
 
 
-    # update assigned users (array of user ids) to a group with given group id
+
     @validate_arguments
     async def add_group_users(self, group_id: int, user_list: List[int]):
+        """ bulk add a list of users to a group (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -196,9 +224,9 @@ class DRACOONGroups:
 
         return res
 
-    # delete assigned users (array of user ids) from a group with given group id
     @validate_arguments
     async def delete_group_users(self, group_id: int, user_list: List[int]):
+        """ bulk delete a list of users to a group (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -209,12 +237,18 @@ class DRACOONGroups:
         }
 
         try:
-            res = await self.dracoon.http.delete(url=api_url, json=payload)
+            res = await self.dracoon.http.request(method='DELETE', url=api_url, json=payload, headers=self.dracoon.http.headers)
 
         except httpx.RequestError as e:
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
 
         return res
+
+
+"""
+LEGACY API (0.4.x) - DO NOT MODIFY
+
+"""
 
 # get list of groups
 @validate_arguments

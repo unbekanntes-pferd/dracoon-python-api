@@ -3,7 +3,7 @@ Async DRACOON nodes adapter based on httpx and pydantic
 V1.0.0
 (c) Octavio Simone, November 2021 
 
-Collection of DRACOON API calls for user management
+Collection of DRACOON API calls for nodes management
 Documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/nodes
 
 Please note: maximum 500 items are returned in GET requests 
@@ -18,17 +18,21 @@ import datetime
 from typing import List, Union
 import httpx
 from pydantic import validate_arguments
-from dracoon.crypto_models import FileKey
-
-from dracoon.groups_models import Expiration
-
+from .crypto_models import FileKey
+from .groups_models import Expiration
 from .core import DRACOONClient, OAuth2ConnectionType
 from .nodes_models import CompleteS3Upload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, GetS3Urls, Permissions, ProcessRoomPendingUsers, S3Part, SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFiles, UpdateFolder, UpdateRoom, UpdateRoomGroupItem, UpdateRoomGroups, UpdateRoomHooks, UpdateRoomUserItem, UpdateRoomUsers
 
 
 class DRACOONNodes:
-    def __init__(self, dracoon_client: DRACOONClient):
 
+    """
+    API wrapper for DRACOON nodes endpoint:
+    Node operations (rooms, files, folders), room webhooks, comments and file transfer (up- and download)
+    """
+
+    def __init__(self, dracoon_client: DRACOONClient):
+        """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
             raise TypeError('Invalid DRACOON client format.')
         if dracoon_client.connection:
@@ -41,7 +45,7 @@ class DRACOONNodes:
     # get download url as authenticated user to download a file
     @validate_arguments
     async def create_upload_channel(self, upload_channel: CreateUploadChannel):
-
+        """ create an upload channel to upload (S3 direct or proxy) """
         payload = upload_channel.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -59,7 +63,7 @@ class DRACOONNodes:
     
     def make_upload_channel(self, parent_id: int, name: str, classification: int = None, size: int = None, expiration: Expiration = None, notes: str = None, 
                             direct_s3_upload: bool = None) -> CreateUploadChannel:
-        
+        """ make an upload channel payload for create_upload_channel() """
         upload_channel = {
             "parentId": parent_id,
             "name": name
@@ -73,10 +77,10 @@ class DRACOONNodes:
 
         return upload_channel
 
-    # delete nodes for given array of node ids
+
     @validate_arguments
     async def cancel_upload(self, upload_id: str):
-
+        """ cancel an upload channel (and delete chunks) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -92,7 +96,7 @@ class DRACOONNodes:
 
     @validate_arguments
     async def complete_s3_upload(self, upload_id: int, upload: CompleteS3Upload):
-
+        """ finalize an S3 direct upload """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -110,7 +114,7 @@ class DRACOONNodes:
         return res
 
     def make_s3_upload_complete(self, parts: List[S3Part], resolution_strategy: str = None, keep_share_links: str = None, file_name: str = None, file_key: FileKey = None) -> CompleteS3Upload:
-        
+        """ make payload required in complete_s3_upload() """
         s3_upload_complete = {
             "parts": parts
         }
@@ -124,7 +128,8 @@ class DRACOONNodes:
 
     @validate_arguments
     async def get_s3_urls(self, upload_id: int, upload: GetS3Urls):
-
+        """ get a list of S3 urls based on provided chunk count """
+        """ chunk size needs to be larger than 5 MB """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -143,7 +148,7 @@ class DRACOONNodes:
 
     @validate_arguments
     async def get_nodes(self, room_manager: bool = False, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
-
+        """ list (all) visible nodes """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -170,7 +175,7 @@ class DRACOONNodes:
 
     @validate_arguments
     async def delete_nodes(self, node_list: List[int]):
-
+        """ delete a list of nodes (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -190,7 +195,7 @@ class DRACOONNodes:
     # get node for given node id
     @validate_arguments
     async def get_node(self, node_id: int):
-
+        """ get specific node details (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -205,10 +210,10 @@ class DRACOONNodes:
 
         return res
 
-    # delete node for given node id
+
     @validate_arguments
     async def delete_node(self, node_id: int):
-
+        """ delete specific node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -226,7 +231,7 @@ class DRACOONNodes:
     # get node comments for given node id
     @validate_arguments
     async def get_node_comments(self, node_id: int, offset: int = 0):
-
+        """ get comments for specific node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -245,7 +250,7 @@ class DRACOONNodes:
     # get node for given node id
     @validate_arguments
     async def add_node_comment(self, node_id: int, comment: CommentNode):
-
+        """ add a comment to a node """
         payload = comment.dict()
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -262,6 +267,7 @@ class DRACOONNodes:
         return res
 
     def make_comment(self, text: str) -> CommentNode:
+        """ make a comment payload for add_comment() """
         comment = {
             "text": text
         }
@@ -270,14 +276,14 @@ class DRACOONNodes:
 
     # copy node for given node id
     @validate_arguments
-    async def copy_nodes(self, node_id: int, copy_node: TransferNode):
-
+    async def copy_nodes(self, target_id: int, copy_node: TransferNode):
+        """ copy node(s) to given target id """
         payload = copy_node.dict()
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
-        api_url = self.api_url + f'/{str(node_id)}/copy_to'
+        api_url = self.api_url + f'/{str(target_id)}/copy_to'
         try:
             res = await self.dracoon.http.post(api_url, json=payload)
 
@@ -288,7 +294,7 @@ class DRACOONNodes:
         return res
 
     def make_node_transfer(self, items: List[int], resolution_strategy: str = None, keep_share_links: bool = None, parent_id: int = None) -> TransferNode:
-
+        """ make a node transfer payload for copy_nodes() and move_nodes() """
         node_transfer = {
             "items": items
         }
@@ -303,7 +309,7 @@ class DRACOONNodes:
     # get node comfor given node id
     @validate_arguments
     async def get_deleted_nodes(self, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
-
+        """ list (all) deleted nodes """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -331,7 +337,7 @@ class DRACOONNodes:
 
     @validate_arguments
     async def empty_node_recyclebin(self, parent_id: int):
-
+        """ delete all nodes in recycle bin of parent (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -349,7 +355,7 @@ class DRACOONNodes:
     # get node versions in a given parent id (requires name, specification of type)
     @validate_arguments
     async def get_node_versions(self, parent_id: int, name: str = None, type: str = None, offset: int = 0):
-
+        """ get (all) versions of a node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -375,7 +381,7 @@ class DRACOONNodes:
 
     @validate_arguments
     async def add_favorite(self, node_id: int):
-
+        """ add a specific node to favorites (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -392,7 +398,7 @@ class DRACOONNodes:
     # delete node for given node id
     @validate_arguments
     async def delete_favorite(self, node_id: int):
-
+        """ remove a specific node from favorites (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -409,14 +415,14 @@ class DRACOONNodes:
 
     # copy node for given node id
     @validate_arguments
-    async def move_nodes(self, node_id: int, move_node: TransferNode):
-
+    async def move_nodes(self, target_id: int, move_node: TransferNode):
+        """ move node(s) to target node (by id) """
         payload = move_node.dict()
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
-        api_url = self.api_url + f'/{str(node_id)}/move_to'
+        api_url = self.api_url + f'/{str(target_id)}/move_to'
         try:
             res = await self.dracoon.http.post(api_url, json=payload)
 
@@ -429,7 +435,7 @@ class DRACOONNodes:
     # get node ancestors (parents)
     @validate_arguments
     async def get_parents(self, node_id: int):
-
+        """ get node parents """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -448,7 +454,7 @@ class DRACOONNodes:
 
     @validate_arguments
     async def empty_recyclebin(self, node_list: List[int]):
-
+        """ empty recylce bin: list of nodes (deleted nodes by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -468,7 +474,7 @@ class DRACOONNodes:
     # get deleted node info for given node id
     @validate_arguments
     async def get_deleted_node(self, node_id: int):
-
+        """ get details of a specific deleted node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -486,7 +492,7 @@ class DRACOONNodes:
     # restore deleted nodes from recycle bin
     @validate_arguments
     async def restore_nodes(self, restore: RestoreNode):
-
+        """ restore a list of nodes from recycle bin """
         payload = restore.dict()
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -503,7 +509,7 @@ class DRACOONNodes:
         return res
 
     def make_node_restore(self, deleted_node_list: List[int], resolution_strategy: str = None, keep_share_links: bool = None, parent_id: int = None) -> RestoreNode:
-
+        """ make payload required for restore_nodes() """
         node_restore = {
             "items": deleted_node_list
         }
@@ -517,7 +523,7 @@ class DRACOONNodes:
     # update file meta data
     @validate_arguments
     async def update_file(self, file_id: int, file_update: UpdateFiles):
-
+        """ update file metadata """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -537,7 +543,7 @@ class DRACOONNodes:
     # get download url as authenticated user to download a file
     @validate_arguments
     async def get_download_url(self, node_id: int):
-
+        """ get download url for a specific node """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -554,11 +560,13 @@ class DRACOONNodes:
     # get user file key if available
     @validate_arguments
     async def get_user_file_key(self, file_id: int, version: str = None):
-
+        """ get file key for given node as authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         api_url = self.api_url + f'/files/{str(file_id)}/user_file_key'
+
+        if version: api_url += f'/?version={version}'
 
         try:
             res = await self.dracoon.http.get(api_url)
@@ -571,7 +579,7 @@ class DRACOONNodes:
 
     @validate_arguments
     async def set_file_keys(self, file_keys: SetFileKeys):
-
+        """ set file keys for nodes """
         payload = file_keys.dict()
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -588,12 +596,15 @@ class DRACOONNodes:
         return res
 
     def make_set_file_keys(self, file_key_list: List[SetFileKeysItem]) -> SetFileKeys:
+        """ make payload required for set_file_keys() """
         return {
             "items": file_key_list
         }
         
 
     def make_set_file_key_item(self, file_id: int, user_id: int, file_key: FileKey):
+        """ make an entry to set a file key for a given file – required in make_set_file_keys() """
+      
         return {
             "fileId": file_id,
             "userId": user_id, 
@@ -604,7 +615,7 @@ class DRACOONNodes:
     # create folder
     @validate_arguments
     async def create_folder(self, folder: CreateFolder):
-
+        """ create a new folder """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -622,6 +633,7 @@ class DRACOONNodes:
         return res
 
     def make_folder(self, name: str, parent_id: int, notes: str = None, created: datetime = None, updated: datetime = None) -> CreateFolder:
+        """ make a folder payload required for create_folder() """
         folder = {
             "parentId": parent_id,
             "name": name
@@ -634,6 +646,7 @@ class DRACOONNodes:
         return folder
 
     def make_folder_update(self, name: str = None, notes: str = None, created: datetime = None, updated: datetime = None) -> UpdateFolder:
+        """" make a folder update payload for update_folder() """
         folder = {}
         
         if name: folder["name"] = notes
@@ -646,7 +659,7 @@ class DRACOONNodes:
     # update folder mets data
     @validate_arguments
     async def update_folder(self, node_id: int, folder_update: UpdateFolder):
-
+        """ update a folder """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -666,7 +679,7 @@ class DRACOONNodes:
     # get missing file keys
     @validate_arguments
     async def get_missing_file_keys(self, file_id: int = None, room_id: int = None, user_id: int = None, use_key: str = None, offset: int = 0, limit: int = None):
-
+        """ get (all) missing file keys """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -696,7 +709,7 @@ class DRACOONNodes:
     # create folder
     @validate_arguments
     async def create_room(self, room: CreateRoom):
-
+        """ create a new room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -716,7 +729,7 @@ class DRACOONNodes:
     # update room mets data
     @validate_arguments
     async def update_room(self, node_id: int, room_update: UpdateRoom):
-
+        """ update a room (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -737,6 +750,7 @@ class DRACOONNodes:
                   quota: int = None, recycle_bin_period: int = None, inherit_perms: bool = None, classification: int = None, 
                   admin_ids: List[int] = None, admin_group_ids: List[int] = None, activities_log: bool = None,
                   new_group_member_acceptance: str = None) -> CreateRoom:
+        """ make a room payload required for create_room() """
         room = {
             "parentId": parent_id,
             "name": name
@@ -760,7 +774,7 @@ class DRACOONNodes:
         return room
 
     def make_room_update(self, name: str = None, notes: str = None, qouta: int = None, created: datetime = None, updated: datetime = None, quota: int = None) -> UpdateRoom:
-        
+        """ make a room update payload for update_room() """
         room = {}
         
         if name: room["name"] = name
@@ -774,7 +788,7 @@ class DRACOONNodes:
     # configure data room
     @validate_arguments
     async def config_room(self, node_id: int, config_update: ConfigRoom):
-
+        """ configure a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -794,12 +808,13 @@ class DRACOONNodes:
     def make_room_config(self, name: str = None, notes: str = None, created: datetime = None, updated: datetime = None, 
                         quota: int = None, recycle_bin_period: int = None, inherit_perms: bool = None, classification: int = None, 
                         admin_ids: List[int] = None, admin_group_ids: List[int] = None, activities_log: bool = None, 
-                        new_group_member_acceptance: str = None) -> UpdateRoom:
-        
+                        new_group_member_acceptance: str = None) -> ConfigRoom:
+        """ make a room config payload required for config_room() """
         room = {}
         
         if new_group_member_acceptance: room["newGroupMemberAcceptance"] = new_group_member_acceptance
         if quota: room["quota"] = quota
+        if classification: room["classification"] = classification
         if recycle_bin_period: room["recycleBinRetentionPeriod"] = recycle_bin_period
         if inherit_perms: room["inheritPermissions"] = inherit_perms
         if activities_log: room["hasActivitiesLog"] = activities_log
@@ -816,8 +831,8 @@ class DRACOONNodes:
                          change: bool = True, delete: bool = True, manage_shares: bool = True,
                          manage_file_requests: bool = True, read_recycle_bin: bool = True, 
                          restore_recycle_bin: bool = True, delete_recycle_bin: bool = False) -> Permissions:
-
-                         return {
+        """ create a set of permissions for a room """
+        return {
                              "manage": manage,
                              "read": read,
                              "create": create,
@@ -831,6 +846,8 @@ class DRACOONNodes:
                          }
 
     def make_permission_update(id: int, permission: Permissions) -> Union[UpdateRoomUserItem, UpdateRoomGroupItem]:
+        """ make a permission update payload """
+        
         return {
             "id": id,
             "permissions": permission
@@ -840,7 +857,7 @@ class DRACOONNodes:
     # get node comfor given node id
     @validate_arguments
     async def get_room_groups(self, node_id: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None):
-
+        """ list (all) groups assigned to a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -864,11 +881,10 @@ class DRACOONNodes:
 
         return res
 
-    # add or change groups assigned to room with given node id
 
     @validate_arguments
     async def update_room_groups(self, node_id: int, groups_update: UpdateRoomGroups):
-
+        """ bulk update assigned groups of a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -888,7 +904,7 @@ class DRACOONNodes:
     # delete groups assigned to room with given node id
     @validate_arguments
     async def delete_room_groups(self, room_id: int, group_list: List[int]):
-
+        """ bulk delete assigned groups of a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -910,7 +926,7 @@ class DRACOONNodes:
 
     @validate_arguments
     async def get_room_users(self, node_id: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None):
-
+        """ get (all) users assigned to a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -937,7 +953,7 @@ class DRACOONNodes:
     # add or change users assigned to room with given node id
     @validate_arguments
     async def update_room_users(self, node_id: int, users_update: UpdateRoomUsers):
-
+        """ bulk update assigned users in a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -957,7 +973,7 @@ class DRACOONNodes:
     # delete users assigned to room with given node id
     @validate_arguments
     async def delete_room_users(self, room_id: int, user_list: List[int]):
-
+        """ bulk remove assigned users in a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -978,7 +994,7 @@ class DRACOONNodes:
     # get webhooks assigned or assignable to room with given node id
     @validate_arguments
     async def get_room_webhooks(self, node_id: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None):
-
+        """" list (all) room webhooks """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -1005,7 +1021,7 @@ class DRACOONNodes:
 
     @validate_arguments
     async def update_room_webhooks(self, node_id: int, hook_update: UpdateRoomHooks):
-
+        """ update room webhooks """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -1022,10 +1038,10 @@ class DRACOONNodes:
 
         return res
 
-    # get pending room assignments (new group members not currently accepted)
+
     @validate_arguments
     async def get_pending_assignments(self, offset: int = 0, filter: str = None, limit: str = None, sort: str = None):
-
+        """ get pending room assignments (new group members not accepted) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -1047,10 +1063,10 @@ class DRACOONNodes:
 
         return res
 
-    # process pending room assignments
+
     @validate_arguments
     async def process_pending_assignments(self, pending_update: ProcessRoomPendingUsers):
-
+        """ procces (accept or reject) new group members of a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -1070,7 +1086,7 @@ class DRACOONNodes:
     # search for nodes
     @validate_arguments
     async def search_nodes(self, search: str, parent_id: int = 0, depth_level: int = 0, offset: int = 0, filter: str = None, limit: str = None, sort: str = None):
-
+        """ search for specific nodes """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -1094,6 +1110,10 @@ class DRACOONNodes:
 
         return res
 
+"""
+LEGACY API (0.4.x) - DO NOT MODIFY
+
+"""
 
 @validate_arguments
 def get_nodes(roomManager: str = 'false', parentID: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):

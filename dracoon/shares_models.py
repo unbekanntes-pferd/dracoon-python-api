@@ -12,10 +12,11 @@ class CreateShare(BaseModel):
     nodeId: int
     name: Optional[str]
     password: Optional[str]
-    expiration: Expiration
+    expiration: Optional[Expiration]
     notes: Optional[str]
     internalNotes: Optional[str]
     showCreatorName: Optional[bool]
+    showCreatorUsername: Optional[bool]
     maxDownloads: Optional[int]
     keyPair: Optional[UserKeyPairContainer]
     fileKey: Optional[FileKey]
@@ -38,8 +39,8 @@ class UpdateShare(BaseModel):
     showCreatorUsername: Optional[bool]
     maxDownloads: Optional[int]
     resetMaxDownloads: Optional[bool]
-    objectIds: Optional[List[int]]
     name: Optional[str]
+    password: Optional[str]
     notes: Optional[str]
     internalNotes: Optional[str]
     defaultCountry: Optional[str]

@@ -77,7 +77,7 @@ class DRACOONUser:
         return res
 
     def make_account_update(self, user_name: str = None, acceptEULA: bool = None, first_name: str = None, last_name: str = None, email: str = None, 
-                            phone: str = None, language: str = None):
+                            phone: str = None, language: str = None) -> UpdateAccount:
         """ creates account information update payload – required for update_account_information() """
         account_update = {}
 

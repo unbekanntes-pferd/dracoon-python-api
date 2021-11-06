@@ -12,6 +12,7 @@ Please note: maximum 500 items are returned in GET requests
 
 """
 
+from typing import List
 import httpx
 from pydantic import validate_arguments
 
@@ -19,9 +20,14 @@ from .core import DRACOONClient, OAuth2ConnectionType
 from .settings_models import CreateWebhook, UpdateSettings, UpdateWebhook
 
 class DRACOONSettings:
+
+    """
+    API wrapper for DRACOON settings endpoint:
+    Settings an webhooks management – config manager role required
+    """
     
     def __init__(self, dracoon_client: DRACOONClient):
-
+        """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
             raise TypeError('Invalid DRACOON client format.')
         if dracoon_client.connection:
@@ -32,7 +38,7 @@ class DRACOONSettings:
 
     @validate_arguments
     async def get_settings(self):
-
+        """ list customer settings (home rooms) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
         try:
@@ -46,7 +52,7 @@ class DRACOONSettings:
 
     @validate_arguments
     async def update_settings(self, settings_update: UpdateSettings):
-        
+        """ update customer settings (home rooms) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -59,10 +65,23 @@ class DRACOONSettings:
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
 
         return res
+    
+    def make_settings_update(self, home_rooms_active: bool = None, home_room_quota: int = None, home_room_parent_name: str = None) -> UpdateSettings:
+        """ make a settings update payload required for update_settings() """
+        settings_update = {}
+
+        if home_rooms_active == False:
+            raise ValueError('Home rooms cannot be deactivated')
+
+        if home_rooms_active: settings_update["homeRoomsActive"] = home_rooms_active
+        if home_room_quota: settings_update["homeRoomQuota"] = home_room_quota
+        if home_room_parent_name: settings_update["homeRoomParentName"] = home_room_parent_name
+
+        return settings_update
 
     @validate_arguments
     async def get_webhooks(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
-
+        """ list (all) webhooks """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -83,7 +102,7 @@ class DRACOONSettings:
 
     @validate_arguments
     async def create_webhook(self, user: CreateWebhook):
-
+        """ creates a new webhook """
         payload = user.dict()
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -98,11 +117,40 @@ class DRACOONSettings:
 
         return res
 
+    def make_webhook(self, name: str, event_types: List[str], url: str, secret: str = None, 
+                     is_enabled: bool = None, trigger_example: bool = None) -> CreateWebhook:
+        """ make a new webhook creation payload required for create_webhook() """
+        webhook = {
+            "name": name,
+            "eventTypeNames": event_types,
+            "url": url
+        }
+        
+        if secret: webhook["secret"] = secret
+        if is_enabled is not None: webhook["isEnabled"] = is_enabled
+        if trigger_example is not None: webhook["triggerExampleEvent"] = trigger_example
+
+        return webhook
+
+    def make_webhook_update(self, name: str = None, event_types: List[str] = None, url: str = None, secret: str = None, 
+                     is_enabled: bool = None, trigger_example: bool = None) -> CreateWebhook:
+        """ make a new webhook update payload required for update_webhook() """
+        webhook = {}
+        
+        if name: webhook["name"] = name
+        if event_types: webhook["eventTypeNames"] = event_types
+        if url: webhook["url"] = url
+        if secret: webhook["secret"] = secret
+        if is_enabled is not None: webhook["isEnabled"] = is_enabled
+        if trigger_example is not None: webhook["triggerExampleEvent"] = trigger_example
+
+        return webhook
+
 
     # get user details for given user id
     @validate_arguments
     async def get_webhook(self, hook_id: int):
-
+        """ get webhook details for specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
