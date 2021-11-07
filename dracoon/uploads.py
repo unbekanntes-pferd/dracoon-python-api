@@ -94,13 +94,14 @@ class DRACOONUploads:
                 progress = tqdm(unit='iB',unit_divisor=1024, total=filesize, unit_scale=True)
                 for chunk in self.read_in_chunks(f, chunksize):
 
+
                     content_range = f'bytes {index}-{offset}/{filesize}'
 
                     upload_file = {
                     'file': chunk
                         }
 
-                    offset = index + len(chunk)
+                    
                     index = offset
 
                     self.dracoon.http.headers["Content-Range"] = content_range

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -56,4 +57,17 @@ class UserKeyPairContainer(BaseModel):
 class PlainUserKeyPairContainer(BaseModel):
     privateKeyContainer: PrivateKeyContainer
     publicKeyContainer: PublicKeyContainer
+
+class KeyState(Enum):
+    none = "none"
+    available = "available"
+    pending = "pending"
+
+
+@dataclass
+class EncryptionInfo:
+    userKeyState: KeyState
+    roomKeyState: KeyState
+    dataSpaceKeyState: KeyState
+
 

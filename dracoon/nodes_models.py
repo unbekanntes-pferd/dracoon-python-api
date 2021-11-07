@@ -1,7 +1,10 @@
+from dataclasses import dataclass
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
-from .crypto_models import FileKey
+
+from dracoon.user_models import UserInfo
+from .crypto_models import EncryptionInfo, FileKey
 
 # required payload for POST /nodes/{node_id}/comments
 class CommentNode(BaseModel):
@@ -172,6 +175,55 @@ class ProcessRoomPendingItem(BaseModel):
 # required payload for PUT /nodes/rooms/{room_id}/pending
 class ProcessRoomPendingUsers(BaseModel):
     items: List[ProcessRoomPendingItem]
+
+
+@dataclass
+class NodeType:
+    file = "file"
+    folder = "folder"
+    room = "room"
+
+@dataclass
+class Node:
+    id: int
+    type: NodeType
+    name: str
+    timestampCreation: Optional[datetime]
+    timestampModification: Optional[datetime]
+    parentId: Optional[int]
+    parentPath: Optional[str]
+    createdAt: Optional[datetime]
+    updatedAt: Optional[datetime]
+    createdBy: Optional[UserInfo]
+    updatedBy: Optional[UserInfo]
+    expireAt: Optional[datetime]
+    hash: Optional[str]
+    fileType: Optional[str]
+    mediaType: Optional[str]
+    size: Optional[int]
+    classification: Optional[int]
+    notes: Optional[str]
+    permissions: Optional[Permissions]
+    inheritPermissions: Optional[bool]
+    isEncrypted: Optional[bool]
+    encryptionInfo: Optional[EncryptionInfo]
+    cntDeletedVersions: Optional[int]
+    cntComments: Optional[int]
+    cntDownloadShares: Optional[int]
+    cntUploadShares: Optional[int]
+    recycleBinRetentionPeriod: Optional[int]
+    hasActivitiesLog: Optional[bool]
+    quota: Optional[int]
+    isFavorite: Optional[bool]
+    branchVersion: Optional[int]
+    mediaToken: Optional[str]
+    isBrowsable: Optional[bool]
+    cntRooms: Optional[int]
+    contFolders: Optional[int]
+    cntFiles: Optional[int]
+    authParentId: Optional[int]
+
+
 
 
 
