@@ -18,10 +18,11 @@ import datetime
 from typing import List, Union
 import httpx
 from pydantic import validate_arguments
+
 from .crypto_models import FileKey
 from .groups_models import Expiration
 from .core import DRACOONClient, OAuth2ConnectionType
-from .nodes_models import CompleteS3Upload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, GetS3Urls, Permissions, ProcessRoomPendingUsers, S3Part, SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFiles, UpdateFolder, UpdateRoom, UpdateRoomGroupItem, UpdateRoomGroups, UpdateRoomHooks, UpdateRoomUserItem, UpdateRoomUsers
+from .nodes_models import CompleteS3Upload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, GetS3Urls, Node, Permissions, ProcessRoomPendingUsers, S3Part, SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFiles, UpdateFolder, UpdateRoom, UpdateRoomGroupItem, UpdateRoomGroups, UpdateRoomHooks, UpdateRoomUserItem, UpdateRoomUsers
 
 
 class DRACOONNodes:
@@ -94,16 +95,23 @@ class DRACOONNodes:
 
         return res
 
-    async def get_node_from_path(self, path: str, filter: str = None) -> int:
-        """ get node id """
-
-        last_node = path.split('/')[-2]
-        parent_path = '/'.join(path.split('/')[:-2])
+    async def get_node_from_path(self, path: str, filter: str = None) -> Node:
+        """ get node id from path """
+        
+        # folder / room 
+        if path[-1] == '/':
+            last_node = path.split('/')[-2]
+            parent_path = '/'.join(path.split('/')[:-2])
+            depth = len(path.split('/')[:-1]) - 1
+        # file
+        else:
+            last_node = path.split('/')[-1]
+            parent_path = '/'.join(path.split('/')[:-1])
+            depth = len(path.split('/')[:-1])
 
         filter_str = f'&filter=parentPath:eq:{parent_path}/'
 
-        depth = len(path.split('/')[:-1]) - 1
-
+        
         if filter: filter_str += f'|{filter}'
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -120,8 +128,6 @@ class DRACOONNodes:
         if res.status_code == 200 and len(res.json()["items"]) > 0:
             return res.json()["items"][0]
         else:
-            print(res.json())
-            print(res.request.url)
             raise httpx.RequestError(f'Node not found: {res.status_code}')
 
 
@@ -580,7 +586,7 @@ class DRACOONNodes:
         api_url = self.api_url + f'/files/{str(node_id)}/downloads'
         try:
             res = await self.dracoon.http.post(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
             raise httpx.RequestError(
                 f'Connection to DRACOON failed: {e.request.url}')
@@ -600,7 +606,7 @@ class DRACOONNodes:
 
         try:
             res = await self.dracoon.http.get(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
             raise httpx.RequestError(
                 f'Connection to DRACOON failed: {e.request.url}')

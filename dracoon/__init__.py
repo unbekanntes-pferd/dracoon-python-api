@@ -15,18 +15,23 @@ All requests with bodies use generic params variable to pass JSON body
 
 """
 
-from pydantic.types import FilePath
+from .crypto_models import PlainUserKeyPairContainer
+from .downloads import DRACOONDownloads
+from .public import DRACOONPublic
+from .public_models import ActiveDirectoryInfo, OpenIdInfo, SystemInfo
+from .user_models import UserAccount
 from .core import DRACOONClient, OAuth2ConnectionType
 from .eventlog import DRACOONEvents
 from .nodes import DRACOONNodes
 from .shares import DRACOONShares
-from .user import DRACOONUser, get_account_information
+from .user import DRACOONUser
 from .users import DRACOONUsers
 from .groups import DRACOONGroups
 from .uploads import DRACOONUploads
 from .settings import DRACOONSettings
 from .reports import DRACOONReports
 from .crypto import decrypt_private_key
+import asyncio
 
 class DRACOON:
     """ DRACOON main API wrapper with all adapters to specific endpoints """ 
@@ -45,9 +50,25 @@ class DRACOON:
         self.groups = DRACOONGroups(self.client)
         self.settings = DRACOONSettings(self.client)
         self.uploads = DRACOONUploads(self.client)
+        self.downloads = DRACOONDownloads(self.client)
         self.reports = DRACOONReports(self.client)
         self.shares = DRACOONShares(self.client)
         self.eventlog = DRACOONEvents(self.client)
+        self.public = DRACOONPublic(self.client)
+
+        asyncio.gather()
+
+        res = await self.user.get_account_information()
+        self.user_info: UserAccount = res.json()
+
+        res = await self.public.get_system_info()
+        self.system_info: SystemInfo = res.json()
+
+        res = await self.public.get_auth_openid_info()
+        self.openid_info: OpenIdInfo = res.json()
+
+        res = await self.public.get_auth_ad_info()
+        self.ad_info: ActiveDirectoryInfo = res.json()
 
     async def logout(self) -> None:
         """ closes the httpx client and revokes tokens """
@@ -68,7 +89,7 @@ class DRACOON:
     def check_keypair(self) -> bool:
         return self.plain_keypair is not None and self.user_info is not None
 
-    async def get_keypair(self, secret: str):
+    async def get_keypair(self, secret: str) -> PlainUserKeyPairContainer:
         """ get user keypair """
         if not self.client.connection:
             raise ValueError('DRACOON client not connected.')
@@ -78,10 +99,6 @@ class DRACOON:
 
         
         plain_keypair = decrypt_private_key(secret, enc_keypair)
-
-        res = await self.user.get_account_information()
-
-        self.user_info = res.json()
 
         self.plain_keypair = plain_keypair
 
@@ -111,7 +128,28 @@ class DRACOON:
         elif not is_encrypted:
             upload = await self.uploads.upload_unencrypted(file_path=file_path, upload_channel=res.json())
 
- 
+    async def download(self, file_path: str, target_path: str):
+        """ download a file to a target """
+
+        if not self.client.connection:
+            raise ValueError('DRACOON client not connected.')
+
+        node_info = await self.nodes.get_node_from_path(file_path)
+        node_id = node_info["id"]
+
+        is_encrypted = node_info["isEncrypted"]
+
+        res = await self.nodes.get_download_url(node_id=node_id)
+
+        download_url = res.json()["downloadUrl"]
+
+        if not is_encrypted:
+            await self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info)
+        elif is_encrypted and self.check_keypair():
+            file_key = await self.nodes.get_user_file_key(node_id)
+            await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, plain_keypair=self.plain_keypair, file_key=file_key.json())
+
+
     def get_code_url(self) -> str:
         """ get code url for authorization code flow """
         return self.client.get_code_url()

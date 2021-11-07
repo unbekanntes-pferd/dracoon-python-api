@@ -15,6 +15,7 @@ from enum import Enum
 from dataclasses import dataclass
 import base64
 import asyncio
+import atexit
 from datetime import datetime
 from pydantic import validate_arguments, HttpUrl
 
@@ -146,6 +147,8 @@ class DRACOONClient:
 
         return self.connection
 
+    async def disconnect(self):
+        await self.http.aclose()
 
     def get_code_url(self):
         """ builds OAuth authorization code url to visit – requires OAuth app to use redirect uri ($host/oauth/callback) """

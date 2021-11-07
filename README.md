@@ -270,6 +270,38 @@ The default chunk size is 5 MB but can be passed as an option (chunksize, in byt
 The main API wrapper includes a method that includes upload for encrypted and unencrypted files.
 Full example: [File upload](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_upload.py)
 
+## Downloads
+
+The downloads adapter includes full methods to download data from DRACOON including chunking and encryption support.
+
+In order to download a file, generate a download url and use the relevant method:
+
+```Python
+res = await self.nodes.get_download_url(node_id=node_id)
+download_url = res.json()["downloadUrl"]
+
+await.self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info)
+    
+```
+
+To get the node information based on a path, you can use the following method:
+
+```Python
+node_info = await self.nodes.get_node_from_path(file_path)
+```
+
+In order to download encrypted files, you will need to unlock your keypair and retrieve your file key:
+
+```Python
+plain_keypair = dracoon.get_keypair(secret)
+# get node id via node info (see above)
+file_key = await self.nodes.get_user_file_key(node_id)
+plain_file_key = decrypt_file_key(file_key, plain_keypair)
+```
+
+As with uploads, the main wrapper has a method which handles encryption, keypair and file key.
+Full example: [Download files](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_download.py)
+
 
 ## Examples
 
@@ -279,15 +311,16 @@ _For examples, check out the example files:_<br>
 * [Login via auth code](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_login_auth_code_flow.py)
 * [Create a user](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_create_user.py)
 * [Set a new keypair](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_create_new_keypair.py)
-* [Upload an encrypted file](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_encrypted_upload.py)
+* [Upload file](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_upload.py)
+* [Download files](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_download.py)
 
 <!-- ROADMAP -->
 ## Roadmap
 
-* Add download functionality (chunked, analogue to upload)
 * Add S3 direct upload
 * Add branding API 
-* Improve main wrapper functions (1 line up- and download)
+* Error handling, testing coverage
+* Complete all types (update to data classes, remove pydantic, return objects)
 
 <!-- LICENSE -->
 ## License
