@@ -21,6 +21,7 @@ from pydantic import validate_arguments
 
 from .core import DRACOONClient, OAuth2ConnectionType
 from .users_models import AttributeEntry, CreateUser, Expiration, SetUserAttributes, UpdateUser, UpdateUserAttributes, UserAuthData
+from .user_responses import AttributesResponse, LastAdminUserRoomList, RoleList, UserData, UserGroupList, UserList
 
 class DRACOONUsers:
 
@@ -41,7 +42,7 @@ class DRACOONUsers:
             raise ValueError('DRACOON client must be connected: client.connect()')
 
     @validate_arguments
-    async def create_user(self, user: CreateUser):
+    async def create_user(self, user: CreateUser) -> UserData:
         """ creates a new user """
 
         payload = user.dict(exclude_unset=True)
@@ -51,11 +52,15 @@ class DRACOONUsers:
 
         try:
             res = await self.dracoon.http.post(self.api_url, json=payload)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Creating user in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return UserData(**res.json())
 
     def make_local_user(self, first_name: str, last_name: str, email: str, login: str = None,
                         language: str = None, notify: bool = None, expiration: Expiration = None, phone: str = None) -> CreateUser:
@@ -76,7 +81,7 @@ class DRACOONUsers:
         if expiration: user["expiration"] = expiration
         if phone: user["phone"] = phone
 
-        return user
+        return CreateUser(**user)
 
     def make_oidc_user(self, first_name: str, last_name: str, email: str, login: str, oidc_id: int, 
                        language: str = None, notify: bool = None, expiration: Expiration = None, phone: str = None) -> CreateUser:
@@ -95,7 +100,7 @@ class DRACOONUsers:
         if expiration: user["expiration"] = expiration
         if phone: user["phone"] = phone
         
-        return user
+        return CreateUser(**user)
 
     def make_ad_user(self, first_name: str, last_name: str, email: str, login: str, ad_id: int,
                      language: str = None, notify: bool = None, expiration: Expiration = None, phone: str = None) -> CreateUser:
@@ -115,7 +120,7 @@ class DRACOONUsers:
         if expiration: user["expiration"] = expiration
         if phone: user["phone"] = phone   
         
-        return user
+        return CreateUser(**user)
 
     def make_user_update(self, first_name: str = None, last_name: str = None, email: str = None, user_name: str = None, 
                          locked: bool = None, phone: str = None, expiration: Expiration = None, language: str = None,
@@ -136,7 +141,7 @@ class DRACOONUsers:
         if email: user_update["email"] = email 
         if user_name: user_update["userName"] = user_name
 
-        return user_update
+        return UpdateUser(**user_update)
 
         
     def make_auth_data(self, method: str, login: str = None, password: str = None, 
@@ -152,11 +157,11 @@ class DRACOONUsers:
         if ad_id: auth["adConfigId"] = ad_id
         if oidc_id: auth["oidConfigId"] = oidc_id
 
-        return auth
+        return UserAuthData(**auth)
 
 
     @validate_arguments
-    async def get_users(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):     
+    async def get_users(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None) -> UserList:     
         """ list (all) users """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -168,16 +173,19 @@ class DRACOONUsers:
 
         try:
             res = await self.dracoon.http.get(api_url)
-            print(res)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Listing users in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return UserList(**res.json())
 
     # get user details for given user id
     @validate_arguments
-    async def get_user(self, user_id: int):
+    async def get_user(self, user_id: int) -> UserData:
         """ get user details for specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -186,15 +194,19 @@ class DRACOONUsers:
 
         try:
             res = await self.dracoon.http.get(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Listing user {user_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return UserData(**res.json())
 
     # update user's meta data for given user id
     @validate_arguments
-    async def update_user(self, user_id: int, user_update: UpdateUser):
+    async def update_user(self, user_id: int, user_update: UpdateUser) -> UserData:
         """ update user details for specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -205,15 +217,19 @@ class DRACOONUsers:
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Updating user {user_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return UserData(**res.json())
 
     # delete user for given user id
     @validate_arguments
-    async def delete_user(self, user_id: int):
+    async def delete_user(self, user_id: int) -> None:
         """ delete specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -222,15 +238,19 @@ class DRACOONUsers:
 
         try:
             res = await self.dracoon.http.delete(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Deleting user {user_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return None
 
     # get user details for given user id
     @validate_arguments
-    async def get_user_groups(self, user_id: int, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
+    async def get_user_groups(self, user_id: int, offset: int = 0, filter: str = None, limit: int = None, sort: str = None) -> UserGroupList:
         """ list all groups for a specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -242,15 +262,19 @@ class DRACOONUsers:
 
         try:
             res = await self.dracoon.http.get(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Getting groups for user {user_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return UserGroupList(**res.json())
 
     # get rooms in which user is last remaining admin (prevents user deletion!)
     @validate_arguments
-    async def get_user_last_admin_rooms(self, user_id: int):
+    async def get_user_last_admin_rooms(self, user_id: int) -> LastAdminUserRoomList:
         """ list all rooms, in which user is last admin (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -259,15 +283,19 @@ class DRACOONUsers:
 
         try:
             res = await self.dracoon.http.get(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Getting last admin rooms for user {user_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return LastAdminUserRoomList(**res.json())
 
     # get roles assigned to user
     @validate_arguments
-    async def get_user_roles(self, user_id: int):
+    async def get_user_roles(self, user_id: int) -> RoleList:
         """ get user roles for specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -276,15 +304,20 @@ class DRACOONUsers:
 
         try:
             res = await self.dracoon.http.get(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Getting roles for user {user_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+
+        return RoleList(**res.json())
 
     # get custom user attributes (key, value)
     @validate_arguments
-    async def get_user_attributes(self, user_id: int, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
+    async def get_user_attributes(self, user_id: int, offset: int = 0, filter: str = None, limit: int = None, sort: str = None) -> AttributesResponse:
         """ get custom user attributes for a specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -296,15 +329,19 @@ class DRACOONUsers:
 
         try:
             res = await self.dracoon.http.get(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Getting user attributes for user {user_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return AttributesResponse(**res.json())
 
     # set custom user attributes (key, value)
     @validate_arguments
-    async def delete_user_attribute(self, user_id: int, key: str):
+    async def delete_user_attribute(self, user_id: int, key: str) -> None:
         """ delete custom user attribute for a specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -313,15 +350,19 @@ class DRACOONUsers:
 
         try:
             res = await self.dracoon.http.delete(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Deleting attribute {key} for user {user_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return None
 
     # update custom user attributes (key, value)
     @validate_arguments
-    async def update_user_attributes(self, user_id: int, attributes: UpdateUserAttributes):
+    async def update_user_attributes(self, user_id: int, attributes: UpdateUserAttributes) -> UserData:
         """ create / update custom user attribute for a specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -331,11 +372,15 @@ class DRACOONUsers:
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
-
-        return res
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Updating attributes for user {user_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
+        
+        return UserData(**res.json())
 
     def make_custom_user_attribute(key: str, value: str) -> AttributeEntry:
         """ make a custom user attribute required for update_user_attributes() """

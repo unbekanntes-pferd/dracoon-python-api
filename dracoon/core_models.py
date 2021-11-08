@@ -1,13 +1,38 @@
+""" 
+Core models required by other models 
+
+"""
+
+
 from pydantic import BaseModel
 from typing import Any, Optional, List
+from datetime import datetime
 from enum import Enum
 import json
+
+
+class Range(BaseModel):
+    offset: int
+    limit: int
+    total: int
+
+class Expiration(BaseModel):
+    enableExpiration: bool
+    expireAt: datetime
+
+
+
+""" 
+LEGACY API 0.4.x – DO NOT MODIFY
+
+"""
 
 class CallMethod(Enum):
     GET = 'GET'
     POST = 'POST'
     PUT = 'PUT'
     DELETE = 'DELETE'
+
 
 class ApiCall(BaseModel):
     url: str
@@ -36,10 +61,6 @@ def model_to_JSON(model: BaseModel):
         json_str += "]"
   
         return json.loads(json_str)
-
-
-
-
 
 
 
