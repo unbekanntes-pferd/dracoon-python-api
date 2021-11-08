@@ -139,7 +139,7 @@ class DRACOONNodes:
 
         api_url = self.api_url + f'/files/uploads/{upload_id}/s3'
 
-        payload = upload.dict()
+        payload = upload.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -172,7 +172,7 @@ class DRACOONNodes:
 
         api_url = self.api_url + f'/files/uploads/{upload_id}/s3_urls'
 
-        payload = upload.dict()
+        payload = upload.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.post(url=api_url, json=payload)
@@ -200,7 +200,7 @@ class DRACOONNodes:
 
         try:
             res = await self.dracoon.http.get(api_url)
-            print(res)
+       
 
         except httpx.RequestError as e:
             raise httpx.RequestError(
@@ -288,7 +288,7 @@ class DRACOONNodes:
     @validate_arguments
     async def add_node_comment(self, node_id: int, comment: CommentNode):
         """ add a comment to a node """
-        payload = comment.dict()
+        payload = comment.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -315,7 +315,7 @@ class DRACOONNodes:
     @validate_arguments
     async def copy_nodes(self, target_id: int, copy_node: TransferNode):
         """ copy node(s) to given target id """
-        payload = copy_node.dict()
+        payload = copy_node.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -362,7 +362,6 @@ class DRACOONNodes:
 
         try:
             res = await self.dracoon.http.get(api_url)
-            print(res)
 
         except httpx.RequestError as e:
             raise httpx.RequestError(
@@ -405,8 +404,7 @@ class DRACOONNodes:
 
         try:
             res = await self.dracoon.http.get(api_url)
-            print(res)
-
+        
         except httpx.RequestError as e:
             raise httpx.RequestError(
                 f'Connection to DRACOON failed: {e.request.url}')
@@ -453,7 +451,7 @@ class DRACOONNodes:
     @validate_arguments
     async def move_nodes(self, target_id: int, move_node: TransferNode):
         """ move node(s) to target node (by id) """
-        payload = move_node.dict()
+        payload = move_node.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -529,7 +527,7 @@ class DRACOONNodes:
     @validate_arguments
     async def restore_nodes(self, restore: RestoreNode):
         """ restore a list of nodes from recycle bin """
-        payload = restore.dict()
+        payload = restore.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -565,7 +563,7 @@ class DRACOONNodes:
 
         api_url = self.api_url + f'/files/{str(file_id)}'
 
-        payload = file_update.dict()
+        payload = file_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -616,7 +614,7 @@ class DRACOONNodes:
     @validate_arguments
     async def set_file_keys(self, file_keys: SetFileKeys):
         """ set file keys for nodes """
-        payload = file_keys.dict()
+        payload = file_keys.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -657,7 +655,7 @@ class DRACOONNodes:
 
         api_url = self.api_url + f'/folders'
 
-        payload = folder.dict()
+        payload = folder.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -701,7 +699,7 @@ class DRACOONNodes:
 
         api_url = self.api_url + f'/folders/{str(node_id)}'
 
-        payload = folder_update.dict()
+        payload = folder_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -734,8 +732,7 @@ class DRACOONNodes:
 
         try:
             res = await self.dracoon.http.get(api_url)
-            print(res)
-
+    
         except httpx.RequestError as e:
             raise httpx.RequestError(
                 f'Connection to DRACOON failed: {e.request.url}')
@@ -751,15 +748,19 @@ class DRACOONNodes:
 
         api_url = self.api_url + f'/rooms'
 
-        payload = room.dict()
+        payload = room.dict(exclude_unset=True)
 
         try:
-            res = await self.dracoon.http.put(url=api_url, json=payload)
-
+            res = await self.dracoon.http.post(url=api_url, json=payload)
+            res.raise_for_status()
         except httpx.RequestError as e:
             raise httpx.RequestError(
                 f'Connection to DRACOON failed: {e.request.url}')
-
+        except httpx.HTTPStatusError as e:
+            print(e.request.content)
+            raise httpx.RequestError(
+                f'Room creation failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+        
         return res
 
     # update room mets data
@@ -771,7 +772,7 @@ class DRACOONNodes:
 
         api_url = self.api_url + f'/rooms/{str(node_id)}'
 
-        payload = room_update.dict()
+        payload = room_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -830,7 +831,7 @@ class DRACOONNodes:
 
         api_url = self.api_url + f'/rooms/{str(node_id)}/config'
 
-        payload = config_update.dict()
+        payload = config_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -909,7 +910,6 @@ class DRACOONNodes:
 
         try:
             res = await self.dracoon.http.get(api_url)
-            print(res)
 
         except httpx.RequestError as e:
             raise httpx.RequestError(
@@ -926,7 +926,7 @@ class DRACOONNodes:
 
         api_url = self.api_url + f'/rooms/{str(node_id)}/groups'
 
-        payload = groups_update.dict()
+        payload = groups_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -978,8 +978,7 @@ class DRACOONNodes:
 
         try:
             res = await self.dracoon.http.get(api_url)
-            print(res)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
             raise httpx.RequestError(
                 f'Connection to DRACOON failed: {e.request.url}')
@@ -995,7 +994,7 @@ class DRACOONNodes:
 
         api_url = self.api_url + f'/rooms/{str(node_id)}/users'
 
-        payload = users_update.dict()
+        payload = users_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -1063,7 +1062,7 @@ class DRACOONNodes:
 
         api_url = self.api_url + f'/rooms/{str(node_id)}/webhooks'
 
-        payload = hook_update.dict()
+        payload = hook_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -1108,7 +1107,7 @@ class DRACOONNodes:
 
         api_url = self.api_url + f'/rooms/pending'
 
-        payload = pending_update.dict()
+        payload = pending_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -1138,7 +1137,6 @@ class DRACOONNodes:
 
         try:
             res = await self.dracoon.http.get(api_url)
-            print(res)
 
         except httpx.RequestError as e:
             raise httpx.RequestError(

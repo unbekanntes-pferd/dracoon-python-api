@@ -56,7 +56,7 @@ class DRACOONSettings:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
-        payload = settings_update.dict()
+        payload = settings_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=self.pi_url, json=payload)
@@ -103,7 +103,7 @@ class DRACOONSettings:
     @validate_arguments
     async def create_webhook(self, user: CreateWebhook):
         """ creates a new webhook """
-        payload = user.dict()
+        payload = user.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -167,7 +167,7 @@ class DRACOONSettings:
     @validate_arguments
     async def update_webhook(self, hook_id: int, hook_update: UpdateWebhook):
 
-        payload = hook_update.dict()
+        payload = hook_update.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
