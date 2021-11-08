@@ -43,7 +43,7 @@ class DRACOONGroups:
     async def create_group(self, user: CreateGroup):
         """ creates a new group """
 
-        payload = user.dict()
+        payload = user.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -113,7 +113,7 @@ class DRACOONGroups:
 
         api_url = self.api_url + f'/{str(group_id)}'
 
-        payload = user_update.dict()
+        payload = user_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)

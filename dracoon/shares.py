@@ -59,7 +59,7 @@ class DRACOONShares:
     @validate_arguments
     async def create_share(self, share: CreateShare):
         """ create a new share """
-        payload = share.dict()
+        payload = share.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -143,7 +143,7 @@ class DRACOONShares:
 
         api_url = self.api_url + f'/downloads'
 
-        payload = shares_update.dict()
+        payload = shares_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -208,7 +208,7 @@ class DRACOONShares:
 
         api_url = self.api_url + f'/downloads/{str(share_id)}'
 
-        payload = share_update.dict()
+        payload = share_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -239,7 +239,7 @@ class DRACOONShares:
     @validate_arguments
     async def mail_share(self, share_id: int, send_share: SendShare):
         """ send a specific share via email (by id) """
-        payload = send_share.dict()
+        payload = send_share.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -280,7 +280,7 @@ class DRACOONShares:
     @validate_arguments
     async def create_file_request(self, file_request: CreateFileRequest):
         """ create a new file request """
-        payload = file_request.dict()
+        payload = file_request.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -365,7 +365,7 @@ class DRACOONShares:
 
         api_url = self.api_url + f'/uploads'
 
-        payload = file_requests_update.dict()
+        payload = file_requests_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -435,7 +435,7 @@ class DRACOONShares:
 
         api_url = self.api_url + f'/uploads/{str(file_request_id)}'
 
-        payload = file_request_update.dict()
+        payload = file_request_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -466,7 +466,7 @@ class DRACOONShares:
     @validate_arguments
     async def mail_file_request(self, file_request_id: int, send_file_request: SendShare):
         """ send a specific file request via email (by id) """
-        payload = send_file_request.dict()
+        payload = send_file_request.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)

@@ -66,7 +66,7 @@ class DRACOONUser:
 
         api_url = self.api_url + f'/account'
 
-        payload = account_update.dict()
+        payload = account_update.dict(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)

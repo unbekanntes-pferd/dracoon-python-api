@@ -41,7 +41,7 @@ class DRACOONReports:
     @validate_arguments
     async def create_report(self, report: CreateReport):
         """ create a new report """
-        payload = report.dict()
+        payload = report.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
