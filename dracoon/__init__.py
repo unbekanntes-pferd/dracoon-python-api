@@ -70,9 +70,9 @@ class DRACOON:
         res = await self.public.get_auth_ad_info()
         self.ad_info: ActiveDirectoryInfo = res.json()
 
-    async def logout(self) -> None:
+    async def logout(self, revoke_refresh_token: bool = False) -> None:
         """ closes the httpx client and revokes tokens """
-        await self.client.logout()
+        await self.client.logout(revoke_refresh_token=revoke_refresh_token)
 
     async def test_connection(self) -> bool:
         """ test authenticated connection via authenticated ping """

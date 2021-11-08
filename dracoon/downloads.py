@@ -19,7 +19,6 @@ from .crypto import FileDecryptionCipher, decrypt_file_key
 from pathlib import Path
 import os
 
-from tqdm import tqdm as tqdm_sync
 import tqdm.asyncio
 
 
@@ -135,11 +134,13 @@ class DRACOONDownloads:
         file_path = target_path + '/' + node_info["name"]
 
         if self.check_file_exists(file_path):
+            self.dracoon.logout()
             raise ValueError('File already exists.')
 
         folder = Path(target_path)
 
         if not folder.is_dir():
+            self.dracoon.logout()
             raise ValueError(f'A file needs to be provided. {target_path} is not a folder.')
         
         size = node_info["size"]
@@ -150,20 +151,27 @@ class DRACOONDownloads:
         if size < chunksize:
             try:
                 async with self.dracoon.http.stream(method='GET', url=download_url) as res:
-
+                    res.raise_for_status()
                     file_out = open(file_path, 'wb')
 
-                    async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1024), desc=node_info["name"], unit='iB',unit_scale=True, unit_divisor=1024, total=size):
+                    async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=node_info["name"], unit='iMB',unit_scale=False, unit_divisor=1048576, total=size):
+                        
                         plain_chunk = decryptor.decode_bytes(chunk)
+                        file_out.write(plain_chunk)
                         if not chunk:
                             last_data = decryptor.finalize()
                             file_out.write(last_data)
-                        file_out.write(plain_chunk)
+                        
 
                     file_out.close()
 
             except httpx.RequestError as e:
+                self.dracoon.logout()
                 raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            except httpx.HTTPStatusError as e:
+                self.dracoon.logout()
+                raise httpx.RequestError(f'Download from DRACOON failed: {e.response.status_code} ({e.request.url})')
+
 
         else:
             index = 0
@@ -188,7 +196,7 @@ class DRACOONDownloads:
                         async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=desc, unit='iMB',unit_scale=False, unit_divisor=1024, total=chunksize/1048576):
                             plain_chunk = decryptor.decode_bytes(chunk)
                             file_out.write(plain_chunk)
-                            
+
                             # finalize on last chunk in total
                             if not chunk and (size - offset <= chunksize - 2):
                                 last_data = decryptor.finalize()
@@ -201,10 +209,12 @@ class DRACOONDownloads:
                     file_out.close()
                     if os.path.exists(file_path):
                         os.remove(file_path)
+                    self.dracoon.logout()
                     raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
                 except httpx.HTTPStatusError as e:
                     file_out.close()
                     if os.path.exists(file_path):
                         os.remove(file_path)
+                    self.dracoon.logout()
                     raise ValueError(f'Upload failed: {e.response.status_code} – {e.response.text}')
             

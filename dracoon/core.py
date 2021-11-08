@@ -78,11 +78,13 @@ class DRACOONClient:
 
         # handle missing credentials for password flow
         if connection_type == OAuth2ConnectionType.password_flow and username == None and password == None:
+            await self.http.aclose()
             raise ValueError(
                 'Username and password are mandatory for OAuth2 password flow.')
 
         # handle missing auth code for authorization code flow 
         if connection_type == OAuth2ConnectionType.auth_code and auth_code == None:
+            await self.http.aclose()
             raise ValueError(
                 'Auth code is mandatory for OAuth2 authorization code flow.')
 
@@ -100,9 +102,12 @@ class DRACOONClient:
                 res = await self.http.post(url=token_url, data=data)
                 res.raise_for_status()
             except httpx.RequestError as e:
-                raise httpx.RequestError(f'Could not connect to DRACOON: {e.request.url}')
-                
-                
+                await self.http.aclose()
+                raise httpx.RequestError(f'Could not connect to DRACOON: {e.request.url}')         
+            except httpx.HTTPStatusError as e:
+                await self.http.aclose()
+                raise ValueError(
+                        f'Authentication failed: {e.response.status_code}')    
             self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
                                          res.json()["refresh_token"], res.json()["expires_in"])
 
@@ -115,8 +120,10 @@ class DRACOONClient:
                 res = await self.http.post(url=token_url, data=data)
                 res.raise_for_status()
             except httpx.RequestError as e:
+                await self.http.aclose()
                 raise httpx.RequestError(f'Could not connect to DRACOON: {e.request.url}')
             except httpx.HTTPStatusError as e:
+                await self.http.aclose()
                 raise ValueError(
                         f'Authentication failed: {e.response.status_code}')
 
@@ -132,10 +139,13 @@ class DRACOONClient:
                 res = await self.http.post(url=token_url, data=data)
                 res.raise_for_status()
             except httpx.RequestError as e:
+                await self.http.aclose()
                 raise httpx.RequestError(
                         f'Could not connect to DRACOON: {e.request.url}')
             except httpx.HTTPStatusError as e:
+                await self.http.aclose()
                 raise httpx.HTTPStatusError(f'Authentication failed: {e.response.status_code}')
+            
 
             self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
                                          res.json()["refresh_token"], res.json()["expires_in"])
@@ -156,7 +166,7 @@ class DRACOONClient:
         return self.base_url + f'/oauth/authorize?branding=full&response_type=code&client_id={self.client_id}&redirect_uri={self.base_url}/oauth/callback&scope=all'
 
 
-    async def logout(self):
+    async def logout(self, revoke_refresh_token: bool = False):
         """ revoke tokens """
         revoke_url = self.base_url + '/oauth/revoke'
     
@@ -166,13 +176,15 @@ class DRACOONClient:
         try:
             res_a = await self.http.post(url=revoke_url, data=access_data)
             res_a.raise_for_status()
-            res_r = await self.http.post(url=revoke_url, data=refresh_data)
-            res_r.raise_for_status()
+            if revoke_refresh_token:
+                res_r = await self.http.post(url=revoke_url, data=refresh_data)
+                res_r.raise_for_status()
         except httpx.RequestError as e:
             raise httpx.RequestError(f'Could not connect to DRACOON: {e.request.url}')
 
         self.connected = False
         self.connection = None
+        await self.http.aclose()
 
     
     def check_access_token(self, test: bool = False):

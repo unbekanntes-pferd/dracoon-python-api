@@ -130,7 +130,7 @@ An authenticated ping is used to verify the tokens are valid.
 
 #### Refresh token
 
-All functions check for access token validity and fetch new tokens, if the access tokens expire.
+All methods check for access token validity and fetch new tokens, if the access tokens expire.
 Therefore it should not be necessary to manually request it.
 
 You can manually use the refresh token auth as follows:
@@ -162,7 +162,7 @@ Please note:
 * Providing a filter is optional - see API documentation and examples on usage
 * If you do not connect the client, the adapters are not instantiated and 
 cannot be accessed!
-* All (!) calls are async functions and need to be awaited
+* All (!) calls are async methods and need to be awaited
 
 Available adapters:
 
@@ -180,7 +180,7 @@ dracoon.eventlog # old eventlog API
 
 
 2. This package contains type hints and includes models for all payloads (updates and create payloads).
-To faciliate compliant object creation, there are several helper functions which can be found via make_, e.g.:
+To faciliate compliant object creation, there are several helper methods which can be found via make_, e.g.:
 
 ```Python
 room = dracoon.nodes.make_room(...)
@@ -199,7 +199,7 @@ from dracoon.crypto import create_file_key
 
 ### Create a new keypair
 
-The account adapter (user) includes a function to set a new keypair:
+The account adapter (user) includes a method to set a new keypair:
 
 ```Python
 dracoon.user.set_keypair(secret)
@@ -217,7 +217,7 @@ In order to work with encrypted rooms you will need to access your keypair:
 await dracoon.get_keypair(secret=secret)
 
 ```
-This function of the main API wrapper will accept a secret (that you need to pass or prompt) returns the plain keypair and stores in in 
+This method of the main API wrapper will accept a secret (that you need to pass or prompt) returns the plain keypair and stores in in 
 the client for the current session.
 
 
