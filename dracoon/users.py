@@ -382,18 +382,18 @@ class DRACOONUsers:
         
         return UserData(**res.json())
 
-    def make_custom_user_attribute(key: str, value: str) -> AttributeEntry:
+    def make_custom_user_attribute(self, key: str, value: str) -> AttributeEntry:
         """ make a custom user attribute required for update_user_attributes() """
-        return {
+        return AttributeEntry(**{
             "key": key,
             "value": value
-        }
+        })
 
-    def make_attributes_update(list: List[AttributeEntry]) -> UpdateUserAttributes:
+    def make_attributes_update(self, list: List[AttributeEntry]) -> UpdateUserAttributes:
         """ consolidate mulitple attributes into list - required for update_user_attributes() """
-        return {
+        return UpdateUserAttributes(**{
             "items": list
-        }
+        })
 
 """
 LEGACY API (0.4.x) - DO NOT MODIFY

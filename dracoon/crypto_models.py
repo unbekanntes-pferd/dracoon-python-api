@@ -30,11 +30,17 @@ class FileKey(BaseModel):
     version: FileKeyVersion
     tag: Optional[str]
 
+    class Config:
+        use_enum_values = True
+
 class PlainFileKey(BaseModel):
     version: PlainFileKeyVersion
     key: str
     iv: str
     tag: Optional[str]
+
+    class Config:
+        use_enum_values = True
 
 class PublicKeyContainer(BaseModel):
     version: UserKeyPairVersion
@@ -42,6 +48,8 @@ class PublicKeyContainer(BaseModel):
     createdAt: Optional[datetime]
     expireAt: Optional[datetime]
     createdBy: Optional[int]
+    class Config:
+        use_enum_values = True
 
 class PrivateKeyContainer(BaseModel):
     version: UserKeyPairVersion
@@ -49,6 +57,9 @@ class PrivateKeyContainer(BaseModel):
     createdAt: Optional[datetime]
     expireAt: Optional[datetime]
     createdBy: Optional[int]
+
+    class Config:
+        use_enum_values = True
 
 class UserKeyPairContainer(BaseModel):
     privateKeyContainer: PrivateKeyContainer
@@ -69,5 +80,8 @@ class EncryptionInfo:
     userKeyState: KeyState
     roomKeyState: KeyState
     dataSpaceKeyState: KeyState
+    
+    class Config:
+        use_enum_values = True
 
 

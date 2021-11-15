@@ -1,11 +1,15 @@
-from logging import StringTemplateStyle
+
 from .crypto_models import PublicKeyContainer
-from .user_models import UserGroup
 from .users_models import UserAuthData
-from .core_models import Range, Expiration
+from .core_models import Range
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
+
+class UserGroup(BaseModel):
+    id: int
+    isMember: bool
+    name: str
 
 class Right(BaseModel):
     id: int
@@ -16,7 +20,7 @@ class Role(BaseModel):
     id: int
     name: str
     description: str
-    items: List[Right]
+    items: Optional[List[Right]]
 
 class RoleList(BaseModel):
     items: List[Role]

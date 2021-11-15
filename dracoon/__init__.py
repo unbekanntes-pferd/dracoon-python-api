@@ -18,8 +18,6 @@ All requests with bodies use generic params variable to pass JSON body
 from .crypto_models import PlainUserKeyPairContainer
 from .downloads import DRACOONDownloads
 from .public import DRACOONPublic
-from .public_models import ActiveDirectoryInfo, OpenIdInfo, SystemInfo
-from .user_models import UserAccount
 from .core import DRACOONClient, OAuth2ConnectionType
 from .eventlog import DRACOONEvents
 from .nodes import DRACOONNodes
@@ -56,20 +54,18 @@ class DRACOON:
         self.eventlog = DRACOONEvents(self.client)
         self.public = DRACOONPublic(self.client)
 
-        asyncio.gather()
+        user_info_res = self.user.get_account_information()
+        system_info_res = self.public.get_system_info()
+        oidc_auth_info_res = self.public.get_auth_openid_info()
+        ad_auth_info_res = self.public.get_auth_ad_info()
 
-        res = await self.user.get_account_information()
-        self.user_info: UserAccount = res.json()
-
-        res = await self.public.get_system_info()
-        self.system_info: SystemInfo = res.json()
-
-        res = await self.public.get_auth_openid_info()
-        self.openid_info: OpenIdInfo = res.json()
-
-        res = await self.public.get_auth_ad_info()
-        self.ad_info: ActiveDirectoryInfo = res.json()
-
+        list = await asyncio.gather(user_info_res, system_info_res, oidc_auth_info_res, ad_auth_info_res)
+        
+        self.user_info = list[0]
+        self.system_info = list[1]
+        self.auth_ad_info = list[3]
+        self.auth_oidc_info = list[2]
+        
     async def logout(self, revoke_refresh_token: bool = False) -> None:
         """ closes the httpx client and revokes tokens """
         await self.client.logout(revoke_refresh_token=revoke_refresh_token)
@@ -94,10 +90,8 @@ class DRACOON:
         if not self.client.connection:
             raise ValueError('DRACOON client not connected.')
 
-        res = await self.user.get_user_keypair()
-        enc_keypair = res.json()
-
-        
+        enc_keypair = await self.user.get_user_keypair()
+      
         plain_keypair = decrypt_private_key(secret, enc_keypair)
 
         self.plain_keypair = plain_keypair
@@ -112,10 +106,10 @@ class DRACOON:
         node_info = await self.nodes.get_node_from_path(target_path)
         file_name = file_path.split('/')[-1]
 
-        target_id = node_info["id"]
-        is_encrypted = node_info["isEncrypted"]
+        target_id = node_info.id
+        is_encrypted = node_info.isEncrypted
 
-        user_id = self.user_info["id"]
+        user_id = self.user_info.id
 
         upload_channel = self.nodes.make_upload_channel(target_id, file_name)
         res = await self.nodes.create_upload_channel(upload_channel)
@@ -135,13 +129,13 @@ class DRACOON:
             raise ValueError('DRACOON client not connected.')
 
         node_info = await self.nodes.get_node_from_path(file_path)
-        node_id = node_info["id"]
+        node_id = node_info.id
 
-        is_encrypted = node_info["isEncrypted"]
+        is_encrypted = node_info.isEncrypted
 
-        res = await self.nodes.get_download_url(node_id=node_id)
+        dl_token_res = await self.nodes.get_download_url(node_id=node_id)
 
-        download_url = res.json()["downloadUrl"]
+        download_url = dl_token_res.downloadUrl
 
         if not is_encrypted:
             await self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info)

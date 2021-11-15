@@ -10,7 +10,6 @@ from datetime import datetime
 from enum import Enum
 import json
 
-
 class Range(BaseModel):
     offset: int
     limit: int
@@ -19,6 +18,12 @@ class Range(BaseModel):
 class Expiration(BaseModel):
     enableExpiration: bool
     expireAt: datetime
+
+class ErrorMessage(BaseModel):
+    code: int
+    message: str
+    debugInfo: Optional[str]
+    errorCode: Optional[int]
 
 
 

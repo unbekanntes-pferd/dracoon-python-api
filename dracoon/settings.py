@@ -18,6 +18,7 @@ from pydantic import validate_arguments
 
 from .core import DRACOONClient, OAuth2ConnectionType
 from .settings_models import CreateWebhook, UpdateSettings, UpdateWebhook
+from .settings_responses import EventTypeList, WebhookList, Webhook, CustomerSettingsResponse
 
 class DRACOONSettings:
 
@@ -37,21 +38,25 @@ class DRACOONSettings:
             raise ValueError('DRACOON client must be connected: client.connect()')
 
     @validate_arguments
-    async def get_settings(self):
+    async def get_settings(self) -> CustomerSettingsResponse:
         """ list customer settings (home rooms) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
         try:
             res = await self.dracoon.http.get(self.api_url)
-            print(res)
 
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Getting customer settings in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return CustomerSettingsResponse(**res.json())
 
     @validate_arguments
-    async def update_settings(self, settings_update: UpdateSettings):
+    async def update_settings(self, settings_update: UpdateSettings) -> CustomerSettingsResponse:
         """ update customer settings (home rooms) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -61,10 +66,15 @@ class DRACOONSettings:
         try:
             res = await self.dracoon.http.put(url=self.pi_url, json=payload)
 
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Updating customer settings in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return CustomerSettingsResponse(**res.json())
     
     def make_settings_update(self, home_rooms_active: bool = None, home_room_quota: int = None, home_room_parent_name: str = None) -> UpdateSettings:
         """ make a settings update payload required for update_settings() """
@@ -77,10 +87,10 @@ class DRACOONSettings:
         if home_room_quota: settings_update["homeRoomQuota"] = home_room_quota
         if home_room_parent_name: settings_update["homeRoomParentName"] = home_room_parent_name
 
-        return settings_update
+        return UpdateSettings(**settings_update)
 
     @validate_arguments
-    async def get_webhooks(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
+    async def get_webhooks(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None) -> WebhookList:
         """ list (all) webhooks """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -92,18 +102,21 @@ class DRACOONSettings:
 
         try:
             res = await self.dracoon.http.get(api_url)
-            print(res)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Getting webhooks in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return WebhookList(**res.json())
 
 
     @validate_arguments
-    async def create_webhook(self, user: CreateWebhook):
+    async def create_webhook(self, hook: CreateWebhook) -> Webhook:
         """ creates a new webhook """
-        payload = user.dict(exclude_unset=True)
+        payload = hook.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -112,10 +125,14 @@ class DRACOONSettings:
         try:
             res = await self.dracoon.http.post(api_url, json=payload)
 
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
-
-        return res
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Creating webhook in DRACOON failed: {e.response.status_code} ({e.request.url})')
+        return Webhook(**res.json())
 
     def make_webhook(self, name: str, event_types: List[str], url: str, secret: str = None, 
                      is_enabled: bool = None, trigger_example: bool = None) -> CreateWebhook:
@@ -130,10 +147,10 @@ class DRACOONSettings:
         if is_enabled is not None: webhook["isEnabled"] = is_enabled
         if trigger_example is not None: webhook["triggerExampleEvent"] = trigger_example
 
-        return webhook
+        return CreateWebhook(**webhook)
 
     def make_webhook_update(self, name: str = None, event_types: List[str] = None, url: str = None, secret: str = None, 
-                     is_enabled: bool = None, trigger_example: bool = None) -> CreateWebhook:
+                     is_enabled: bool = None, trigger_example: bool = None) -> UpdateWebhook:
         """ make a new webhook update payload required for update_webhook() """
         webhook = {}
         
@@ -144,12 +161,12 @@ class DRACOONSettings:
         if is_enabled is not None: webhook["isEnabled"] = is_enabled
         if trigger_example is not None: webhook["triggerExampleEvent"] = trigger_example
 
-        return webhook
+        return UpdateWebhook(**webhook)
 
 
     # get user details for given user id
     @validate_arguments
-    async def get_webhook(self, hook_id: int):
+    async def get_webhook(self, hook_id: int) -> Webhook:
         """ get webhook details for specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -159,13 +176,17 @@ class DRACOONSettings:
         try:
             res = await self.dracoon.http.get(api_url)
 
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
-
-        return res
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Getting webhook {hook_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
+        return Webhook(**res.json())
 
     @validate_arguments
-    async def update_webhook(self, hook_id: int, hook_update: UpdateWebhook):
+    async def update_webhook(self, hook_id: int, hook_update: UpdateWebhook) -> Webhook:
 
         payload = hook_update.dict(exclude_unset=True)
 
@@ -177,14 +198,20 @@ class DRACOONSettings:
         try:
             res = await self.dracoon.http.put(api_url, json=payload)
 
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Updating webhook {hook_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return Webhook(**res.json())
+
 
     # delete user for given user id
     @validate_arguments
-    async def delete_webhook(self, hook_id: int):
+    async def delete_webhook(self, hook_id: int) -> None:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
@@ -192,15 +219,18 @@ class DRACOONSettings:
 
         try:
             res = await self.dracoon.http.delete(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
-
-        return res
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Deleting webhook {hook_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
+        return None
     
     # get user details for given user id
     @validate_arguments
-    async def get_webhook_event_types(self):
+    async def get_webhook_event_types(self) -> EventTypeList:
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -210,10 +240,15 @@ class DRACOONSettings:
         try:
             res = await self.dracoon.http.get(api_url)
 
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
-
-        return res
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Getting event types in DRACOON failed: {e.response.status_code} ({e.request.url})')
+        
+        return EventTypeList(**res.json())
 
 
 """

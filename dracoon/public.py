@@ -16,6 +16,7 @@ Please note: maximum 500 items are returned in GET requests
 
 import httpx
 from .core import DRACOONClient, OAuth2ConnectionType
+from .public_responses import AuthOIDCInfoList, AuthADInfoList, SystemInfo
 
 
 class DRACOONPublic:
@@ -36,21 +37,21 @@ class DRACOONPublic:
             raise ValueError(
                 'DRACOON client must be connected: client.connect()')
 
-    async def get_system_info(self):
+    async def get_system_info(self) -> SystemInfo:
         """ get sytem information (S3) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         try:
             res = await self.dracoon.http.get(self.api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
             raise httpx.RequestError(
                 f'Connection to DRACOON failed: {e.request.url}')
+            
+        return SystemInfo(**res.json())
 
-        return res
-
-    async def get_auth_ad_info(self):
+    async def get_auth_ad_info(self) -> AuthADInfoList:
         """ get active directory information """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -59,14 +60,14 @@ class DRACOONPublic:
 
         try:
             res = await self.dracoon.http.get(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
             raise httpx.RequestError(
                 f'Connection to DRACOON failed: {e.request.url}')
 
-        return res
+        return AuthADInfoList(**res.json())
 
-    async def get_auth_openid_info(self):
+    async def get_auth_openid_info(self) -> AuthOIDCInfoList:
         """ get openid information """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -75,12 +76,12 @@ class DRACOONPublic:
 
         try:
             res = await self.dracoon.http.get(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
             raise httpx.RequestError(
                 f'Connection to DRACOON failed: {e.request.url}')
 
-        return res
+        return AuthOIDCInfoList(**res.json())
 
 
 

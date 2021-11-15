@@ -106,8 +106,7 @@ class DRACOONClient:
                 raise httpx.RequestError(f'Could not connect to DRACOON: {e.request.url}')         
             except httpx.HTTPStatusError as e:
                 await self.http.aclose()
-                raise ValueError(
-                        f'Authentication failed: {e.response.status_code}')    
+                raise e
             self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
                                          res.json()["refresh_token"], res.json()["expires_in"])
 
@@ -124,8 +123,7 @@ class DRACOONClient:
                 raise httpx.RequestError(f'Could not connect to DRACOON: {e.request.url}')
             except httpx.HTTPStatusError as e:
                 await self.http.aclose()
-                raise ValueError(
-                        f'Authentication failed: {e.response.status_code}')
+                raise e
 
             self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
                                          res.json()["refresh_token"], res.json()["expires_in"])
@@ -144,7 +142,7 @@ class DRACOONClient:
                         f'Could not connect to DRACOON: {e.request.url}')
             except httpx.HTTPStatusError as e:
                 await self.http.aclose()
-                raise httpx.HTTPStatusError(f'Authentication failed: {e.response.status_code}')
+                raise e
             
 
             self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
@@ -187,17 +185,23 @@ class DRACOONClient:
         await self.http.aclose()
 
     
-    def check_access_token(self, test: bool = False):
+    async def check_access_token(self, test: bool = False):
         """ check access token validity (based on connection time and token validity) """
         if not test and self.connection:
             now = datetime.now()
             return (now - self.connection.connected_at).seconds < self.connection.access_token_validity
+        elif test and self.connection:
+            return await self.test_connection()
+        else:
+            return False
 
-    def check_refresh_token(self, test: bool = False):
+    def check_refresh_token(self):
         """ check refresh token validity (based on connection time and token validity) """
-        if not test and self.connection:
+        if self.connection:
             now = datetime.now()
             return (now - self.connection.connected_at).seconds < self.connection.refresh_token_validity
+        else:
+            return False
 
     async def test_connection(self) -> bool:
         """ test authenticated connection via authenticated ping """

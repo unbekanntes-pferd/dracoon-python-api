@@ -17,6 +17,8 @@ Please note: maximum 500 items are returned in GET requests
 import httpx
 from pydantic import validate_arguments
 
+from dracoon.eventlog_responses import AuditNodeInfoResponse, LogEventList
+
 from .core import DRACOONClient, OAuth2ConnectionType
 
 class DRACOONEvents:
@@ -39,7 +41,7 @@ class DRACOONEvents:
             raise ValueError('DRACOON client must be connected: client.connect()')
    
     @validate_arguments
-    async def get_permissions(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None):
+    async def get_permissions(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None) -> AuditNodeInfoResponse:
         """ get permissions for all nodes (rooms) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -51,16 +53,19 @@ class DRACOONEvents:
 
         try:
             res = await self.dracoon.http.get(api_url)
-            print(res)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Getting audit node info in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return AuditNodeInfoResponse(**res.json())
 
     @validate_arguments
     async def get_events(self, offset: int = 0, filter: str = None, limit: int = None, 
-                        sort: str = None, date_start: str = None, date_end: str = None, operation_id: int = None, user_id: int = None):
+                        sort: str = None, date_start: str = None, date_end: str = None, operation_id: int = None, user_id: int = None) -> LogEventList:
         """ get events (audit log) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -75,12 +80,15 @@ class DRACOONEvents:
 
         try:
             res = await self.dracoon.http.get(api_url)
-            print(res)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Getting user keypair in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return LogEventList(**res.json())
 
 
 """

@@ -128,8 +128,10 @@ class DRACOONUser:
     @validate_arguments
     async def set_user_keypair(self, secret: str, version: UserKeyPairVersion = UserKeyPairVersion.RSA4096) -> None:
         """ sets encrypted user keypair protected with secret (if none present) for authenticated user """
-        plain_keypair = create_plain_userkeypair(version=version.value)
+        plain_keypair = create_plain_userkeypair(version=version)
         encrypted_keypair = encrypt_private_key(secret=secret, plain_key=plain_keypair)
+        
+        payload = encrypted_keypair.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -137,7 +139,7 @@ class DRACOONUser:
         api_url = self.api_url + f'/account/keypair'
 
         try:
-            res = await self.dracoon.http.post(url=api_url, json=encrypted_keypair)
+            res = await self.dracoon.http.post(url=api_url, json=payload)
 
             res.raise_for_status()
         except httpx.RequestError as e:
@@ -145,7 +147,7 @@ class DRACOONUser:
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
         except httpx.HTTPStatusError as e:
             await self.dracoon.logout()
-            raise httpx.RequestError(f'Setting user keypair in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            raise httpx.RequestError(f'Setting user keypair in DRACOON failed: {e.response.status_code} \n ({e.request.url})')
 
         return None
 
