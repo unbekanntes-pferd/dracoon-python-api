@@ -12,6 +12,7 @@
 /.DS_Store
 /dracoon-workflows
 /dracoon.egg-info
+/__pycache__
 /.vscode
 test.txt
 _test.txt
