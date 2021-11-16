@@ -15,6 +15,8 @@ from re import sub
 from typing import List
 import httpx
 
+from dracoon.reports_responses import ReportList
+
 from .core import DRACOONClient, OAuth2ConnectionType
 from .reports_models import CreateReport, ReportFilter, ReportFormat, ReportSubType, ReportType
 from .core_models import ApiDestination
@@ -39,7 +41,7 @@ class DRACOONReports:
             raise ValueError('DRACOON client must be connected: client.connect()')
 
     @validate_arguments
-    async def create_report(self, report: CreateReport):
+    async def create_report(self, report: CreateReport) -> None:
         """ create a new report """
         payload = report.dict(exclude_unset=True)
 
@@ -49,12 +51,18 @@ class DRACOONReports:
         try:
             res = await self.dracoon.http.post(self.api_url, json=payload)
 
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Creating group in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return None
     
-    def make_report(self, name: str, target_id: int, formats: List[ReportFormat], type: ReportType = ReportType.single, sub_type: ReportSubType = ReportSubType.audit_report, 
+    def make_report(self, name: str, target_id: int, formats: List[ReportFormat], type: ReportType = ReportType.single, 
+                    sub_type: ReportSubType = ReportSubType.audit_report, 
                     enabled: bool = None, filter: ReportFilter = None) -> CreateReport:
         """ make a report payload to generate a report """
         report = {
@@ -70,8 +78,11 @@ class DRACOONReports:
         if enabled is not None: report["enabled"] = enabled
         if filter: report["filter"] = filter
 
+        return CreateReport(**report)
 
-    def make_report_filter(self, from_date: datetime = None, to_date: datetime = None, parent_room_id: int = None, user_id: int = None, operations: List[int] = None) -> ReportFilter:
+
+    def make_report_filter(self, from_date: datetime = None, to_date: datetime = None, parent_room_id: int = None, 
+                           user_id: int = None, operations: List[int] = None) -> ReportFilter:
         """ make an optional report filter needed for make_report() """
 
         filter = {}
@@ -82,12 +93,12 @@ class DRACOONReports:
         if user_id: filter["userId"] = user_id
         if operations: filter["operations"] = operations
 
-        return filter
+        return ReportFilter(**filter)
     
     @validate_arguments
     async def get_reports(self, name: str = None, type: str = None, sub_type: str = None, state: str = None, 
                 has_error: bool = None, enabled: bool = None, 
-                offset: int = 0, limit: int = None, sort: str = None):
+                offset: int = 0, limit: int = None, sort: str = None) -> ReportList:
         """ list (all) reports """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -105,13 +116,18 @@ class DRACOONReports:
         try:
             res = await self.dracoon.http.get(self.api_url)
 
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Getting reports in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return ReportList(**res.json())
 
     @validate_arguments
-    async def delete_reports(self, report_list: List[int]):
+    async def delete_reports(self, report_list: List[int]) -> None:
         """ delete a list of reports (by ids) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -122,14 +138,18 @@ class DRACOONReports:
         
         try:
             res = await self.dracoon.http.request(method='DELETE', url=self.api_url, json=payload, headers=self.dracoon.http.headers)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Deleting reports in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return None
 
     @validate_arguments
-    async def delete_report(self, report_id: int):
+    async def delete_report(self, report_id: int) -> None:
         """ delete a specific report (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -138,11 +158,14 @@ class DRACOONReports:
 
         try:
             res = await self.dracoon.http.delete(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
-
-        return res
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Deleting report in DRACOON failed: {e.response.status_code} ({e.request.url})')
+        return None
 
 """
 LEGACY API (0.4.x) - DO NOT MODIFY

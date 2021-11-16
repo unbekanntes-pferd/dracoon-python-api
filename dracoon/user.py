@@ -19,7 +19,7 @@ import httpx
 from pydantic import validate_arguments
 
 from .core import DRACOONClient, OAuth2ConnectionType
-from .user_models import UpdateAccount
+from .user_models import UpdateAccount, UserAccount
 from .crypto_models import UserKeyPairContainer, UserKeyPairVersion
 from .crypto import create_plain_userkeypair, encrypt_private_key
 
@@ -43,7 +43,7 @@ class DRACOONUser:
 
     # get account information for current user
     @validate_arguments
-    async def get_account_information(self, more_info: bool = False):
+    async def get_account_information(self, more_info: bool = False) -> UserAccount:
         """ returns account information for authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -51,15 +51,19 @@ class DRACOONUser:
         try:
             api_url = self.api_url + f'/account/?{str(more_info).lower()}'
             res = await self.dracoon.http.get(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Updating account in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return UserAccount(**res.json())
 
     # update account information for current user
     @validate_arguments
-    async def update_account_information(self, account_update: UpdateAccount):
+    async def update_account_information(self, account_update: UpdateAccount) -> UserAccount:
         """ updates account information for authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -70,11 +74,15 @@ class DRACOONUser:
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Updating account in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return UserAccount(**res.json())
 
     def make_account_update(self, user_name: str = None, acceptEULA: bool = None, first_name: str = None, last_name: str = None, email: str = None, 
                             phone: str = None, language: str = None) -> UpdateAccount:
@@ -92,11 +100,11 @@ class DRACOONUser:
         if acceptEULA: account_update["acceptEULA"] = acceptEULA
         if user_name: account_update["userName"] = user_name
 
-        return account_update
+        return UpdateAccount(**account_update)
 
     # get user keypair (encrypted)
     @validate_arguments
-    async def get_user_keypair(self, version: UserKeyPairVersion = None):
+    async def get_user_keypair(self, version: UserKeyPairVersion = None) -> UserKeyPairContainer:
         """ returns encrypted user keypair (if present) for authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -106,19 +114,24 @@ class DRACOONUser:
 
         try:
             res = await self.dracoon.http.get(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Getting user keypair in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
-
+        return UserKeyPairContainer(**res.json())
 
     # set user keypair 
     @validate_arguments
-    async def set_user_keypair(self, secret: str, version: UserKeyPairVersion = UserKeyPairVersion.RSA4096):
+    async def set_user_keypair(self, secret: str, version: UserKeyPairVersion = UserKeyPairVersion.RSA4096) -> None:
         """ sets encrypted user keypair protected with secret (if none present) for authenticated user """
-        plain_keypair = create_plain_userkeypair(version=version.value)
+        plain_keypair = create_plain_userkeypair(version=version)
         encrypted_keypair = encrypt_private_key(secret=secret, plain_key=plain_keypair)
+        
+        payload = encrypted_keypair.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -126,16 +139,21 @@ class DRACOONUser:
         api_url = self.api_url + f'/account/keypair'
 
         try:
-            res = await self.dracoon.http.post(url=api_url, json=encrypted_keypair)
+            res = await self.dracoon.http.post(url=api_url, json=payload)
 
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Setting user keypair in DRACOON failed: {e.response.status_code} \n ({e.request.url})')
 
-        return res
+        return None
 
     # delete user keypair 
     @validate_arguments
-    async def delete_user_keypair(self, version: UserKeyPairVersion = None):
+    async def delete_user_keypair(self, version: UserKeyPairVersion = None) -> None:
         """ deletes encrypted user keypair (if present) for authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -145,11 +163,15 @@ class DRACOONUser:
 
         try:
             res = await self.dracoon.http.delete(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
+            await self.dracoon.logout()
             raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.logout()
+            raise httpx.RequestError(f'Deleting user keypair in DRACOON failed: {e.response.status_code} ({e.request.url})')
 
-        return res
+        return None
 
 """
 LEGACY API (0.4.x) - DO NOT MODIFY

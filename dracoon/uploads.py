@@ -73,14 +73,14 @@ class DRACOONUploads:
             file_obj = open(file, 'rb')
 
             try:
-                res = await self.dracoon.http.post(url=upload_channel["uploadUrl"], data=self.upload_bytes(file_obj))
+                res = await self.dracoon.http.post(url=upload_channel.uploadUrl, data=self.upload_bytes(file_obj))
                 res.raise_for_status()
                 progress.update(filesize)
             except httpx.RequestError as e:
-                res = await self.dracoon.http.delete(upload_channel["uploadUrl"])
+                res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                 raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
             except httpx.HTTPStatusError as e:
-                res = await self.dracoon.http.delete(upload_channel["uploadUrl"])
+                res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                 raise ValueError(f'Upload failed: {e.response.status_code} – {e.response.text}')
             finally:
                 progress.close()
@@ -108,21 +108,20 @@ class DRACOONUploads:
 
 
                     try:
-                        res = await self.dracoon.http.post(url=upload_channel["uploadUrl"], files=upload_file)
+                        res = await self.dracoon.http.post(url=upload_channel.uploadUrl, files=upload_file)
                         res.raise_for_status()
                         progress.update(len(chunk))
                     except httpx.RequestError as e:
-                        res = await self.dracoon.http.delete(upload_channel["uploadUrl"])
+                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                         raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
                     except httpx.HTTPStatusError as e:
-                        res = await self.dracoon.http.delete(upload_channel["uploadUrl"])
+                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                         raise ValueError(f'Upload failed: {e.response.status_code} – {e.response.text}')
-
 
                 progress.close()
                     
                                 
-        api_url = self.dracoon.base_url + self.dracoon.api_base_url + f'/uploads/{upload_channel["token"]}'
+        api_url = self.dracoon.base_url + self.dracoon.api_base_url + f'/uploads/{upload_channel.token}'
 
         params = {
                 "resolutionStrategy": resolution_strategy,
@@ -141,7 +140,6 @@ class DRACOONUploads:
                 
         return res
                 
-
     async def upload_encrypted(self, file_path: str, upload_channel: UploadChannelResponse, user_id: int, plain_keypair: PlainUserKeyPairContainer, 
                             keep_shares: bool = False, resolution_strategy: str = 'autorename', chunksize: int = 5242880):
         """ uploads a file to an encrypted data room – upload channel and plain user keypair required """
@@ -170,13 +168,13 @@ class DRACOONUploads:
 
 
             try:
-                res = await self.dracoon.http.post(url=upload_channel["uploadUrl"], files=files)
+                res = await self.dracoon.http.post(url=upload_channel.uploadUrl, files=files)
                 res.raise_for_status()
                 progress.update(filesize)
             except httpx.RequestError as e:
                 raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
             except httpx.HTTPStatusError as e:
-                res = await self.dracoon.http.delete(upload_channel["uploadUrl"])
+                res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                 raise ValueError(f'Upload failed: {e.response.status_code} – {e.response.text}')
             finally:
                 progress.close()
@@ -218,7 +216,7 @@ class DRACOONUploads:
                     self.dracoon.http.headers["Content-Range"] = content_range
 
                     try:      
-                        res = await self.dracoon.http.post(upload_channel["uploadUrl"], files=upload_file)
+                        res = await self.dracoon.http.post(upload_channel.uploadUrl, files=upload_file)
                         res.raise_for_status()
                         progress.update(len(chunk))
                     except httpx.RequestError as e:
@@ -226,12 +224,12 @@ class DRACOONUploads:
                         raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
                     except httpx.HTTPStatusError as e:
                         progress.close()
-                        res = await self.dracoon.http.delete(upload_channel["uploadUrl"])
+                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                         raise ValueError(f'Upload failed: {e.response.status_code} – {e.response.text}')
 
             progress.close()
                         
-        api_url = self.dracoon.base_url + self.dracoon.api_base_url + f'/uploads/{upload_channel["token"]}'
+        api_url = self.dracoon.base_url + self.dracoon.api_base_url + f'/uploads/{upload_channel.token}'
 
         enc_file_key = encrypt_file_key(plain_file_key=plain_file_key, keypair=plain_keypair)
 

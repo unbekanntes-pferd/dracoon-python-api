@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
@@ -124,8 +125,16 @@ class ConfigRoom(BaseModel):
 # required payload for PUT /nodes/files
 class UpdateFiles(BaseModel):
     classification: Optional[int]
-    expiration: Expiration
+    expiration: Optional[Expiration]
     objectIds: List[int]
+
+class UpdateFile(BaseModel):
+    name: Optional[str]
+    expiration: Optional[Expiration]
+    classification: Optional[int]
+    notes: Optional[str]
+    timestampCreation: Optional[datetime]
+    timestampModification: Optional[datetime]
 
 
 class Permissions(BaseModel):
@@ -177,14 +186,12 @@ class ProcessRoomPendingUsers(BaseModel):
     items: List[ProcessRoomPendingItem]
 
 
-@dataclass
-class NodeType:
+class NodeType(Enum):
     file = "file"
     folder = "folder"
     room = "room"
 
-@dataclass
-class Node:
+class Node(BaseModel):
     id: int
     type: NodeType
     name: str
