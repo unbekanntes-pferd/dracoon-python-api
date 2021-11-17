@@ -16,6 +16,7 @@ All requests with bodies use generic params variable to pass JSON body
 """
 
 import httpx
+import logging
 from pydantic import validate_arguments
 
 from .core import DRACOONClient, OAuth2ConnectionType
@@ -35,38 +36,50 @@ class DRACOONUser:
         if not isinstance(dracoon_client, DRACOONClient):
             raise TypeError('Invalid DRACOON client format.')
         if dracoon_client.connection:
-           self.dracoon = dracoon_client
-           self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/user'
+            self.dracoon = dracoon_client
+            self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/user'
+            self.logger = logging.getLogger('dracoon.user')
+            if self.dracoon.raise_on_err:
+                self.raise_on_err = True
+            else:
+                self.raise_on_err = False
+            self.logger.debug("DRACOON user adapter created.")
         else:
+            self.logger.error("DRACOON client error: no connection. ")
             raise ValueError('DRACOON client must be connected: client.connect()')
 
 
     # get account information for current user
     @validate_arguments
-    async def get_account_information(self, more_info: bool = False) -> UserAccount:
+    async def get_account_information(self, more_info: bool = False, raise_on_err: bool = False) -> UserAccount:
         """ returns account information for authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         try:
             api_url = self.api_url + f'/account/?{str(more_info).lower()}'
             res = await self.dracoon.http.get(api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Updating account in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Getting account information failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return UserAccount(**res.json())
 
     # update account information for current user
     @validate_arguments
-    async def update_account_information(self, account_update: UpdateAccount) -> UserAccount:
+    async def update_account_information(self, account_update: UpdateAccount, raise_on_err: bool = False) -> UserAccount:
         """ updates account information for authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/account'
 
@@ -76,11 +89,10 @@ class DRACOONUser:
             res = await self.dracoon.http.put(url=api_url, json=payload)
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Updating account in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Updating account information failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return UserAccount(**res.json())
 
@@ -104,10 +116,13 @@ class DRACOONUser:
 
     # get user keypair (encrypted)
     @validate_arguments
-    async def get_user_keypair(self, version: UserKeyPairVersion = None) -> UserKeyPairContainer:
+    async def get_user_keypair(self, version: UserKeyPairVersion = None, raise_on_err: bool = False) -> UserKeyPairContainer:
         """ returns encrypted user keypair (if present) for authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/account/keypair'
         if version != None: api_url += '/?version=' + version.value
@@ -116,20 +131,22 @@ class DRACOONUser:
             res = await self.dracoon.http.get(api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Getting user keypair in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Getting user keypair failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return UserKeyPairContainer(**res.json())
 
     # set user keypair 
     @validate_arguments
-    async def set_user_keypair(self, secret: str, version: UserKeyPairVersion = UserKeyPairVersion.RSA4096) -> None:
+    async def set_user_keypair(self, secret: str, version: UserKeyPairVersion = UserKeyPairVersion.RSA4096, raise_on_err: bool = False) -> None:
         """ sets encrypted user keypair protected with secret (if none present) for authenticated user """
         plain_keypair = create_plain_userkeypair(version=version)
         encrypted_keypair = encrypt_private_key(secret=secret, plain_key=plain_keypair)
+
+        if self.raise_on_err:
+            raise_on_err = True
         
         payload = encrypted_keypair.dict(exclude_unset=True)
 
@@ -143,20 +160,22 @@ class DRACOONUser:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Setting user keypair in DRACOON failed: {e.response.status_code} \n ({e.request.url})')
+            self.logger.error("Setting user keypair failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return None
 
     # delete user keypair 
     @validate_arguments
-    async def delete_user_keypair(self, version: UserKeyPairVersion = None) -> None:
+    async def delete_user_keypair(self, version: UserKeyPairVersion = None, raise_on_err: bool = False) -> None:
         """ deletes encrypted user keypair (if present) for authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/account/keypair'
         if version != None: api_url += '/?version=' + version.value
@@ -165,11 +184,10 @@ class DRACOONUser:
             res = await self.dracoon.http.delete(api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Deleting user keypair in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Deleting user keypair failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return None
 

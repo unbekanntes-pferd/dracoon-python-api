@@ -17,4 +17,5 @@
 test.txt
 _test.txt
 test.json
+test*.py
 .env

@@ -17,9 +17,9 @@ from .crypto_models import FileKey, PlainUserKeyPairContainer
 from .core import DRACOONClient
 from .crypto import FileDecryptionCipher, decrypt_file_key
 from pathlib import Path
-import os
-
 import tqdm.asyncio
+import os
+import logging
 
 
 class DRACOONDownloads:
@@ -36,34 +36,57 @@ class DRACOONDownloads:
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/user'
+            self.logger = logging.getLogger('dracoon.downloads')
+            if self.dracoon.raise_on_err:
+                self.raise_on_err = True
+            else:
+                self.raise_on_err = False
+
+            self.logger.debug("DRACOON downloads adapter created.")
+   
         else:
+            self.dracoon.logger.critical("DRACOON client not connected.")
             raise ValueError(
                 'DRACOON client must be connected: client.connect()')
 
     
     def check_file_exists(self, path: str) -> bool:
+        """ Check if a file already exists. """
 
         file = Path(path)
 
         return file.exists() and file.is_file()
 
     
-    async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = 5242880):
+    async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = 5242880, raise_on_err: bool = False):
+        """ Download a file from an unecrypted data room. """
+
+        self.logger.info("Download started.")
+        self.logger.debug("Download to %s", target_path)
+
+        if self.raise_on_err:
+            raise_on_err = True
         
-        if node_info["type"] != NodeType.file:
+        if node_info.type != NodeType.file:
+            self.logger.critical("Invalid node type: %s", node_info.type)
             raise TypeError('Ony file download possible.')
 
-        file_path = target_path + '/' + node_info["name"]
+        file_path = target_path + '/' + node_info.name
 
         if self.check_file_exists(file_path):
+            self.logger.critical("File already exists: %s", file_path)
             raise ValueError('File already exists.')
 
         folder = Path(target_path)
 
         if not folder.is_dir():
-            raise ValueError(f'A file needs to be provided. {target_path} is not a folder.')
+            self.logger.critical("Target path is not a folder.")
+            raise ValueError(f'A folder needs to be provided. {target_path} is not a folder.')
         
-        size = node_info["size"]
+        size = node_info.size
+
+        self.logger.debug("File download for size: %s", size)
+        self.logger.debug("Using chunksize: %s", chunksize)
 
         if size < chunksize:
             
@@ -78,7 +101,9 @@ class DRACOONDownloads:
                     file_out.close()
             
             except httpx.RequestError as e:
-                raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+                await self.dracoon.handle_connection_error(e)
+            except httpx.HTTPStatusError as e:
+                self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
             
         else:
        
@@ -93,7 +118,6 @@ class DRACOONDownloads:
                 if offset > size:
                     content_range = f'bytes={index}-{size - 1}'
 
-                #print(content_range)
                 self.dracoon.http.headers["Range"] = content_range
                 
                 try:
@@ -126,27 +150,40 @@ class DRACOONDownloads:
             file_out.close()
 
         
-    async def download_encrypted(self, download_url: str, target_path: str, node_info: Node, plain_keypair: PlainUserKeyPairContainer, file_key: FileKey, chunksize: int = 5242880):
+    async def download_encrypted(self, download_url: str, target_path: str, node_info: Node, plain_keypair: PlainUserKeyPairContainer, file_key: FileKey, 
+                                       chunksize: int = 5242880, raise_on_err: bool = False):   
+        """ Download a file from an encrypted data room. """
 
-        if node_info["type"] != NodeType.file:
+        self.logger.info("Download started.")
+        self.logger.debug("Download to %s", target_path)
+
+        if self.raise_on_err:
+            raise_on_err = True
+        
+        if node_info.type != NodeType.file:
             raise TypeError('Ony file download possible.')
 
-        file_path = target_path + '/' + node_info["name"]
+        file_path = target_path + '/' + node_info.name
 
         if self.check_file_exists(file_path):
-            self.dracoon.logout()
+            await self.dracoon.logout()
+            self.logger.critical("File already exists: %s", file_path)
             raise ValueError('File already exists.')
 
         folder = Path(target_path)
 
         if not folder.is_dir():
-            self.dracoon.logout()
+            await self.dracoon.logout()
+            self.logger.critical("Target path is not a folder.")
             raise ValueError(f'A file needs to be provided. {target_path} is not a folder.')
         
-        size = node_info["size"]
+        size = node_info.size
 
         plain_file_key = decrypt_file_key(fileKey=file_key, keypair=plain_keypair)
         decryptor = FileDecryptionCipher(plain_file_key=plain_file_key)
+
+        self.logger.debug("File download for size: %s", size)
+        self.logger.debug("Using chunksize: %s", chunksize)
 
         if size < chunksize:
             try:
@@ -154,7 +191,7 @@ class DRACOONDownloads:
                     res.raise_for_status()
                     file_out = open(file_path, 'wb')
 
-                    async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=node_info["name"], unit='iMB',unit_scale=False, unit_divisor=1048576, total=size):
+                    async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=node_info.name, unit='iMB',unit_scale=False, unit_divisor=1048576, total=size):
                         
                         plain_chunk = decryptor.decode_bytes(chunk)
                         file_out.write(plain_chunk)
@@ -162,15 +199,13 @@ class DRACOONDownloads:
                             last_data = decryptor.finalize()
                             file_out.write(last_data)
                         
-
                     file_out.close()
 
             except httpx.RequestError as e:
-                self.dracoon.logout()
-                raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+                await self.dracoon.handle_connection_error(e)
             except httpx.HTTPStatusError as e:
-                self.dracoon.logout()
-                raise httpx.RequestError(f'Download from DRACOON failed: {e.response.status_code} ({e.request.url})')
+                await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+
 
 
         else:
@@ -209,12 +244,14 @@ class DRACOONDownloads:
                     file_out.close()
                     if os.path.exists(file_path):
                         os.remove(file_path)
-                    self.dracoon.logout()
-                    raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+                    await self.dracoon.handle_connection_error(e)
+
                 except httpx.HTTPStatusError as e:
                     file_out.close()
                     if os.path.exists(file_path):
                         os.remove(file_path)
-                    self.dracoon.logout()
-                    raise ValueError(f'Upload failed: {e.response.status_code} – {e.response.text}')
+                    await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+
+
+                
             

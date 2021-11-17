@@ -6,7 +6,7 @@ class SystemInfo(BaseModel):
     languageDefault: str
     hideLoginInputFields: bool
     s3Hosts: List[str]
-    s3EnforcedDirectUpload: bool
+    s3EnforceDirectUpload: bool
     useS3Storage: bool
 
 

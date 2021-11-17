@@ -17,6 +17,7 @@ Please note: maximum 500 items are returned in GET requests
 import datetime
 from typing import List, Union
 import httpx
+import logging
 from pydantic import validate_arguments
 
 from .nodes_responses import Comment, CommentList, CreateFileUploadResponse, DeletedNode, DeletedNodeSummaryList, DeletedNodeVersionsList, DownloadTokenGenerateResponse, NodeList, NodeParentList, PendingAssignmentList, PresignedUrlList, RoomGroupList, RoomUserList, RoomWebhookList
@@ -41,34 +42,43 @@ class DRACOONNodes:
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/nodes'
+            self.logger = logging.getLogger('dracoon.nodes')
+            if self.dracoon.raise_on_err:
+                self.raise_on_err = True
+            else:
+                self.raise_on_err = False
+            self.logger.debug("DRACOON nodes adapter created.")
         else:
+            self.logger.error("DRACOON client error: no connection. ")
             raise ValueError(
                 'DRACOON client must be connected: client.connect()')
 
     # get download url as authenticated user to download a file
     @validate_arguments
-    async def create_upload_channel(self, upload_channel: CreateUploadChannel) -> CreateFileUploadResponse:
+    async def create_upload_channel(self, upload_channel: CreateUploadChannel, raise_on_err: bool = False) -> CreateFileUploadResponse:
         """ create an upload channel to upload (S3 direct or proxy) """
         payload = upload_channel.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
+        if self.raise_on_err:
+            raise_on_err = True
+
         api_url = self.api_url + '/files/uploads'
         try:
             res = await self.dracoon.http.post(api_url, json=payload)
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Creating upload channel in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Creating upload channel failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return CreateFileUploadResponse(**res.json())
     
     def make_upload_channel(self, parent_id: int, name: str, classification: int = None, size: int = None, expiration: Expiration = None, notes: str = None, 
-                            direct_s3_upload: bool = None) -> CreateUploadChannel:
+                            direct_s3_upload: bool = None, raise_on_err: bool = False) -> CreateUploadChannel:
         """ make an upload channel payload for create_upload_channel() """
         upload_channel = {
             "parentId": parent_id,
@@ -85,24 +95,26 @@ class DRACOONNodes:
 
 
     @validate_arguments
-    async def cancel_upload(self, upload_id: str) -> None:
+    async def cancel_upload(self, upload_id: str, raise_on_err: bool = False) -> None:
         """ cancel an upload channel (and delete chunks) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/files/uploads/{upload_id}'
         try:
             res = await self.dracoon.http.delete(api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Canceling upload {upload_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Canceling upload failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         return None
 
-    async def get_node_from_path(self, path: str, filter: str = None) -> Node:
+    async def get_node_from_path(self, path: str, filter: str = None, raise_on_err: bool = False) -> Node:
         """ get node id from path """
         
         # folder / room 
@@ -124,30 +136,35 @@ class DRACOONNodes:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
+        if self.raise_on_err:
+            raise_on_err = True
+
         api_url = self.api_url + f'/search?search_string={last_node}{filter_str}&depth_level={str(depth)}'
 
         try:
             res = await self.dracoon.http.get(url=api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Getting nodes from DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Copying nodes failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+
 
         if res.status_code == 200 and len(res.json()["items"]) > 0:
             return Node(**res.json()["items"][0])
         else:
-            raise httpx.RequestError(f'Node not found: {res.json()["items"]}')
+            return None
 
 
     @validate_arguments
-    async def complete_s3_upload(self, upload_id: int, upload: CompleteS3Upload) -> None:
+    async def complete_s3_upload(self, upload_id: int, upload: CompleteS3Upload, raise_on_err: bool = False) -> None:
         """ finalize an S3 direct upload """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/files/uploads/{upload_id}/s3'
 
@@ -157,15 +174,15 @@ class DRACOONNodes:
             res = await self.dracoon.http.put(url=api_url, json=payload)
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Completing S3 upload {upload_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Completing S3 upload failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return None
 
-    def make_s3_upload_complete(self, parts: List[S3Part], resolution_strategy: str = None, keep_share_links: str = None, file_name: str = None, file_key: FileKey = None) -> CompleteS3Upload:
+    def make_s3_upload_complete(self, parts: List[S3Part], resolution_strategy: str = None, keep_share_links: str = None, file_name: str = None, 
+                                 file_key: FileKey = None) -> CompleteS3Upload:
         """ make payload required in complete_s3_upload() """
         s3_upload_complete = {
             "parts": parts
@@ -179,11 +196,14 @@ class DRACOONNodes:
         return CompleteS3Upload(**s3_upload_complete)
 
     @validate_arguments
-    async def get_s3_urls(self, upload_id: int, upload: GetS3Urls) -> PresignedUrlList:
+    async def get_s3_urls(self, upload_id: int, upload: GetS3Urls, raise_on_err: bool = False) -> PresignedUrlList:
         """ get a list of S3 urls based on provided chunk count """
         """ chunk size needs to be larger than 5 MB """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/files/uploads/{upload_id}/s3_urls'
 
@@ -193,19 +213,21 @@ class DRACOONNodes:
             res = await self.dracoon.http.post(url=api_url, json=payload)
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Getting S3 urls for upload {upload_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Getting S3 urls failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return PresignedUrlList(**res.json())
 
     @validate_arguments
-    async def get_nodes(self, room_manager: bool = False, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None) -> NodeList:
+    async def get_nodes(self, room_manager: bool = False, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> NodeList:
         """ list (all) visible nodes """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + \
             f'/?offset={offset}&parent_id={str(parent_id)}&room_manager={str(room_manager).lower()}'
@@ -220,21 +242,23 @@ class DRACOONNodes:
             res = await self.dracoon.http.get(api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Getting nodes from DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Getting nodes failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return NodeList(**res.json())
 
     # delete nodes for given array of node ids
 
     @validate_arguments
-    async def delete_nodes(self, node_list: List[int]) -> None:
+    async def delete_nodes(self, node_list: List[int], raise_on_err: bool = False) -> None:
         """ delete a list of nodes (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         payload = {
             "nodeIds": node_list
@@ -245,19 +269,21 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Deleting nodes from DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Deleting nodes failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         return None
 
     # get node for given node id
     @validate_arguments
-    async def get_node(self, node_id: int) -> Node:
+    async def get_node(self, node_id: int, raise_on_err: bool = False) -> Node:
         """ get specific node details (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/{str(node_id)}'
 
@@ -265,19 +291,21 @@ class DRACOONNodes:
             res = await self.dracoon.http.get(api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Getting node {node_id} from DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Getting node failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         return Node(**res.json())
 
 
     @validate_arguments
-    async def delete_node(self, node_id: int) -> None:
+    async def delete_node(self, node_id: int, raise_on_err: bool = False) -> None:
         """ delete specific node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/{str(node_id)}'
 
@@ -286,20 +314,22 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Getting node {node_id} from DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Deleting node failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return None
 
     # get node comments for given node id
     @validate_arguments
-    async def get_node_comments(self, node_id: int, offset: int = 0) -> CommentList:
+    async def get_node_comments(self, node_id: int, offset: int = 0, raise_on_err: bool = False) -> CommentList:
         """ get comments for specific node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + \
             f'/{str(node_id)}/comments/?offset={str(offset)}'
@@ -309,19 +339,21 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Getting comments for node {node_id} from DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Getting node comments failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return CommentList(**res.json())
 
     # get node for given node id
     @validate_arguments
-    async def add_node_comment(self, node_id: int, comment: CommentNode) -> Comment:
+    async def add_node_comment(self, node_id: int, comment: CommentNode, raise_on_err: bool = False) -> Comment:
         """ add a comment to a node """
         payload = comment.dict(exclude_unset=True)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -332,11 +364,10 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Adding comment for node {node_id} from DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Adding node comment failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return Comment(**res.json())
 
@@ -350,12 +381,15 @@ class DRACOONNodes:
 
     # copy node for given node id
     @validate_arguments
-    async def copy_nodes(self, target_id: int, copy_node: TransferNode) -> Node:
+    async def copy_nodes(self, target_id: int, copy_node: TransferNode, raise_on_err: bool = False) -> Node:
         """ copy node(s) to given target id """
         payload = copy_node.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/{str(target_id)}/copy_to'
         try:
@@ -363,11 +397,10 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Copying nodes to target node {target_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Copying nodes failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         return Node(**res.json())
 
 
@@ -386,10 +419,13 @@ class DRACOONNodes:
 
     # get node comfor given node id
     @validate_arguments
-    async def get_deleted_nodes(self, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None) -> DeletedNodeSummaryList:
+    async def get_deleted_nodes(self, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> DeletedNodeSummaryList:
         """ list (all) deleted nodes """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + \
             f'/{str(parent_id)}/deleted_nodes/?offset={offset}'
@@ -406,20 +442,22 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Getting deleted nodes for parent {parent_id} from DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Getting deleted nodes failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return DeletedNodeSummaryList(**res.json())
 
 
     @validate_arguments
-    async def empty_node_recyclebin(self, parent_id: int) -> None:
+    async def empty_node_recyclebin(self, parent_id: int, raise_on_err: bool = False) -> None:
         """ delete all nodes in recycle bin of parent (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/{str(parent_id)}/deleted_nodes'
 
@@ -428,20 +466,22 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Deleting deleted nodes for parent {parent_id} from DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Emptying node recycle bin failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return None
 
     # get node versions in a given parent id (requires name, specification of type)
     @validate_arguments
-    async def get_node_versions(self, parent_id: int, name: str = None, type: str = None, offset: int = 0) -> DeletedNodeVersionsList:
+    async def get_node_versions(self, parent_id: int, name: str = None, type: str = None, offset: int = 0, raise_on_err: bool = False) -> DeletedNodeVersionsList:
         """ get (all) versions of a node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + \
             f'/{str(parent_id)}/deleted_nodes/versions?offset={offset}'
@@ -456,20 +496,22 @@ class DRACOONNodes:
         
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Getting node versions for parent {parent_id} from DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Getting node versions failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return DeletedNodeVersionsList(**res.json())
 
 
     @validate_arguments
-    async def add_favorite(self, node_id: int) -> Node:
+    async def add_favorite(self, node_id: int, raise_on_err: bool = False) -> Node:
         """ add a specific node to favorites (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/{str(node_id)}/favorite'
         try:
@@ -477,19 +519,21 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Adding node {node_id} to favorites in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Adding favorite failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         return Node(**res.json())
 
     # delete node for given node id
     @validate_arguments
-    async def delete_favorite(self, node_id: int) -> None:
+    async def delete_favorite(self, node_id: int, raise_on_err: bool = False) -> None:
         """ remove a specific node from favorites (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/{str(node_id)}/favorite'
 
@@ -498,22 +542,24 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Removing node {node_id} from favorites in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Deleting favorite failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
     
         return None
 
     # copy node for given node id
     @validate_arguments
-    async def move_nodes(self, target_id: int, move_node: TransferNode) -> Node:
+    async def move_nodes(self, target_id: int, move_node: TransferNode, raise_on_err: bool = False) -> Node:
         """ move node(s) to target node (by id) """
         payload = move_node.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/{str(target_id)}/move_to'
         try:
@@ -521,20 +567,22 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Moving nodes to target node {target_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Moving nodes failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         return Node(**res.json())
 
 
     # get node ancestors (parents)
     @validate_arguments
-    async def get_parents(self, node_id: int) -> NodeParentList:
+    async def get_parents(self, node_id: int, raise_on_err: bool = False) -> NodeParentList:
         """ get node parents """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/{str(node_id)}/parents'
 
@@ -542,18 +590,23 @@ class DRACOONNodes:
             res = await self.dracoon.http.get(api_url)
 
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Getting parents failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return NodeParentList(**res.json())
 
     # delete deleted nodes in recycle bin for given array of node ids
 
     @validate_arguments
-    async def empty_recyclebin(self, node_list: List[int]) -> None:
+    async def empty_recyclebin(self, node_list: List[int], raise_on_err: bool = False) -> None:
         """ empty recylce bin: list of nodes (deleted nodes by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         payload = {
             "deletedNodeIds": node_list
@@ -564,19 +617,21 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Deleting nodes in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Emptying recycle bin failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
    
         return None
 
     @validate_arguments
-    async def get_deleted_node(self, node_id: int) -> DeletedNode:
+    async def get_deleted_node(self, node_id: int, raise_on_err: bool = False) -> DeletedNode:
         """ get details of a specific deleted node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/deleted_nodes/{str(node_id)}'
 
@@ -585,22 +640,24 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Getting deleted node {node_id} from DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Getting deleted node failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
  
         return DeletedNode(**res.json())
 
 
     @validate_arguments
-    async def restore_nodes(self, restore: RestoreNode) -> None:
+    async def restore_nodes(self, restore: RestoreNode, raise_on_err: bool = False) -> None:
         """ restore a list of nodes from recycle bin """
         payload = restore.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/deleted_nodes/actions/restore'
         try:
@@ -608,15 +665,15 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Restoring nodes in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Restoring nodes failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return None
 
-    def make_node_restore(self, deleted_node_list: List[int], resolution_strategy: str = None, keep_share_links: bool = None, parent_id: int = None) -> RestoreNode:
+    def make_node_restore(self, deleted_node_list: List[int], resolution_strategy: str = None, keep_share_links: bool = None, 
+                        parent_id: int = None, raise_on_err: bool = False) -> RestoreNode:
         """ make payload required for restore_nodes() """
         node_restore = {
             "items": deleted_node_list
@@ -630,10 +687,13 @@ class DRACOONNodes:
 
     # update file meta data
     @validate_arguments
-    async def update_file(self, file_id: int, file_update: UpdateFile) -> Node:
+    async def update_file(self, file_id: int, file_update: UpdateFile, raise_on_err: bool = False) -> Node:
         """ update file metadata """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/files/{str(file_id)}'
 
@@ -644,19 +704,21 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Updating file {file_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Updating file failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return Node(**res.json())
 
     @validate_arguments
-    async def update_files(self, files_update: UpdateFiles) -> None:
+    async def update_files(self, files_update: UpdateFiles, raise_on_err: bool = False) -> None:
         """ update file metadata """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/files'
 
@@ -667,40 +729,44 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Updating files in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Updating files failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return None
     
 
     @validate_arguments
-    async def get_download_url(self, node_id: int) -> DownloadTokenGenerateResponse:
+    async def get_download_url(self, node_id: int, raise_on_err: bool = False) -> DownloadTokenGenerateResponse:
         """ get download url for a specific node """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/files/{str(node_id)}/downloads'
         try:
             res = await self.dracoon.http.post(api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Getting download url for node {node_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Getting download URL failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return DownloadTokenGenerateResponse(**res.json())
 
     # get user file key if available
     @validate_arguments
-    async def get_user_file_key(self, file_id: int, version: str = None) -> FileKey:
+    async def get_user_file_key(self, file_id: int, version: str = None, raise_on_err: bool = False) -> FileKey:
         """ get file key for given node as authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/files/{str(file_id)}/user_file_key'
 
@@ -710,15 +776,20 @@ class DRACOONNodes:
             res = await self.dracoon.http.get(api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Updating folder failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return FileKey(**res.json())
 
     @validate_arguments
-    async def set_file_keys(self, file_keys: SetFileKeys) -> None:
+    async def set_file_keys(self, file_keys: SetFileKeys, raise_on_err: bool = False) -> None:
         """ set file keys for nodes """
         payload = file_keys.dict(exclude_unset=True)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -729,15 +800,14 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Setting file keys in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Setting file keys failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return None
 
-    def make_set_file_keys(self, file_key_list: List[SetFileKeysItem]) -> SetFileKeys:
+    def make_set_file_keys(self, file_key_list: List[SetFileKeysItem], raise_on_err: bool = False) -> SetFileKeys:
         """ make payload required for set_file_keys() """
         return SetFileKeys(**{
             "items": file_key_list
@@ -755,10 +825,13 @@ class DRACOONNodes:
 
 
     @validate_arguments
-    async def create_folder(self, folder: CreateFolder) -> Node:
+    async def create_folder(self, folder: CreateFolder, raise_on_err: bool = False) -> Node:
         """ create a new folder """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/folders'
 
@@ -769,11 +842,10 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Creating folder in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Creating folder failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return Node(**res.json())
 
@@ -803,10 +875,13 @@ class DRACOONNodes:
 
     # update folder mets data
     @validate_arguments
-    async def update_folder(self, node_id: int, folder_update: UpdateFolder) -> Node:
+    async def update_folder(self, node_id: int, folder_update: UpdateFolder, raise_on_err: bool = False) -> Node:
         """ update a folder """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/folders/{str(node_id)}'
 
@@ -816,20 +891,23 @@ class DRACOONNodes:
             res = await self.dracoon.http.put(url=api_url, json=payload)
             res.raise_for_status()
         except httpx.RequestError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.logout()
-            raise httpx.RequestError(f'Updating folder {node_id} in DRACOON failed: {e.response.status_code} ({e.request.url})')
+            self.logger.error("Updating folder failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return Node(**res.json())
 
     # get missing file keys
     @validate_arguments
-    async def get_missing_file_keys(self, file_id: int = None, room_id: int = None, user_id: int = None, use_key: str = None, offset: int = 0, limit: int = None):
+    async def get_missing_file_keys(self, file_id: int = None, room_id: int = None, user_id: int = None, use_key: str = None, 
+                                      offset: int = 0, limit: int = None, raise_on_err: bool = False):
         """ get (all) missing file keys """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/missingFileKeys/?offset={str(offset)}'
 
@@ -846,19 +924,25 @@ class DRACOONNodes:
 
         try:
             res = await self.dracoon.http.get(api_url)
-    
-        except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            res.raise_for_status()
 
-        return res
+        except httpx.RequestError as e:
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Getting missing file keys failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+
+        return res.json()
 
     # create folder
     @validate_arguments
-    async def create_room(self, room: CreateRoom) -> Node:
+    async def create_room(self, room: CreateRoom, raise_on_err: bool = False) -> Node:
         """ create a new room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/rooms'
 
@@ -868,21 +952,22 @@ class DRACOONNodes:
             res = await self.dracoon.http.post(url=api_url, json=payload)
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Room creation in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Creating room failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         
         return Node(**res.json())
 
     # update room mets data
     @validate_arguments
-    async def update_room(self, node_id: int, room_update: UpdateRoom) -> Node:
+    async def update_room(self, node_id: int, room_update: UpdateRoom, raise_on_err: bool = False) -> Node:
         """ update a room (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/rooms/{str(node_id)}'
 
@@ -892,12 +977,10 @@ class DRACOONNodes:
             res = await self.dracoon.http.put(url=api_url, json=payload)
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Room update in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Updating room failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return Node(**res.json())
 
@@ -942,10 +1025,13 @@ class DRACOONNodes:
 
     # configure data room
     @validate_arguments
-    async def config_room(self, node_id: int, config_update: ConfigRoom) -> Node:
+    async def config_room(self, node_id: int, config_update: ConfigRoom, raise_on_err: bool = False) -> Node:
         """ configure a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/rooms/{str(node_id)}/config'
 
@@ -955,12 +1041,10 @@ class DRACOONNodes:
             res = await self.dracoon.http.put(url=api_url, json=payload)
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Room config update in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Configuring room failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return Node(**res.json())
 
@@ -1015,10 +1099,13 @@ class DRACOONNodes:
 
     # get node comfor given node id
     @validate_arguments
-    async def get_room_groups(self, room_id: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None) -> RoomGroupList:
+    async def get_room_groups(self, room_id: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None, raise_on_err: bool = False) -> RoomGroupList:
         """ list (all) groups assigned to a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + \
             f'/rooms/{str(room_id)}/groups/?offset={str(offset)}'
@@ -1035,21 +1122,22 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Getting groups for room {room_id} in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Getting room groups failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return RoomGroupList(**res.json())
 
 
     @validate_arguments
-    async def update_room_groups(self, room_id: int, groups_update: UpdateRoomGroups) -> None:
+    async def update_room_groups(self, room_id: int, groups_update: UpdateRoomGroups, raise_on_err: bool = False) -> None:
         """ bulk update assigned groups of a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/rooms/{str(room_id)}/groups'
 
@@ -1060,21 +1148,22 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Updating groups for room {room_id} in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Updating room groups failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return None
 
     # delete groups assigned to room with given node id
     @validate_arguments
-    async def delete_room_groups(self, room_id: int, group_list: List[int]) -> None:
+    async def delete_room_groups(self, room_id: int, group_list: List[int], raise_on_err: bool = False) -> None:
         """ bulk delete assigned groups of a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         payload = {
             "ids": group_list
@@ -1086,22 +1175,23 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Deleting groups for room {room_id} in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Deleting room groups failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return None
 
     # get node comfor given node id
 
     @validate_arguments
-    async def get_room_users(self, room_id: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None) -> RoomUserList:
+    async def get_room_users(self, room_id: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None, raise_on_err: bool = False) -> RoomUserList:
         """ get (all) users assigned to a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + \
             f'/rooms/{str(room_id)}/users/?offset={str(offset)}'
@@ -1117,22 +1207,23 @@ class DRACOONNodes:
             res = await self.dracoon.http.get(api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Getting users for room {room_id} in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Getting room users failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
 
         return RoomUserList(**res.json())
 
     # add or change users assigned to room with given node id
     @validate_arguments
-    async def update_room_users(self, room_id: int, users_update: UpdateRoomUsers) -> None:
+    async def update_room_users(self, room_id: int, users_update: UpdateRoomUsers, raise_on_err: bool = False) -> None:
         """ bulk update assigned users in a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/rooms/{str(room_id)}/users'
 
@@ -1145,20 +1236,24 @@ class DRACOONNodes:
         except httpx.RequestError as e:
             raise httpx.RequestError(
                 f'Connection to DRACOON failed: {e.request.url}')
+        except httpx.RequestError as e:
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Updating users for room {room_id} in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Updating room users failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
 
         return None
 
     # delete users assigned to room with given node id
     @validate_arguments
-    async def delete_room_users(self, room_id: int, user_list: List[int]) -> None:
+    async def delete_room_users(self, room_id: int, user_list: List[int], raise_on_err: bool = False) -> None:
         """ bulk remove assigned users in a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         payload = {
             "ids": user_list
@@ -1170,22 +1265,23 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Deleting users for room {room_id} in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Deleting room users failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
 
         return None
 
     # get webhooks assigned or assignable to room with given node id
     @validate_arguments
-    async def get_room_webhooks(self, node_id: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None) -> RoomWebhookList:
+    async def get_room_webhooks(self, node_id: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None, raise_on_err: bool = False) -> RoomWebhookList:
         """" list (all) room webhooks """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + \
             f'/rooms/{str(node_id)}/webhooks/?offset={str(offset)}'
@@ -1202,22 +1298,23 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Getting room webhooks for room {node_id} in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Getting room webhooks failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return RoomWebhookList(**res.json())
 
     # delete users assigned to room with given node id
 
     @validate_arguments
-    async def update_room_webhooks(self, node_id: int, hook_update: UpdateRoomHooks) -> RoomWebhookList:
+    async def update_room_webhooks(self, node_id: int, hook_update: UpdateRoomHooks, raise_on_err: bool = False) -> RoomWebhookList:
         """ update room webhooks """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/rooms/{str(node_id)}/webhooks'
 
@@ -1228,22 +1325,23 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Updating room webhooks for room {node_id} in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Updating room webhooks failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
 
         return RoomWebhookList(**res.json())
 
 
     @validate_arguments
-    async def get_pending_assignments(self, offset: int = 0, filter: str = None, limit: str = None, sort: str = None) -> PendingAssignmentList:
+    async def get_pending_assignments(self, offset: int = 0, filter: str = None, limit: str = None, sort: str = None, raise_on_err: bool = False) -> PendingAssignmentList:
         """ get pending room assignments (new group members not accepted) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/rooms/pending/?offset={str(offset)}'
 
@@ -1259,21 +1357,22 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Getting pending assignments in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Getting pending assingments failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return PendingAssignmentList(**res.json())
 
 
     @validate_arguments
-    async def process_pending_assignments(self, pending_update: ProcessRoomPendingUsers) -> None:
+    async def process_pending_assignments(self, pending_update: ProcessRoomPendingUsers, raise_on_err: bool = False) -> None:
         """ procces (accept or reject) new group members of a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/rooms/pending'
 
@@ -1284,21 +1383,23 @@ class DRACOONNodes:
 
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Updating pending assignments in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Processing pending assingments failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return None
 
     # search for nodes
     @validate_arguments
-    async def search_nodes(self, search: str, parent_id: int = 0, depth_level: int = 0, offset: int = 0, filter: str = None, limit: str = None, sort: str = None) -> NodeList:
+    async def search_nodes(self, search: str, parent_id: int = 0, depth_level: int = 0, offset: int = 0, 
+                           filter: str = None, limit: str = None, sort: str = None, raise_on_err: bool = False) -> NodeList:
         """ search for specific nodes """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + \
             f'/search/?search_string={search}&offset={str(offset)}&parent_id={str(parent_id)}&depth_level={depth_level}'
@@ -1314,12 +1415,10 @@ class DRACOONNodes:
             res = await self.dracoon.http.get(api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.request.content)
-            raise httpx.RequestError(
-                f'Searching nodes in DRACOON failed: {e.response.status_code} \n {e.response.json()} \n {e.request.url}')
+            self.logger.error("Searching nodes failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         return NodeList(**res.json())
 

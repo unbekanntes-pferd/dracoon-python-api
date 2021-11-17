@@ -127,7 +127,7 @@ class Webhook(BaseModel):
     isEnabled: bool
     expireAt: datetime
     eventTypeNames: List[str]
-    createtAt: datetime
+    createdAt: datetime
     createdBy: Optional[UserInfo]
     updatedAt: datetime
     updatedBy: Optional[UserInfo]

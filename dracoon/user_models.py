@@ -49,10 +49,10 @@ class UserType(Enum):
 class UserInfo(BaseModel):
     id: int
     userType: UserType
-    avatarUuid: str
-    userName: str
-    firstName: str
-    lastName: str
+    avatarUuid: Optional[str]
+    userName: Optional[str]
+    firstName: Optional[str]
+    lastName: Optional[str]
     email: Optional[str]
 
     

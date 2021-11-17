@@ -1,0 +1,75 @@
+2021-11-17 20:29:44,191 Created DRACOON client.
+2021-11-17 20:29:44,191 Getting authorization URL.
+2021-11-17 20:30:05,044 Establishing DRACOON connection...
+2021-11-17 20:30:05,303 Established connection.
+2021-11-17 20:30:05,303 Access token valid: 600
+2021-11-17 20:30:05,303 Refresh token valid: 28800
+2021-11-17 20:30:05,303 DRACOON downloads adapter created.
+2021-11-17 20:30:05,304 DRACOON eventlog adapter created.
+2021-11-17 20:30:05,304 Initialized DRACOON adapters.
+2021-11-17 20:30:05,306 Getting DRACOON instance information...
+2021-11-17 20:30:05,307 Testing authenticated connection.
+2021-11-17 20:30:05,307 Testing authenticated connection.
+2021-11-17 20:30:05,308 Testing authenticated connection.
+2021-11-17 20:30:05,308 Testing authenticated connection.
+2021-11-17 20:30:05,638 Retrieved instance and account information.
+2021-11-17 20:30:05,638 Logged in as user id 795.
+2021-11-17 20:30:05,638 Using S3: True.
+2021-11-17 20:30:05,639 Testing authenticated connection.
+2021-11-17 20:30:07,833 Testing authenticated connection.
+2021-11-17 20:30:07,834 Testing authenticated connection.
+2021-11-17 20:30:09,094 Revoked token(s).
+2021-11-17 20:30:09,094 Refresh token revoked: False
+2021-11-17 20:31:20,345 dracoon      INFO     Created DRACOON client.
+2021-11-17 20:31:20,346 dracoon      INFO     Getting authorization URL.
+2021-11-17 20:31:31,780 dracoon.client INFO     Establishing DRACOON connection...
+2021-11-17 20:31:32,059 dracoon.client INFO     Established connection.
+2021-11-17 20:31:32,059 dracoon.client DEBUG    Access token valid: 600
+2021-11-17 20:31:32,059 dracoon.client DEBUG    Refresh token valid: 28800
+2021-11-17 20:31:32,060 dracoon.downloads DEBUG    DRACOON downloads adapter created.
+2021-11-17 20:31:32,060 dracoon.eventlog DEBUG    DRACOON eventlog adapter created.
+2021-11-17 20:31:32,060 dracoon      INFO     Initialized DRACOON adapters.
+2021-11-17 20:31:32,062 dracoon      INFO     Getting DRACOON instance information...
+2021-11-17 20:31:32,063 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:31:32,063 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:31:32,064 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:31:32,064 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:31:32,476 dracoon      INFO     Retrieved instance and account information.
+2021-11-17 20:31:32,476 dracoon      DEBUG    Logged in as user id 795.
+2021-11-17 20:31:32,476 dracoon      DEBUG    Using S3: True.
+2021-11-17 20:31:32,477 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:31:34,691 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:31:34,691 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:31:36,093 dracoon      INFO     Revoked token(s).
+2021-11-17 20:31:36,093 dracoon      DEBUG    Refresh token revoked: False
+2021-11-17 20:39:03,136 dracoon      INFO     Created DRACOON client.
+2021-11-17 20:39:03,136 dracoon      INFO     Getting authorization URL.
+2021-11-17 20:39:13,773 dracoon.client INFO     Establishing DRACOON connection...
+2021-11-17 20:39:14,017 dracoon.client INFO     Established connection.
+2021-11-17 20:39:14,017 dracoon.client DEBUG    Access token valid: 600
+2021-11-17 20:39:14,017 dracoon.client DEBUG    Refresh token valid: 28800
+2021-11-17 20:39:14,017 dracoon.nodes DEBUG    DRACOON nodes adapter created.
+2021-11-17 20:39:14,017 dracoon.users DEBUG    DRACOON users adapter created.
+2021-11-17 20:39:14,018 dracoon.user DEBUG    DRACOON user adapter created.
+2021-11-17 20:39:14,018 dracoon.groups DEBUG    DRACOON groups adapter created.
+2021-11-17 20:39:14,018 dracoon.settings DEBUG    DRACOON settings adapter created.
+2021-11-17 20:39:14,018 dracoon.uploads DEBUG    DRACOON uploads adapter created.
+2021-11-17 20:39:14,018 dracoon.downloads DEBUG    DRACOON downloads adapter created.
+2021-11-17 20:39:14,018 dracoon.reports DEBUG    DRACOON reports adapter created.
+2021-11-17 20:39:14,018 dracoon.shares DEBUG    DRACOON shares adapter created.
+2021-11-17 20:39:14,019 dracoon.eventlog DEBUG    DRACOON eventlog adapter created.
+2021-11-17 20:39:14,019 dracoon.public DEBUG    DRACOON public adapter created.
+2021-11-17 20:39:14,019 dracoon      INFO     Initialized DRACOON adapters.
+2021-11-17 20:39:14,019 dracoon      INFO     Getting DRACOON instance information...
+2021-11-17 20:39:14,019 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:39:14,020 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:39:14,020 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:39:14,021 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:39:14,379 dracoon      INFO     Retrieved instance and account information.
+2021-11-17 20:39:14,379 dracoon      DEBUG    Logged in as user id 795.
+2021-11-17 20:39:14,379 dracoon      DEBUG    Using S3: True.
+2021-11-17 20:39:14,379 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:39:16,642 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:39:16,644 dracoon.client INFO     Testing authenticated connection.
+2021-11-17 20:39:17,885 dracoon      INFO     Revoked token(s).
+2021-11-17 20:39:17,885 dracoon      DEBUG    Refresh token revoked: False

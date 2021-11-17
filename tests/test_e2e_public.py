@@ -5,7 +5,7 @@ import dotenv
 import os
 import asyncio
 
-from dracoon.public_responses import AuthADInfo, AuthOIDCInfo, SystemInfo
+from dracoon.public_responses import AuthADInfo, AuthADInfoList, AuthOIDCInfo, AuthOIDCInfoList, SystemInfo
 
 dotenv.load_dotenv()
 
@@ -28,11 +28,11 @@ async def test_settings_e2e():
     print('Getting system info test passed (/)')
 
     auth_ad_info = await public.get_auth_ad_info()
-    assert isinstance(auth_ad_info, AuthADInfo)
+    assert isinstance(auth_ad_info, AuthADInfoList)
     print('Getting AD auth info test passed (/)')
 
     auth_oidc_info = await public.get_auth_openid_info()
-    assert isinstance(auth_oidc_info, AuthOIDCInfo)
+    assert isinstance(auth_oidc_info, AuthOIDCInfoList)
     print('Getting OIDC auth info test passed (/)')
 
     print('Public E2E tests passed (/)')
