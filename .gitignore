@@ -19,3 +19,4 @@ _test.txt
 test.json
 test*.py
 .env
+dracoon.log
