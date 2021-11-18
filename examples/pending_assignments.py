@@ -1,7 +1,7 @@
 """
 Example script showing the new async API with processing all pending assignments
 
-04.11.2021 Octavio Simone
+18.11.2021 Octavio Simone
 
 """
 
@@ -15,7 +15,7 @@ async def main():
     client_id = 'XXXXXXXXXXXXXXXXXXXXXX'
     client_secret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXX'
 
-    dracoon = DRACOON(base_url=baseURL, client_id=client_id, client_secret=client_secret, log_level=logging.INFO)
+    dracoon = DRACOON(base_url=baseURL, client_id=client_id, client_secret=client_secret)
     print(dracoon.get_code_url())
 
     auth_code = input('Enter auth code:')
