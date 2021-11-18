@@ -80,7 +80,7 @@ class DRACOONClient:
         token_url = self.base_url + '/oauth/token'
         now = datetime.now()
 
-        self.logger.info("Establishing DRACOON connection...")
+        self.logger.debug("Establishing DRACOON connection...")
         
         # handle missing credentials for password flow
         if connection_type == OAuth2ConnectionType.password_flow and username == None and password == None:
@@ -115,7 +115,7 @@ class DRACOONClient:
 
             except httpx.HTTPStatusError as e:
                 self.logger.error("Password flow authentication failed.")
-                self.handle_http_error(e, self.raise_on_err)
+                await self.handle_http_error(e, self.raise_on_err)
 
 
             self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
@@ -134,7 +134,7 @@ class DRACOONClient:
 
             except httpx.HTTPStatusError as e:
                 self.logger.error("Authorization code authentication failed.")
-                self.handle_http_error(e, self.raise_on_err)
+                await self.handle_http_error(e, self.raise_on_err)
 
             self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
                                          res.json()["refresh_token"], res.json()["expires_in"])
@@ -156,7 +156,7 @@ class DRACOONClient:
 
             except httpx.HTTPStatusError as e:
                 self.logger.error("Refresh token authentication failed.")
-                self.handle_http_error(e, self.raise_on_err)
+                await self.handle_http_error(e, self.raise_on_err)
 
 
             self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
@@ -228,7 +228,7 @@ class DRACOONClient:
 
     async def test_connection(self) -> bool:
         """ test authenticated connection via authenticated ping """
-        self.logger.info("Testing authenticated connection.")
+        self.logger.debug("Testing authenticated connection.")
 
         if not self.connection or not self.connected:
             self.logger.critical("DRACOON connection not established.")
@@ -245,7 +245,7 @@ class DRACOONClient:
 
         except httpx.HTTPStatusError as e:
             self.logger.error("Authenticated ping failed.")
-            self.handle_http_error(err=e, raise_on_err=self.raise_on_err)
+            await self.handle_http_error(err=e, raise_on_err=self.raise_on_err)
             return False
 
         return True

@@ -73,7 +73,8 @@ class DRACOONEvents:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting permissions failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved node permission audit.")
         return AuditNodeInfoResponse(**res.json())
 
     @validate_arguments
@@ -104,7 +105,7 @@ class DRACOONEvents:
             self.logger.error("Getting event log failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
-
+        self.logger.info("Retrieved events from eventlog.")
         return LogEventList(**res.json())
 
 

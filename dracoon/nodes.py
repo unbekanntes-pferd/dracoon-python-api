@@ -74,7 +74,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Creating upload channel failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Upload channel created.")
         return CreateFileUploadResponse(**res.json())
     
     def make_upload_channel(self, parent_id: int, name: str, classification: int = None, size: int = None, expiration: Expiration = None, notes: str = None, 
@@ -112,6 +113,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Canceling upload failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+
+        self.logger.info("Upload canceled.")
         return None
 
     async def get_node_from_path(self, path: str, filter: str = None, raise_on_err: bool = False) -> Node:
@@ -152,8 +155,10 @@ class DRACOONNodes:
 
 
         if res.status_code == 200 and len(res.json()["items"]) > 0:
+            self.logger.info("Retrieved node from path.")
             return Node(**res.json()["items"][0])
         else:
+            self.logger.error("Node from path not found.")
             return None
 
 
@@ -178,7 +183,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Completing S3 upload failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Completed S3 upload.")
         return None
 
     def make_s3_upload_complete(self, parts: List[S3Part], resolution_strategy: str = None, keep_share_links: str = None, file_name: str = None, 
@@ -217,7 +223,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting S3 urls failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved S3 presigned upload URLs.")
         return PresignedUrlList(**res.json())
 
     @validate_arguments
@@ -246,7 +253,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting nodes failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved nodes.")
         return NodeList(**res.json())
 
     # delete nodes for given array of node ids
@@ -273,6 +281,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting nodes failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+
+        self.logger.info("Deleted node(s).")
         return None
 
     # get node for given node id
@@ -295,6 +305,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting node failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        
+        self.logger.info("Retrieved node.")
         return Node(**res.json())
 
 
@@ -318,7 +330,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting node failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Deleted node.")
         return None
 
     # get node comments for given node id
@@ -343,7 +356,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting node comments failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved node comments.")
         return CommentList(**res.json())
 
     # get node for given node id
@@ -368,7 +382,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Adding node comment failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Added node comment.")
         return Comment(**res.json())
 
     def make_comment(self, text: str) -> CommentNode:
@@ -401,6 +416,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Copying nodes failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        
+        self.logger.info("Copied nodes.")
         return Node(**res.json())
 
 
@@ -446,7 +463,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting deleted nodes failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved deleted nodes.")
         return DeletedNodeSummaryList(**res.json())
 
 
@@ -470,7 +488,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Emptying node recycle bin failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Emptied node recycle bin.")
         return None
 
     # get node versions in a given parent id (requires name, specification of type)
@@ -500,7 +519,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting node versions failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved node versions.")
         return DeletedNodeVersionsList(**res.json())
 
 
@@ -523,6 +543,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Adding favorite failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        
+        self.logger.info("Added node to favorites.")
         return Node(**res.json())
 
     # delete node for given node id
@@ -546,7 +568,7 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting favorite failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-    
+        self.logger.info("Removed node from favorites.")
         return None
 
     # copy node for given node id
@@ -571,6 +593,7 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Moving nodes failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            self.logger.info("Moved node(s).")
         return Node(**res.json())
 
 
@@ -594,7 +617,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting parents failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved node parents.")
         return NodeParentList(**res.json())
 
     # delete deleted nodes in recycle bin for given array of node ids
@@ -621,7 +645,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Emptying recycle bin failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-   
+        
+        self.logger.info("Emptied recycle bin.")
         return None
 
     @validate_arguments
@@ -644,7 +669,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting deleted node failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
- 
+        
+        self.logger.info("Retrieved deleted node.")
         return DeletedNode(**res.json())
 
 
@@ -669,7 +695,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Restoring nodes failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Restored deleted node(s).")
         return None
 
     def make_node_restore(self, deleted_node_list: List[int], resolution_strategy: str = None, keep_share_links: bool = None, 
@@ -708,7 +735,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating file failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Updated file.")
         return Node(**res.json())
 
     @validate_arguments
@@ -733,7 +761,7 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating files failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        self.logger.info("Updated file(s).")
         return None
     
 
@@ -755,7 +783,7 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting download URL failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        self.logger.info("Retrieved download URL.")
         return DownloadTokenGenerateResponse(**res.json())
 
     # get user file key if available
@@ -781,6 +809,7 @@ class DRACOONNodes:
             self.logger.error("Updating folder failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
+        self.logger.info("Retrieved user file key.")
         return FileKey(**res.json())
 
     @validate_arguments
@@ -804,7 +833,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Setting file keys failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Set file key(s).")
         return None
 
     def make_set_file_keys(self, file_key_list: List[SetFileKeysItem], raise_on_err: bool = False) -> SetFileKeys:
@@ -846,7 +876,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Creating folder failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Created folder.")
         return Node(**res.json())
 
     def make_folder(self, name: str, parent_id: int, notes: str = None, created: datetime = None, updated: datetime = None) -> CreateFolder:
@@ -895,7 +926,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating folder failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Updated folder.")
         return Node(**res.json())
 
     # get missing file keys
@@ -931,7 +963,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting missing file keys failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved missing file keys.")
         return res.json()
 
     # create folder
@@ -956,7 +989,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Creating room failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-        
+
+        self.logger.info("Created room.")
         return Node(**res.json())
 
     # update room mets data
@@ -982,6 +1016,7 @@ class DRACOONNodes:
             self.logger.error("Updating room failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
+        self.logger.info("Updated room.")
         return Node(**res.json())
 
     def make_room(self, name: str, parent_id: int = 0, notes: str = None, created: datetime = None, updated: datetime = None, 
@@ -1045,7 +1080,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Configuring room failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Configured room.")
         return Node(**res.json())
 
     def make_room_config(self, name: str = None, notes: str = None, created: datetime = None, updated: datetime = None, 
@@ -1126,7 +1162,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting room groups failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved room groups.")
         return RoomGroupList(**res.json())
 
 
@@ -1153,6 +1190,7 @@ class DRACOONNodes:
             self.logger.error("Updating room groups failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
+        self.logger.info("Updated room groups.")
         return None
 
     # delete groups assigned to room with given node id
@@ -1179,7 +1217,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting room groups failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Deleted room group(s).")
         return None
 
     # get node comfor given node id
@@ -1212,7 +1251,7 @@ class DRACOONNodes:
             self.logger.error("Getting room users failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
-
+        self.logger.info("Retrieved room users.")
         return RoomUserList(**res.json())
 
     # add or change users assigned to room with given node id
@@ -1242,7 +1281,7 @@ class DRACOONNodes:
             self.logger.error("Updating room users failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
-
+        self.logger.info("Updated room user(s).")
         return None
 
     # delete users assigned to room with given node id
@@ -1270,7 +1309,7 @@ class DRACOONNodes:
             self.logger.error("Deleting room users failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
-
+        self.logger.info("Deleted room user(s).")
         return None
 
     # get webhooks assigned or assignable to room with given node id
@@ -1303,6 +1342,7 @@ class DRACOONNodes:
             self.logger.error("Getting room webhooks failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
+        self.logger.info("Retrieved room webhooks.")
         return RoomWebhookList(**res.json())
 
     # delete users assigned to room with given node id
@@ -1330,7 +1370,7 @@ class DRACOONNodes:
             self.logger.error("Updating room webhooks failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
-
+        self.logger.info("Updated room webhooks.")
         return RoomWebhookList(**res.json())
 
 
@@ -1361,7 +1401,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting pending assingments failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved pending assignments.")
         return PendingAssignmentList(**res.json())
 
 
@@ -1387,7 +1428,8 @@ class DRACOONNodes:
         except httpx.HTTPStatusError as e:
             self.logger.error("Processing pending assingments failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Processed pending assignments.")
         return None
 
     # search for nodes
@@ -1420,6 +1462,7 @@ class DRACOONNodes:
             self.logger.error("Searching nodes failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
+        self.logger.info("Retrieved node(s) from search.")
         return NodeList(**res.json())
 
 """

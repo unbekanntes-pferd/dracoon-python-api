@@ -66,7 +66,8 @@ class DRACOONUsers:
         except httpx.HTTPStatusError as e:
             self.logger.error("Creating user failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Created user.")
         return UserData(**res.json())
 
     def make_local_user(self, first_name: str, last_name: str, email: str, login: str = None,
@@ -186,7 +187,8 @@ class DRACOONUsers:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting users failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved users.")
         return UserList(**res.json())
 
     @validate_arguments
@@ -205,7 +207,8 @@ class DRACOONUsers:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting user failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved user.")
         return UserData(**res.json())
 
     # update user's meta data for given user id
@@ -227,7 +230,8 @@ class DRACOONUsers:
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating user failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Updated user.")
         return UserData(**res.json())
 
     # delete user for given user id
@@ -247,7 +251,8 @@ class DRACOONUsers:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting user failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Deleted user.")
         return None
 
     # get user details for given user id
@@ -270,7 +275,8 @@ class DRACOONUsers:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting user groups failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved user groups.")
         return UserGroupList(**res.json())
 
     # get rooms in which user is last remaining admin (prevents user deletion!)
@@ -291,6 +297,7 @@ class DRACOONUsers:
             self.logger.error("Getting user last admin rooms failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
+        self.logger.info("Retrieved user last admin rooms.")
         return LastAdminUserRoomList(**res.json())
 
     # get roles assigned to user
@@ -310,7 +317,8 @@ class DRACOONUsers:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting user roles failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved user roles.")
         return RoleList(**res.json())
 
     # get custom user attributes (key, value)
@@ -333,7 +341,8 @@ class DRACOONUsers:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting user attributes failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved user attributes.")
         return AttributesResponse(**res.json())
 
     # set custom user attributes (key, value)
@@ -353,7 +362,8 @@ class DRACOONUsers:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting user attribute failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Deleted user attribute.")
         return None
 
     # update custom user attributes (key, value)
@@ -374,7 +384,8 @@ class DRACOONUsers:
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating user attributes failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-        
+
+        self.logger.info("Updated user attributes.")
         return UserData(**res.json())
 
     def make_custom_user_attribute(self, key: str, value: str) -> AttributeEntry:

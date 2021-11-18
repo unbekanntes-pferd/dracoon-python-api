@@ -64,7 +64,8 @@ class DRACOONSettings:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting settings failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved customer settings.")
         return CustomerSettingsResponse(**res.json())
 
     @validate_arguments
@@ -87,7 +88,8 @@ class DRACOONSettings:
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating settings failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Updated customer settings.")
         return CustomerSettingsResponse(**res.json())
     
     def make_settings_update(self, home_rooms_active: bool = None, home_room_quota: int = None, home_room_parent_name: str = None, raise_on_err: bool = False) -> UpdateSettings:
@@ -125,7 +127,8 @@ class DRACOONSettings:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting webhooks failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved webhooks.")
         return WebhookList(**res.json())
 
 
@@ -150,7 +153,8 @@ class DRACOONSettings:
         except httpx.HTTPStatusError as e:
             self.logger.error("Creating webhook failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Created webhook.")
         return Webhook(**res.json())
 
     def make_webhook(self, name: str, event_types: List[str], url: str, secret: str = None, 
@@ -204,7 +208,8 @@ class DRACOONSettings:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting webhook failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved webhook.")
         return Webhook(**res.json())
 
     @validate_arguments
@@ -229,7 +234,8 @@ class DRACOONSettings:
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating webhook failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Updated webhook.")
         return Webhook(**res.json())
 
 
@@ -252,7 +258,7 @@ class DRACOONSettings:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting webhook failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        self.logger.info("Deleted webhook.")
         return None
     
     # get user details for given user id
@@ -277,6 +283,7 @@ class DRACOONSettings:
             self.logger.error("Getting webhook event types failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         
+        self.logger.info("Retrieved webhook event types.")
         return EventTypeList(**res.json())
 
 

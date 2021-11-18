@@ -155,6 +155,8 @@ class UpdateRoomUserItem(BaseModel):
     permissions: Permissions
 
 class UpdateRoomGroupItem(UpdateRoomUserItem):
+    id: int
+    permissions: Permissions
     newGroupMemberAcceptance: Optional[str]
 
 # required payload for PUT /nodes/rooms/{room_id}/groups

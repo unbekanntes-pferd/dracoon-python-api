@@ -98,12 +98,15 @@ class DRACOONDownloads:
                     async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1024), desc=node_info["name"], unit='iKB',unit_scale=True, unit_divisor=1, total=size/1024):
                         file_out.write(chunk)
                         
-                    file_out.close()
-            
+      
             except httpx.RequestError as e:
+
                 await self.dracoon.handle_connection_error(e)
             except httpx.HTTPStatusError as e:
-                self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+                await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            
+            file_out.close()
+            self.logger.info("Download completed.")
             
         else:
        
@@ -132,22 +135,24 @@ class DRACOONDownloads:
                         file_out.close()
                                 
                         index = offset + 1
-                    
+
                 except httpx.RequestError as e:
                     file_out.close()
                     if os.path.exists(file_path):
                         os.remove(file_path)
-                    raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+                    await self.dracoon.handle_connection_error(e)
                 except httpx.HTTPStatusError as e:
                     file_out.close()
                     if os.path.exists(file_path):
                         os.remove(file_path)
-                    raise ValueError(f'Upload failed: {e.response.status_code} – {e.response.text}')
+                    await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+                    
             
             if "range" in self.dracoon.http.headers:
                self.dracoon.http.headers.pop("range")
-            
+       
             file_out.close()
+            self.logger.info("Download completed.")
 
         
     async def download_encrypted(self, download_url: str, target_path: str, node_info: Node, plain_keypair: PlainUserKeyPairContainer, file_key: FileKey, 
@@ -200,6 +205,7 @@ class DRACOONDownloads:
                             file_out.write(last_data)
                         
                     file_out.close()
+                    self.logger.info("Download completed.")
 
             except httpx.RequestError as e:
                 await self.dracoon.handle_connection_error(e)
@@ -229,6 +235,7 @@ class DRACOONDownloads:
                         file_out = open(file_path, 'wb')
                         desc = node_info["name"] + f' {content_range}'
                         async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=desc, unit='iMB',unit_scale=False, unit_divisor=1024, total=chunksize/1048576):
+                            
                             plain_chunk = decryptor.decode_bytes(chunk)
                             file_out.write(plain_chunk)
 
@@ -236,6 +243,7 @@ class DRACOONDownloads:
                             if not chunk and (size - offset <= chunksize - 2):
                                 last_data = decryptor.finalize()
                                 file_out.write(last_data)
+
                         file_out.close()
                                 
                         index = offset + 1
@@ -251,6 +259,11 @@ class DRACOONDownloads:
                     if os.path.exists(file_path):
                         os.remove(file_path)
                     await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+
+            if "range" in self.dracoon.http.headers:
+               self.dracoon.http.headers.pop("range")
+       
+            self.logger.info("Download completed.")
 
 
                 
