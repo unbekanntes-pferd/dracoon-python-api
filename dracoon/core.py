@@ -115,7 +115,7 @@ class DRACOONClient:
 
             except httpx.HTTPStatusError as e:
                 self.logger.error("Password flow authentication failed.")
-                await self.handle_http_error(e, self.raise_on_err)
+                await self.handle_http_error(e, True)
 
 
             self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
@@ -134,7 +134,7 @@ class DRACOONClient:
 
             except httpx.HTTPStatusError as e:
                 self.logger.error("Authorization code authentication failed.")
-                await self.handle_http_error(e, self.raise_on_err)
+                await self.handle_http_error(e, True)
 
             self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
                                          res.json()["refresh_token"], res.json()["expires_in"])
@@ -156,7 +156,7 @@ class DRACOONClient:
 
             except httpx.HTTPStatusError as e:
                 self.logger.error("Refresh token authentication failed.")
-                await self.handle_http_error(e, self.raise_on_err)
+                await self.handle_http_error(e, True)
 
 
             self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],

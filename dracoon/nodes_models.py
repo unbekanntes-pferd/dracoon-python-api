@@ -180,7 +180,7 @@ class ProcessRoomPendingItem(BaseModel):
     userId: int
     groupId: int
     roomId: int
-    roomName: int
+    roomName: str
     state: str
 
 # required payload for PUT /nodes/rooms/{room_id}/pending
