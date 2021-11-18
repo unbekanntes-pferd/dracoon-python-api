@@ -68,7 +68,8 @@ class DRACOONReports:
         except httpx.HTTPStatusError as e:
             self.logger.error("Creating report failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Created report.")
         return None
     
     def make_report(self, name: str, target_id: int, formats: List[ReportFormat], type: ReportType = ReportType.single, 
@@ -135,7 +136,8 @@ class DRACOONReports:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting reports failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved reports.")
         return ReportList(**res.json())
 
     @validate_arguments
@@ -160,6 +162,7 @@ class DRACOONReports:
             self.logger.error("Deleting reports failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
+        self.logger.info("Deleted reports.")
         return None
 
     @validate_arguments
@@ -181,7 +184,8 @@ class DRACOONReports:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting report failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Deleted report.")
         return None
 
 """

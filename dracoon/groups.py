@@ -73,7 +73,8 @@ class DRACOONGroups:
         except httpx.HTTPStatusError as e:
             self.logger.error("Creating group failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Group created.")
         return Group(**res.json())
 
     def make_group(self, name: str, expiration: Expiration = None) -> CreateGroup:
@@ -109,7 +110,8 @@ class DRACOONGroups:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting groups failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved groups.")
         return GroupList(**res.json())
 
 
@@ -132,7 +134,8 @@ class DRACOONGroups:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting group failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved group.")
         return Group(**res.json())
 
 
@@ -157,7 +160,8 @@ class DRACOONGroups:
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating group failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Updated group.")
         return Group(**res.json())
 
     def make_group_update(self, name: str = None, expiration: Expiration = None, raise_on_err: bool = False) -> UpdateGroup:
@@ -188,7 +192,8 @@ class DRACOONGroups:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting group failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Deleted group.")
         return None
 
     # get user details for given user id
@@ -214,7 +219,8 @@ class DRACOONGroups:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting group users failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved group users.")
         return GroupUserList(**res.json())
 
     # get rooms in which group is last remaining admin (prevents user deletion!)
@@ -237,7 +243,8 @@ class DRACOONGroups:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting group last admin rooms failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved last admin group list.")
         return LastAdminGroupRoomList(**res.json())
 
     # get roles assigned to group
@@ -261,7 +268,8 @@ class DRACOONGroups:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting group roles failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved group roles list.")
         return RoleList(**res.json())
 
     @validate_arguments
@@ -286,7 +294,8 @@ class DRACOONGroups:
         except httpx.HTTPStatusError as e:
             self.logger.error("Adding group users failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Added group user(s).")
         return Group(**res.json())
 
     @validate_arguments
@@ -313,7 +322,8 @@ class DRACOONGroups:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting group users failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Deleted group users(s).")
         return Group(**res.json())
 
 

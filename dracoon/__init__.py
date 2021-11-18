@@ -69,7 +69,7 @@ class DRACOON:
         oidc_auth_info_res = self.public.get_auth_openid_info()
         ad_auth_info_res = self.public.get_auth_ad_info()
 
-        self.logger.info("Getting DRACOON instance information...")
+        self.logger.debug("Getting DRACOON instance information...")
 
         list = await asyncio.gather(user_info_res, system_info_res, oidc_auth_info_res, ad_auth_info_res)
         
@@ -119,7 +119,7 @@ class DRACOON:
 
         self.plain_keypair = plain_keypair
 
-        self.logger.info("Retriever user keypair.")
+        self.logger.info("Retrieved user keypair.")
         self.logger.debug("User keypair version: %s", self.plain_keypair.publicKeyContainer.version)
 
         return plain_keypair

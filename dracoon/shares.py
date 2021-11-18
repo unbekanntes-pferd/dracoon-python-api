@@ -65,7 +65,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting shares failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved shares.")
         return DownloadShareList(**res.json())
 
     # create a new (download) share - for model see documentation linked above
@@ -92,7 +93,7 @@ class DRACOONShares:
             self.logger.error("Creating share failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
-
+        self.logger.info("Created share.")
         return DownloadShare(**res.json())
 
     def make_share(self, node_id: int, name: str = None, password: str = None, expiration: str = None, notes: str = None, internal_notes: str = None, 
@@ -142,7 +143,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting shares failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Deleted share.")
         return None
 
     # get information about a specific share (given share ID)
@@ -166,7 +168,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting share failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved share.")
         return DownloadShare(**res.json())
 
     # update a list of shares (given share IDs)
@@ -191,7 +194,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating shares failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Updated shares.")
         return None
     
     def make_shares_update(self, shares_list = List[int], expiration: Expiration = None, 
@@ -264,7 +268,7 @@ class DRACOONShares:
             self.logger.error("Updating share failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
-
+        self.logger.info("Updated share.")
         return DownloadShare(**res.json())
 
     # delete specific share (given share ID)
@@ -288,7 +292,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting share failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Deleted share.")
         return None
 
     # send share via email 
@@ -314,7 +319,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Mailing share failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Mailed share.")
         return None
 
 
@@ -342,7 +348,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting file request failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved file requests.")
         return UploadShareList(**res.json())
 
     # create a new file request - for model see documentation linked above
@@ -368,7 +375,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Creating file request failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Created file request.")
         return UploadShare(**res.json())
 
     def make_file_request(self, target_id: int, name: str = None, password: str = None, expiration: str = None, file_expiration: int = None, notes: str = None, internal_notes: str = None, 
@@ -419,7 +427,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting file requests failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Deleted file requests.")
         return None
 
     # get information about a specific file request (given request ID)
@@ -443,7 +452,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting file request failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved file request.")
         return UploadShare(**res.json())
 
     # update a specific file request (given request ID)
@@ -469,7 +479,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating file requests failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Updated file request.")
         return None
 
     def make_file_requests_update(self, file_requests_list = List[int], expiration: Expiration = None, file_expiration: int = None,
@@ -546,7 +557,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating file request failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Updated file request.")
         return UploadShare(**res.json())
 
     # delete specific file request (given request ID)
@@ -570,7 +582,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting file request failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Deleted file request.")
         return None
 
     # send file request via email 
@@ -596,6 +609,8 @@ class DRACOONShares:
         except httpx.HTTPStatusError as e:
             self.logger.error("Mailing file request failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        
+        self.logger.info("Mailed file request.")
         return None
     
     def make_share_send(self, recipients: List[int], body: str, language: str = None) -> SendShare:

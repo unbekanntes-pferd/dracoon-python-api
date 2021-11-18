@@ -68,7 +68,8 @@ class DRACOONUser:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting account information failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved user account.")
         return UserAccount(**res.json())
 
     # update account information for current user
@@ -93,7 +94,8 @@ class DRACOONUser:
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating account information failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Updated user account.")
         return UserAccount(**res.json())
 
     def make_account_update(self, user_name: str = None, acceptEULA: bool = None, first_name: str = None, last_name: str = None, email: str = None, 
@@ -135,7 +137,8 @@ class DRACOONUser:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting user keypair failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Retrieved user keypair.")
         return UserKeyPairContainer(**res.json())
 
     # set user keypair 
@@ -164,7 +167,8 @@ class DRACOONUser:
         except httpx.HTTPStatusError as e:
             self.logger.error("Setting user keypair failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Set user keypair.")
         return None
 
     # delete user keypair 
@@ -188,7 +192,8 @@ class DRACOONUser:
         except httpx.HTTPStatusError as e:
             self.logger.error("Deleting user keypair failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        
+        self.logger.info("Deleted user keypair.")
         return None
 
 """

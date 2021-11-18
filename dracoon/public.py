@@ -61,7 +61,8 @@ class DRACOONPublic:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting system info failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-            
+        
+        self.logger.info("Retrieved system info.")
         return SystemInfo(**res.json())
 
     async def get_auth_ad_info(self, raise_on_err: bool = False) -> AuthADInfoList:
@@ -82,7 +83,7 @@ class DRACOONPublic:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting AD auth info failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
+        self.logger.info("Retrieved AD auth info.")
         return AuthADInfoList(**res.json())
 
     async def get_auth_openid_info(self, raise_on_err: bool = False) -> AuthOIDCInfoList:
@@ -103,6 +104,8 @@ class DRACOONPublic:
         except httpx.HTTPStatusError as e:
             self.logger.error("Getting AD auth info failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        
+        self.logger.info("Retrieved OIDC auth info.")
         return AuthOIDCInfoList(**res.json())
 
 
