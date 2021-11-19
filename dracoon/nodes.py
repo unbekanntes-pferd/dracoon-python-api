@@ -868,7 +868,7 @@ class DRACOONNodes:
         payload = folder.dict(exclude_unset=True)
 
         try:
-            res = await self.dracoon.http.put(url=api_url, json=payload)
+            res = await self.dracoon.http.post(url=api_url, json=payload)
 
             res.raise_for_status()
         except httpx.RequestError as e:
@@ -1041,7 +1041,7 @@ class DRACOONNodes:
         if updated: room["timestampModification"] = updated
         if classification: room["classification"] = classification
 
-        if not admin_ids and not admin_group_ids:
+        if not admin_ids and not admin_group_ids and inherit_perms is False:
             raise ValueError('Room admin required: Please provide at least one room admin.')
 
         return CreateRoom(**room)
@@ -1124,7 +1124,7 @@ class DRACOONNodes:
                              "deleteRecycleBin": delete_recycle_bin
                          })
 
-    def make_permission_update(id: int, permission: Permissions) -> Union[UpdateRoomUserItem, UpdateRoomGroupItem]:
+    def make_permission_update(self, id: int, permission: Permissions) -> Union[UpdateRoomUserItem, UpdateRoomGroupItem]:
         """ make a permission update payload """
         
         return {

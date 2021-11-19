@@ -95,7 +95,7 @@ class DRACOONDownloads:
 
                     file_out = open(file_path, 'wb')
 
-                    async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1024), desc=node_info["name"], unit='iKB',unit_scale=True, unit_divisor=1, total=size/1024):
+                    async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1024), desc=node_info.name, unit='iKB',unit_scale=True, unit_divisor=1, total=size/1024):
                         file_out.write(chunk)
                         
       

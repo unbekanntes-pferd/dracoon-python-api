@@ -114,6 +114,7 @@ class DRACOONClient:
                 await self.handle_connection_error(e)
 
             except httpx.HTTPStatusError as e:
+                self.logger.debug("Login error: %s", e.response.text)
                 self.logger.error("Password flow authentication failed.")
                 await self.handle_http_error(e, True)
 
@@ -133,6 +134,7 @@ class DRACOONClient:
                 await self.handle_connection_error(e)
 
             except httpx.HTTPStatusError as e:
+                self.logger.debug("Login error: %s", e.response.text)
                 self.logger.error("Authorization code authentication failed.")
                 await self.handle_http_error(e, True)
 
@@ -155,6 +157,7 @@ class DRACOONClient:
                 await self.handle_connection_error(e)
 
             except httpx.HTTPStatusError as e:
+                self.logger.debug("Login error: %s", e.response.text)
                 self.logger.error("Refresh token authentication failed.")
                 await self.handle_http_error(e, True)
 
@@ -193,7 +196,8 @@ class DRACOONClient:
         except httpx.RequestError as e:
             await self.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            self.logger.error("Revoing token(s) failed.")
+            self.logger.debug("Token revoke error: %s", e.response.text)
+            self.logger.error("Revoking token(s) failed.")
             self.handle_http_error(err=e, raise_on_err=self.raise_on_err)
 
         self.connected = False
@@ -226,7 +230,7 @@ class DRACOONClient:
             self.logger.error("Refresh token no longer valid.")
             return False
 
-    async def test_connection(self) -> bool:
+    async def test_connection(self, test: bool = False) -> bool:
         """ test authenticated connection via authenticated ping """
         self.logger.debug("Testing authenticated connection.")
 
@@ -234,21 +238,25 @@ class DRACOONClient:
             self.logger.critical("DRACOON connection not established.")
             return False
 
-        test_url = self.base_url + '/api/v4/user/ping'
+        if test:
 
-        try:
-            res = await self.http.get(url=test_url)
-            res.raise_for_status()
+            test_url = self.base_url + '/api/v4/user/ping'
 
-        except httpx.RequestError as e:
-            await self.handle_connection_error(e)
+            try:
+                res = await self.http.get(url=test_url)
+                res.raise_for_status()
 
-        except httpx.HTTPStatusError as e:
-            self.logger.error("Authenticated ping failed.")
-            await self.handle_http_error(err=e, raise_on_err=self.raise_on_err)
-            return False
+            except httpx.RequestError as e:
+                await self.handle_connection_error(e)
 
-        return True
+            except httpx.HTTPStatusError as e:
+                self.logger.error("Authenticated ping failed.")
+                await self.handle_http_error(err=e, raise_on_err=self.raise_on_err)
+                return False
+            
+            return True
+
+        return await self.check_access_token()
 
 
     async def handle_http_error(self, err: httpx.HTTPStatusError, raise_on_err: bool):
