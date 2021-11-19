@@ -99,7 +99,7 @@ class DRACOONSettings:
         if home_rooms_active == False:
             raise ValueError('Home rooms cannot be deactivated')
 
-        if home_rooms_active: settings_update["homeRoomsActive"] = home_rooms_active
+        if home_rooms_active is not None: settings_update["homeRoomsActive"] = home_rooms_active
         if home_room_quota: settings_update["homeRoomQuota"] = home_room_quota
         if home_room_parent_name: settings_update["homeRoomParentName"] = home_room_parent_name
 

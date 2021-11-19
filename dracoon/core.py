@@ -21,7 +21,7 @@ import logging
 
 from .core_models import ApiCall, ApiDestination, CallMethod, model_to_JSON
 
-USER_AGENT = 'dracoon-python-1.0.0-alpha3'
+USER_AGENT = 'dracoon-python-1.0.3'
 
 class OAuth2ConnectionType(Enum):
     """ enum as connection type for DRACOONClient """
