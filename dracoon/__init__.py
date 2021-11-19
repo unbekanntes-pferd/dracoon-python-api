@@ -37,12 +37,12 @@ import logging
 class DRACOON:
     """ DRACOON main API wrapper with all adapters to specific endpoints """ 
 
-    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', log_file: str = 'dracoon.log', log_level = logging.INFO):
+    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', log_file: str = 'dracoon.log', log_level = logging.INFO, log_stream: bool = False):
         """ intialize with instance information: base DRACOON url and OAuth app client credentials """
         self.client = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret)
 
 
-        self.logger = create_logger(log_file=log_file, log_level=log_level)
+        self.logger = create_logger(log_file=log_file, log_level=log_level, log_stream=log_stream)
         self.logger.info("Created DRACOON client.")
 
 
