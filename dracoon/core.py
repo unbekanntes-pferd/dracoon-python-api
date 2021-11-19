@@ -207,7 +207,7 @@ class DRACOONClient:
     
     async def check_access_token(self, test: bool = False):
         """ check access token validity (based on connection time and token validity) """
-        self.logger.info("Testing access token validity.")
+        self.logger.debug("Testing access token validity.")
         self.logger.debug("Full authenticated test enabled: %s", test)
 
         if not test and self.connection:
@@ -221,7 +221,7 @@ class DRACOONClient:
 
     def check_refresh_token(self):
         """ check refresh token validity (based on connection time and token validity) """
-        self.logger.info("Testing access token validity.")
+        self.logger.info("Testing refresh token validity.")
 
         if self.connection:
             now = datetime.now()
