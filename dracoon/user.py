@@ -111,7 +111,7 @@ class DRACOONUser:
         if first_name: account_update["firstName"] = first_name  
         if last_name: account_update["lastName"] = last_name    
         if email: account_update["email"] = email 
-        if acceptEULA: account_update["acceptEULA"] = acceptEULA
+        if acceptEULA is not None: account_update["acceptEULA"] = acceptEULA
         if user_name: account_update["userName"] = user_name
 
         return UpdateAccount(**account_update)

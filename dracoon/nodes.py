@@ -90,7 +90,7 @@ class DRACOONNodes:
         if size: upload_channel["size"] = size
         if expiration: upload_channel["expiration"] = expiration
         if notes: upload_channel["notes"] = notes
-        if direct_s3_upload: upload_channel["directS3Upload"] = direct_s3_upload
+        if direct_s3_upload is not None: upload_channel["directS3Upload"] = direct_s3_upload
 
         return CreateUploadChannel(**upload_channel)
 
@@ -428,7 +428,7 @@ class DRACOONNodes:
         }
 
         if resolution_strategy: node_transfer["resolutionStrategy"] = resolution_strategy
-        if keep_share_links: node_transfer["keepShareLinks"] = keep_share_links
+        if keep_share_links is not None: node_transfer["keepShareLinks"] = keep_share_links
         if parent_id: node_transfer["parentId"] = parent_id
         
         return TransferNode(**node_transfer)
@@ -707,7 +707,7 @@ class DRACOONNodes:
         }
 
         if resolution_strategy: node_restore["resolutionStrategy"] = resolution_strategy
-        if keep_share_links: node_restore["keepShareLinks"] = keep_share_links
+        if keep_share_links is not None: node_restore["keepShareLinks"] = keep_share_links
         if parent_id: node_restore["parentId"] = parent_id
         
         return RestoreNode(**node_restore)
@@ -1032,7 +1032,7 @@ class DRACOONNodes:
         if new_group_member_acceptance: room["newGroupMemberAcceptance"] = new_group_member_acceptance
         if quota: room["quota"] = quota
         if recycle_bin_period: room["recycleBinRetentionPeriod"] = recycle_bin_period
-        if inherit_perms: room["inheritPermissions"] = inherit_perms
+        if inherit_perms is not None: room["inheritPermissions"] = inherit_perms
         if activities_log: room["hasActivitiesLog"] = activities_log
         if admin_ids: room["adminIds"] = admin_ids
         if admin_group_ids: room["adminGroupIds"] = admin_group_ids
@@ -1095,8 +1095,8 @@ class DRACOONNodes:
         if quota: room["quota"] = quota
         if classification: room["classification"] = classification
         if recycle_bin_period: room["recycleBinRetentionPeriod"] = recycle_bin_period
-        if inherit_perms: room["inheritPermissions"] = inherit_perms
-        if activities_log: room["hasActivitiesLog"] = activities_log
+        if inherit_perms is not None: room["inheritPermissions"] = inherit_perms
+        if activities_log is not None: room["hasActivitiesLog"] = activities_log
         if admin_ids: room["adminIds"] = admin_ids
         if admin_group_ids: room["adminGroupIds"] = admin_group_ids
         if notes: room["notes"] = notes

@@ -164,7 +164,7 @@ class DRACOONGroups:
         self.logger.info("Updated group.")
         return Group(**res.json())
 
-    def make_group_update(self, name: str = None, expiration: Expiration = None, raise_on_err: bool = False) -> UpdateGroup:
+    def make_group_update(self, name: str = None, expiration: Expiration = None) -> UpdateGroup:
         """ make a group update payload required for update_group() """
         group_update = {}
 

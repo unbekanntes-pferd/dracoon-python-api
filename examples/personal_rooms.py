@@ -1,13 +1,12 @@
 """
 Example script showing the new async API: create rooms for users with given internal domain
 
-04.11.2021 Octavio Simone
+18.11.2021 Octavio Simone
 
 """
 
-import re
+
 from dracoon import DRACOON, OAuth2ConnectionType
-from dracoon.nodes_models import UpdateRoomUsers
 import asyncio
 
 async def main():
