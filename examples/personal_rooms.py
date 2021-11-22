@@ -6,7 +6,7 @@ Example script showing the new async API: create rooms for users with given inte
 """
 
 
-from dracoon import DRACOON, OAuth2ConnectionType
+from dracoon import DRACOON
 import asyncio
 
 async def main():
@@ -17,10 +17,11 @@ async def main():
     PARENT_ID = 9999
 
     dracoon = DRACOON(base_url=baseURL, client_id=client_id, client_secret=client_secret)
-    username = 'username'
-    password = 'topsecret' # use getpass.getpass() in interactive scripts
 
-    connection = await dracoon.connect(OAuth2ConnectionType.password_flow, username, password)
+    print(dracoon.get_code_url())
+    auth_code = input("Please enter auth code: ")
+
+    connection = await dracoon.connect(auth_code=auth_code)
     
     # filter for users with specific domain
     user_filter = 'isGranted:eq:any|user:cn:test_oct_'
@@ -56,7 +57,7 @@ async def main():
             for room in room_res.items:
                 room_list.append(room)
         
-        # check if room exists, set flag 
+    # check if room exists, set flag 
     for room in room_list:
         for user in user_list:
             if room.name == f"{user['user'].userInfo.id}_{user['user'].userInfo.firstName}_{user['user'].userInfo.lastName}":
@@ -64,49 +65,38 @@ async def main():
 
     room_tasks = []
         
-        # create room for user if no room present
+    # create room for user if no room present
     for user in user_list:
 
-
         if user["hasRoom"] == False:
+            # create home room
             name = f"{user['user'].userInfo.id}_{user['user'].userInfo.firstName}_{user['user'].userInfo.lastName}"
-            admin_ids = [dracoon.user_info.id]
-
-        room = dracoon.nodes.make_room(name=name, admin_ids=admin_ids, inherit_perms=False, parent_id=PARENT_ID)
-
-        room_res = dracoon.nodes.create_room(room)
-        room_tasks.append(room_res)
-
-    for i in range(0, len(room_tasks) + 2, 2):
-        rooms = await asyncio.gather(*room_tasks[i:i + 2])
-
-        # create sub rooms (inherit perms)
-        for room in rooms:
-        
-            mail_name = "email-attachment"
-            mail_room = dracoon.nodes.make_room(name=mail_name, inherit_perms=True, parent_id=room.id)
+            admin_ids = [user['user'].userInfo.id, dracoon.user_info.id]
+            room = dracoon.nodes.make_room(name=name, admin_ids=admin_ids, inherit_perms=False, parent_id=PARENT_ID)
+           
+            room_res = await dracoon.nodes.create_room(room)
+            
+            # create sub room for OAI
+            mail_name = "DRACOON for Outlook"
+            mail_room = dracoon.nodes.make_room(name=mail_name, inherit_perms=True, parent_id=room_res.id)
 
             mail_res = await dracoon.nodes.create_room(mail_room)
 
             # create sub folders in sub room 
-            in_folder = dracoon.nodes.make_folder(name="in", parent_id=mail_res.id)
-            out_folder = dracoon.nodes.make_folder(name="out", parent_id=mail_res.id)
-                
+            in_folder = dracoon.nodes.make_folder(name="Inbox", parent_id=mail_res.id)
+            out_folder = dracoon.nodes.make_folder(name="Outbox", parent_id=mail_res.id)
+                        
             in_res = dracoon.nodes.create_folder(in_folder)
             out_res = dracoon.nodes.create_folder(out_folder)
 
             folders = await asyncio.gather(in_res, out_res)
+            
+            # remove admin perms for admin user
+            no_perm = dracoon.nodes.make_permissions(False, False, False, False, False, False, False, False, False, False)
+            perms_update = dracoon.nodes.make_permission_update(id=dracoon.user_info.id, permission=no_perm)
+            update = {"items": [perms_update]}
 
-            for user in user_list:
-                if room.name == f"{user['user'].userInfo.id}_{user['user'].userInfo.firstName}_{user['user'].userInfo.lastName}":
-
-                    perms = dracoon.nodes.make_permissions(manage=False, create=True, read=True, change=True, delete=True, manage_shares=True, manage_file_requests=True, 
-                                                            read_recycle_bin=True, restore_recycle_bin=True, delete_recycle_bin=True)
-                    update = dracoon.nodes.make_permission_update(id=user['user'].userInfo.id, permission=perms)
-
-                payload = {"items": [update]}
-
-                assignment = await dracoon.nodes.update_room_users(room_id=room.id, users_update=payload)
+            remove_perms = await dracoon.nodes.update_room_users(room_id=room_res.id, users_update=update)
 
 
 if __name__ == '__main__':
