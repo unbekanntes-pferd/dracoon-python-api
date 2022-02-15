@@ -10,9 +10,9 @@ from dracoon.nodes_models import ProcessRoomPendingUsers, UpdateRoomGroups
 from dracoon.nodes_responses import RoomGroup
  
 async def main():
-    baseURL = 'https:URL.com'
-    client_id = 'ID'
-    client_secret = 'SECRET'
+    baseURL = 'https://dracoon.team'
+    client_id = 'XXXXXXXXXXXXXXXXXXXXXX'
+    client_secret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXX'
     PARENT_ID = XXX
     GROUP_ID = XXX
 
