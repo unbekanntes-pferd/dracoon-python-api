@@ -3,6 +3,7 @@ from enum import Enum
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+from dracoon.core_models import Range
 
 from dracoon.user_models import UserInfo
 from .crypto_models import EncryptionInfo, FileKey
@@ -231,6 +232,35 @@ class Node(BaseModel):
     contFolders: Optional[int]
     cntFiles: Optional[int]
     authParentId: Optional[int]
+    
+class LogEvent(BaseModel):
+    id: int
+    time: datetime
+    userId: int
+    message: str
+    operationId: Optional[int]
+    operationName: Optional[str]
+    status: Optional[int]
+    userClient: Optional[str]
+    customerId: Optional[int]
+    userName: Optional[str]
+    userIp: Optional[str]
+    authParentSource: Optional[str]
+    authParentTarget: Optional[str]
+    objectId1: Optional[int]
+    objectType1: Optional[int]
+    objectName1: Optional[str]
+    objectId2: Optional[int]
+    objectType2: Optional[int]
+    objectName2: Optional[str]
+    attribute1: Optional[str]
+    attribute2: Optional[str]
+    attribute3: Optional[str]
+    
+class LogEventList(BaseModel):
+    range: Range
+    items: List[LogEvent]
+
 
 
 

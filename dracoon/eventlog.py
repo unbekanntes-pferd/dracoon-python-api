@@ -91,6 +91,7 @@ class DRACOONEvents:
         if date_start != None: api_url += f'&date_start={date_start}'
         if date_end != None: api_url += f'&date_end={date_end}'
         if operation_id != None: api_url += f'&type={str(operation_id)}'
+        if user_id != None: api_url += f'&user_id={str(user_id)}'
         if filter != None: api_url += f'&filter={filter}' 
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 
