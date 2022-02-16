@@ -2,21 +2,37 @@
 /venv
 /test.py
 /setup.py
+
+# cache
 /dracoon/__pycache__
-/dracoon_api.py
+
+# build
 /build
 /dist
 /dracoon_UNBEKANNTES_PFERD.egg-info
+/dracoon.egg-info
+
+# test csvs
 *.csv
+
+# OS files
 /._.DS_Store
 /.DS_Store
-/dracoon-workflows
-/dracoon.egg-info
+
+
 /__pycache__
 /.vscode
+
+# test stuff
 test.txt
 _test.txt
 test.json
 test*.py
+test*.sh
+/examples/tests
+
+# env for test credentials
 .env
+
+# log
 dracoon.log

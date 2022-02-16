@@ -143,8 +143,15 @@ class DRACOON:
         self.logger.debug("Encrypted: %s", is_encrypted)
 
         user_id = self.user_info.id
-
-        upload_channel = self.nodes.make_upload_channel(target_id, file_name)
+        
+        use_s3_storage = False
+        
+        if self.system_info.useS3Storage:
+            use_s3_storage = True
+            
+        self.logger.debug("Using S3 storage: %s", use_s3_storage)
+            
+        upload_channel = self.nodes.make_upload_channel(parent_id=target_id, name=file_name, direct_s3_upload=use_s3_storage)
         res = await self.nodes.create_upload_channel(upload_channel)
 
         self.logger.debug("Created upload channel: %s", res.uploadId)
@@ -160,14 +167,21 @@ class DRACOON:
 
         self.logger.info("Upload completed.")
 
-    async def download(self, file_path: str, target_path: str):
+    async def download(self, file_path: str, target_path: str, display_progress: bool = False):
         """ download a file to a target """
 
         if not self.client.connection:
+            await self.client.http.aclose()
             self.logger.error("DRACOON client not connected: Download failed.")
             raise ValueError('DRACOON client not connected.')
 
         node_info = await self.nodes.get_node_from_path(file_path)
+        
+        if not node_info:
+            self.logger.error("Download failed: file does not exist.")
+            await self.client.http.aclose()
+            raise ValueError('File does not exist.')
+        
         node_id = node_info.id
 
         is_encrypted = node_info.isEncrypted
@@ -187,7 +201,7 @@ class DRACOON:
             await self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info)
         elif is_encrypted and self.check_keypair():
             file_key = await self.nodes.get_user_file_key(node_id)
-            await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, plain_keypair=self.plain_keypair, file_key=file_key.json())
+            await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, plain_keypair=self.plain_keypair, file_key=file_key)
 
 
     def get_code_url(self) -> str:

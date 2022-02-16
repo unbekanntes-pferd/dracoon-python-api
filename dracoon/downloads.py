@@ -58,7 +58,8 @@ class DRACOONDownloads:
         return file.exists() and file.is_file()
 
     
-    async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = 5242880, raise_on_err: bool = False):
+    async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = 33554432, raise_on_err: bool = False,
+                                   display_progress: bool = False):
         """ Download a file from an unecrypted data room. """
 
         self.logger.info("Download started.")
@@ -87,76 +88,36 @@ class DRACOONDownloads:
 
         self.logger.debug("File download for size: %s", size)
         self.logger.debug("Using chunksize: %s", chunksize)
-
-        if size < chunksize:
-            
-            try:
-                async with self.dracoon.http.stream(method='GET', url=download_url) as res:
-
-                    file_out = open(file_path, 'wb')
-
-                    async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1024), desc=node_info.name, unit='iKB',unit_scale=True, unit_divisor=1, total=size/1024):
-                        file_out.write(chunk)
-                        
       
-            except httpx.RequestError as e:
-
-                await self.dracoon.handle_connection_error(e)
-            except httpx.HTTPStatusError as e:
-                await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-            
-            file_out.close()
-            self.logger.info("Download completed.")
-            
-        else:
-       
-            index = 0
-            offset = 0
-    
-            for chunk_range in range(chunksize, size + 1, chunksize):
-
-                offset = index + chunk_range
-
-                content_range = f'bytes={index}-{offset}'
-                if offset > size:
-                    content_range = f'bytes={index}-{size - 1}'
-
-                self.dracoon.http.headers["Range"] = content_range
+        try:
+            # remove bearer token header 
+            headers = self.dracoon.http.headers
+            self.dracoon.http.headers = None
+            async with self.dracoon.http.stream(method='GET', url=download_url) as res:
+                file_out = open(file_path, 'wb')
                 
-                try:
-                    async with self.dracoon.http.stream(method='GET', url=download_url) as res:
-                        
-                        res.raise_for_status()
-                        file_out = open(file_path, 'wb')
-                        desc = node_info["name"] + f' {content_range}'
-                        async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=desc, unit='iMB',unit_scale=False, unit_divisor=1024, total=chunksize/1048576):
-                            file_out.write(chunk)
-                            
-                        file_out.close()
-                                
-                        index = offset + 1
-
-                except httpx.RequestError as e:
-                    file_out.close()
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                    await self.dracoon.handle_connection_error(e)
-                except httpx.HTTPStatusError as e:
-                    file_out.close()
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                    await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+                if display_progress:
+                    async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=node_info.name, unit='iMB',unit_scale=False, unit_divisor=1048576, total=size/1048576):
+                        file_out.write(chunk)
+                else:
+                    async for chunk in res.aiter_bytes(chunksize):
+                        file_out.write(chunk)
                     
+                        
+        except httpx.RequestError as e:
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        finally:
+            # add header to client again (bearer token)
+            self.dracoon.http.headers = headers
             
-            if "range" in self.dracoon.http.headers:
-               self.dracoon.http.headers.pop("range")
-       
-            file_out.close()
-            self.logger.info("Download completed.")
+        file_out.close()
+        self.logger.info("Download completed.")
+            
 
-        
     async def download_encrypted(self, download_url: str, target_path: str, node_info: Node, plain_keypair: PlainUserKeyPairContainer, file_key: FileKey, 
-                                       chunksize: int = 5242880, raise_on_err: bool = False):   
+                                       chunksize: int = 33554432, raise_on_err: bool = False, display_progress: bool = False):   
         """ Download a file from an encrypted data room. """
 
         self.logger.info("Download started.")
@@ -164,6 +125,9 @@ class DRACOONDownloads:
 
         if self.raise_on_err:
             raise_on_err = True
+            
+        if not node_info:
+            raise ValueError('File does not exist.')
         
         if node_info.type != NodeType.file:
             raise TypeError('Ony file download possible.')
@@ -184,37 +148,48 @@ class DRACOONDownloads:
         
         size = node_info.size
 
-        plain_file_key = decrypt_file_key(fileKey=file_key, keypair=plain_keypair)
+        plain_file_key = decrypt_file_key(file_key=file_key, keypair=plain_keypair)
         decryptor = FileDecryptionCipher(plain_file_key=plain_file_key)
 
         self.logger.debug("File download for size: %s", size)
         self.logger.debug("Using chunksize: %s", chunksize)
 
-        if size < chunksize:
-            try:
-                async with self.dracoon.http.stream(method='GET', url=download_url) as res:
-                    res.raise_for_status()
-                    file_out = open(file_path, 'wb')
-
-                    async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=node_info.name, unit='iMB',unit_scale=False, unit_divisor=1048576, total=size):
-                        
+        try:
+            # remove bearer token header 
+            headers = self.dracoon.http.headers
+            self.dracoon.http.headers = None
+            async with self.dracoon.http.stream(method='GET', url=download_url) as res:
+                res.raise_for_status()
+                file_out = open(file_path, 'wb')
+                
+                if display_progress:
+                    async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=node_info.name, unit='iMB',unit_scale=False, unit_divisor=1048576, total=size/1048576):
                         plain_chunk = decryptor.decode_bytes(chunk)
                         file_out.write(plain_chunk)
                         if not chunk:
                             last_data = decryptor.finalize()
                             file_out.write(last_data)
-                        
-                    file_out.close()
-                    self.logger.info("Download completed.")
+                else:
+                    async for chunk in res.aiter_bytes(chunksize):
+                        plain_chunk = decryptor.decode_bytes(chunk)
+                        file_out.write(plain_chunk)
+                        if not chunk:
+                            last_data = decryptor.finalize()
+                            file_out.write(last_data)
+                  
+                file_out.close()
+                self.logger.info("Download completed.")
 
-            except httpx.RequestError as e:
-                await self.dracoon.handle_connection_error(e)
-            except httpx.HTTPStatusError as e:
-                await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        except httpx.RequestError as e:
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        finally:
+            # add header to client again (bearer token)
+            self.dracoon.http.headers = headers
 
 
-
-        else:
+"""         else:
             index = 0
             offset = 0
     
@@ -263,7 +238,7 @@ class DRACOONDownloads:
             if "range" in self.dracoon.http.headers:
                self.dracoon.http.headers.pop("range")
        
-            self.logger.info("Download completed.")
+            self.logger.info("Download completed.") """
 
 
                 

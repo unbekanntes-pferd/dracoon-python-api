@@ -25,7 +25,7 @@ from .nodes_responses import Comment, CommentList, CreateFileUploadResponse, Del
 from .crypto_models import FileKey
 from .groups_models import Expiration
 from .core import DRACOONClient, OAuth2ConnectionType
-from .nodes_models import CompleteS3Upload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, GetS3Urls, Node, Permissions, ProcessRoomPendingUsers, S3Part, SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFile, UpdateFiles, UpdateFolder, UpdateRoom, UpdateRoomGroupItem, UpdateRoomGroups, UpdateRoomHooks, UpdateRoomUserItem, UpdateRoomUsers
+from .nodes_models import CompleteS3Upload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, GetS3Urls, LogEventList, Node, Permissions, ProcessRoomPendingUsers, S3Part, SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFile, UpdateFiles, UpdateFolder, UpdateRoom, UpdateRoomGroupItem, UpdateRoomGroups, UpdateRoomHooks, UpdateRoomUserItem, UpdateRoomUsers
 
 
 class DRACOONNodes:
@@ -1372,8 +1372,41 @@ class DRACOONNodes:
 
         self.logger.info("Updated room webhooks.")
         return RoomWebhookList(**res.json())
+    
+    @validate_arguments
+    async def get_room_events(self, room_id: int, offset: int = 0, filter: str = None, limit: int = None, 
+                        sort: str = None, date_start: str = None, date_end: str = None, operation_id: int = None, user_id: int = None, raise_on_err = False) -> LogEventList:
+        """ get pending room assignments (new group members not accepted) """
+        if not await self.dracoon.test_connection() and self.dracoon.connection:
+            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
+        if self.raise_on_err:
+            raise_on_err = True
 
+        api_url = self.api_url + f'/rooms/{room_id}/events/?offset={str(offset)}'
+
+        if date_start != None: api_url += f'&date_start={date_start}'
+        if date_end != None: api_url += f'&date_end={date_end}'
+        if operation_id != None: api_url += f'&type={str(operation_id)}'
+        if user_id != None: api_url += f'&user_id={str(user_id)}'
+        if filter != None: api_url += f'&filter={filter}' 
+        if limit != None: api_url += f'&limit={str(limit)}' 
+        if sort != None: api_url += f'&sort={sort}' 
+
+        try:
+            res = await self.dracoon.http.get(api_url)
+
+            res.raise_for_status()
+        except httpx.RequestError as e:
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Getting room events failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        
+        self.logger.info("Retrieved room events.")
+        return LogEventList(**res.json())
+
+    
     @validate_arguments
     async def get_pending_assignments(self, offset: int = 0, filter: str = None, limit: str = None, sort: str = None, raise_on_err: bool = False) -> PendingAssignmentList:
         """ get pending room assignments (new group members not accepted) """
