@@ -21,7 +21,8 @@ Encryption:
 
 from typing import Tuple
 from pydantic import validate_arguments
-from .crypto_models import FileKey, FileKeyVersion, PlainFileKey, PlainFileKeyVersion,  PlainUserKeyPairContainer, PublicKeyContainer, UserKeyPairContainer, UserKeyPairVersion
+from .crypto_models import (FileKey, FileKeyVersion, PlainFileKey, PlainFileKeyVersion,  PlainUserKeyPairContainer, 
+                            PublicKeyContainer, UserKeyPairContainer, UserKeyPairVersion)
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.ciphers import (Cipher, algorithms, modes)
@@ -408,7 +409,7 @@ class FileDecryptionCipher:
 
     def decode_bytes(self, enc_data: bytes) -> bytes:
         """ decode bytes """
-        logger.debug("Encrypting bytes...")
+        logger.debug("Decrypting bytes...")
         return self.encryptor.update(enc_data)
 
     def finalize(self) -> bytes:
