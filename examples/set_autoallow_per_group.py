@@ -1,7 +1,7 @@
 
 """
 Example script showing the new async API with processing all pending assignments
-18.11.2021 Octavio Simone
+18.11.2021 Quirin Wierer
 """
 
 from dracoon import DRACOON
@@ -11,9 +11,9 @@ import logging
 from dracoon.nodes_models import ProcessRoomPendingUsers
 
 async def main():
-    baseURL = 'XXX'
-    client_id = 'XXX'
-    client_secret = 'XXX'
+    baseURL = 'https://dracoon.team'
+    client_id = 'XXXXXXXXXXXXXXXXXXXXXXXXXXX'
+    client_secret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXX'
 
     dracoon = DRACOON(base_url=baseURL, client_id=client_id, client_secret=client_secret, log_level=logging.DEBUG)
     print(dracoon.get_code_url())
@@ -45,7 +45,7 @@ async def main():
     payload = ProcessRoomPendingUsers(**assignments)
 
     # send request
-    pending_processed = await dracoon.nodes.process_pending_assignments(payload = True)
+    pending_processed = await dracoon.nodes.process_pending_assignments(payload=payload)
 
     await dracoon.logout()
 
