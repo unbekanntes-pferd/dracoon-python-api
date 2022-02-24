@@ -84,9 +84,23 @@ The object contains a client (DRACOONClient) which handles all http connections 
 dracoon = DRACOON(base_url, client_id, client_secret)
 ```
 
-* _client_id_; please register your OAuth app or use dracoon_legacy_scripting (default)
-* _client_secret_; please register your OAuth app or use dracoon_legacy_scripting - secret is an empty string (no secret)
+* _client_id_: please register your OAuth app or use dracoon_legacy_scripting (default)
+* _client_secret_: please register your OAuth app or use dracoon_legacy_scripting - secret is an empty string (no secret)
 * _base_url_: Your DRACOON URL instance (e.g. https://dracoon.team)
+
+#### Optional settings
+You can additionally configure the logs for any script using the following optional parameters:
+* _log_stream_: default is set to False – when set to True, will output the logs to console / terminal (stderr)
+* _log_level_: default is set to logging.INFO – if required, can be changed to e.g. logging.DEBUG (this will contain senstive information e.g. names of created objects!). In order to use the log level, import logging module
+* _log_file_: default is set to './dracoon.log' (based on cwd of the running script!) – you can use any path with write access to log
+* _raise_on_err_: default is set to False – if set to True, any HTTP error (4xx or higher) will raise an error and stop the script / application
+
+Full parameters:
+```Python
+dracoon = DRACOON(base_url, client_id, client_secret, log_level, log_stream, log_file, raise_on_err)
+```
+
+A note to raising on errors: You can set the raise_on_err flag individually for any adapter method (e.g. nodes.get_nodes(raise_on_err=True)) to ensure the app breaks in case an error occurs. 
 
 
 ### Authentication
@@ -126,6 +140,14 @@ Please note: you can only authenticate if OAuth app is correctly configured. You
 connected = dracoon.test_connection()
 ```
 This will provide a true / false result depending on the connection.
+If no flag is set, this will just check if the access token is valid based on the token validity.
+In order to test the connection with a request, is the test flag:
+
+#### Test connection
+```Python
+connected = dracoon.test_connection(test=True)
+```
+
 An authenticated ping is used to verify the tokens are valid.
 
 #### Refresh token
@@ -159,7 +181,8 @@ result = await dracoon.users.get_users()
 
 Please note: 
 * GET requests are limited to returning 500 items. Therefore all such requests contain an offset parameter (default is 0)
-* Providing a filter is optional - see API documentation and examples on usage
+* Providing a filter or sorting is optional - see API documentation and examples on usage – filter, sort or any other query parameter can be passed as parameter in any method
+* Raising on errors: Default is set to False – if needed, you can use the raise_on_err flag to stop for responses with HTTP status code 4xx or higher
 * If you do not connect the client, the adapters are not instantiated and 
 cannot be accessed!
 * All (!) calls are async methods and need to be awaited
@@ -179,7 +202,7 @@ dracoon.eventlog # old eventlog API
 ```
 
 
-2. This package contains type hints and includes models for all payloads (updates and create payloads).
+2. This package contains type hints and includes models for all payloads and responses (updates and create payloads).
 To faciliate compliant object creation, there are several helper methods which can be found via make_, e.g.:
 
 ```Python
@@ -187,6 +210,46 @@ room = dracoon.nodes.make_room(...)
 ```
 
 This helps finding the right parameters and building objects that are compliant with the DRACOON models.
+
+#### Aynchronous requests
+
+With httpx this package support full async request handling. This means all methods are coroutines which can be awaited.
+You can use any runtime supported by httpx, e.g. asyncio (which comes with Python3).
+
+In order to send requests asynchronously, you can use ayncio.gather() – example:
+
+```Python
+user1_res = dracoon.users.create_user(user1)
+user2_res = dracoon.users.create_user(user2)
+user3_res = dracoon.users.create_user(user3)
+...
+
+users = await asyncio.gather(user1_res, user2_res, user3_res, ...)
+
+```
+
+The result is completely typed and returns a tuple with the responses in the order you sent the request:
+For users[0] you receive user_1_res and so on.
+
+Caution: It is not recommended to use massive async requests for creating objects (e.g. creating rooms) or permissions based operations, as this might cause unexpected behaviour / errors.
+
+For these cases, use small batches (e.g. 2 - 3 requests) to process requests faster without compromising the DRACOON API.
+
+Example for batches:
+
+```Python
+room1_res = dracoon.nodes_create_room(room1)
+room2_res = dracoon.nodes_create_room(room2)
+room3_res = dracoon.nodes_create_room(room3)
+
+...
+
+rooms = await asyncio.gather(room1_res, room2_res, room3_res, ...)
+
+for i in range(0, len(rooms) + 3, 3):
+  rooms_res = await asyncio.gather(rooms[i:i+3])
+
+```
 
 ## Cryptography
 
@@ -307,20 +370,20 @@ Full example: [Download files](https://github.com/unbekanntes-pferd/dracoon-pyth
 
 _For examples, check out the example files:_<br>
 
-* [Login via password flow](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_login_password_flow.py)
-* [Login via auth code](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_login_auth_code_flow.py)
-* [Create a user](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_create_user.py)
-* [Set a new keypair](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_create_new_keypair.py)
-* [Upload file](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_upload.py)
-* [Download files](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_download.py)
+* [Login via password flow](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/login_password_flow.py)
+* [Login via auth code](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/login_auth_code_flow.py)
+* [Create a user](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/create_user.py)
+* [Set up personal rooms](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/personal_rooms.py)
+* [Process pending group assignments](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/pending_assignments.py)
+* [Set a new keypair](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/create_new_keypair.py)
+* [Upload file](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/upload.py)
+* [Download files](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/download.py)
 
 <!-- ROADMAP -->
 ## Roadmap
 
 * Add S3 direct upload
 * Add branding API 
-* Error handling, testing coverage
-* Complete all types (update to data classes, remove pydantic, return objects)
 
 <!-- LICENSE -->
 ## License

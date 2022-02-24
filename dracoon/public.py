@@ -15,7 +15,9 @@ Please note: maximum 500 items are returned in GET requests
 """
 
 import httpx
+import logging
 from .core import DRACOONClient, OAuth2ConnectionType
+from .public_responses import AuthOIDCInfoList, AuthADInfoList, SystemInfo
 
 
 class DRACOONPublic:
@@ -32,55 +34,79 @@ class DRACOONPublic:
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/public/system/info'
+            self.logger = logging.getLogger('dracoon.public')
+            if self.dracoon.raise_on_err:
+                self.raise_on_err = True
+            else:
+                self.raise_on_err = False
+            self.logger.debug("DRACOON public adapter created.")
         else:
+            self.logger.error("DRACOON client error: no connection. ")
             raise ValueError(
                 'DRACOON client must be connected: client.connect()')
 
-    async def get_system_info(self):
+    async def get_system_info(self, raise_on_err: bool = False) -> SystemInfo:
         """ get sytem information (S3) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
+        if self.raise_on_err:
+            raise_on_err = True
+
         try:
             res = await self.dracoon.http.get(self.api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Getting system info failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        
+        self.logger.info("Retrieved system info.")
+        return SystemInfo(**res.json())
 
-        return res
-
-    async def get_auth_ad_info(self):
+    async def get_auth_ad_info(self, raise_on_err: bool = False) -> AuthADInfoList:
         """ get active directory information """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/auth/ad'
 
         try:
             res = await self.dracoon.http.get(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Getting AD auth info failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        self.logger.info("Retrieved AD auth info.")
+        return AuthADInfoList(**res.json())
 
-        return res
-
-    async def get_auth_openid_info(self):
+    async def get_auth_openid_info(self, raise_on_err: bool = False) -> AuthOIDCInfoList:
         """ get openid information """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
 
         api_url = self.api_url + f'/auth/openid'
 
         try:
             res = await self.dracoon.http.get(api_url)
-
+            res.raise_for_status()
         except httpx.RequestError as e:
-            raise httpx.RequestError(
-                f'Connection to DRACOON failed: {e.request.url}')
-
-        return res
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Getting AD auth info failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        
+        self.logger.info("Retrieved OIDC auth info.")
+        return AuthOIDCInfoList(**res.json())
 
 
 

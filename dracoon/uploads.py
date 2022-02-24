@@ -18,6 +18,7 @@ from .uploads_models import FinalizeUpload, UploadChannelResponse
 from pydantic import validate_arguments, HttpUrl
 from pathlib import Path
 import os
+import logging
 from tqdm import tqdm
 
 
@@ -35,7 +36,14 @@ class DRACOONUploads:
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/user'
+            self.logger = logging.getLogger('dracoon.uploads')
+            if self.dracoon.raise_on_err:
+                self.raise_on_err = True
+            else:
+                self.raise_on_err = False
+            self.logger.debug("DRACOON uploads adapter created.")
         else:
+            self.logger.error("DRACOON client error: no connection. ")
             raise ValueError(
                 'DRACOON client must be connected: client.connect()')
 
@@ -58,8 +66,14 @@ class DRACOONUploads:
 
 
     async def upload_unencrypted(self, file_path: str, upload_channel: UploadChannelResponse, 
-                                 keep_shares: bool = False, resolution_strategy: str = 'autorename', chunksize: int = 5242880):
+                                 keep_shares: bool = False, resolution_strategy: str = 'autorename', chunksize: int = 5242880, raise_on_err: bool = False):
         """ uploads a file to an unencrypted data room – upload channel required """
+
+        if self.raise_on_err:
+            raise_on_err = True
+
+        """ Check if file is file """
+
         file = Path(file_path)
         
         if not file.is_file():
@@ -68,23 +82,29 @@ class DRACOONUploads:
         filesize = os.stat(file_path).st_size
         file_name = file_path.split('/')[-1]
 
+
+        """ Single request upload  """
+
         if filesize < chunksize:
             progress = tqdm(unit='iB',unit_divisor=1024, total=filesize, unit_scale=True)
             file_obj = open(file, 'rb')
 
             try:
-                res = await self.dracoon.http.post(url=upload_channel["uploadUrl"], data=self.upload_bytes(file_obj))
+                res = await self.dracoon.http.post(url=upload_channel.uploadUrl, data=self.upload_bytes(file_obj))
                 res.raise_for_status()
                 progress.update(filesize)
             except httpx.RequestError as e:
-                res = await self.dracoon.http.delete(upload_channel["uploadUrl"])
-                raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+                res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                await self.dracoon.handle_connection_error(e)
             except httpx.HTTPStatusError as e:
-                res = await self.dracoon.http.delete(upload_channel["uploadUrl"])
-                raise ValueError(f'Upload failed: {e.response.status_code} – {e.response.text}')
+                self.logger.error("Uploading file failed.")
+                res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
             finally:
                 progress.close()
-         
+        
+            """ Chunked upload """
+   
         else:
             with open(file, 'rb') as f:
 
@@ -108,21 +128,22 @@ class DRACOONUploads:
 
 
                     try:
-                        res = await self.dracoon.http.post(url=upload_channel["uploadUrl"], files=upload_file)
+                        res = await self.dracoon.http.post(url=upload_channel.uploadUrl, files=upload_file)
                         res.raise_for_status()
                         progress.update(len(chunk))
                     except httpx.RequestError as e:
-                        res = await self.dracoon.http.delete(upload_channel["uploadUrl"])
-                        raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                        await self.dracoon.handle_connection_error(e)
                     except httpx.HTTPStatusError as e:
-                        res = await self.dracoon.http.delete(upload_channel["uploadUrl"])
-                        raise ValueError(f'Upload failed: {e.response.status_code} – {e.response.text}')
-
+                        self.logger.error("Uploading chunk failed.")
+                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                        await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
                 progress.close()
-                    
+                
+        """ Finalizing file upload with last PUT """
                                 
-        api_url = self.dracoon.base_url + self.dracoon.api_base_url + f'/uploads/{upload_channel["token"]}'
+        api_url = self.dracoon.base_url + self.dracoon.api_base_url + f'/uploads/{upload_channel.token}'
 
         params = {
                 "resolutionStrategy": resolution_strategy,
@@ -132,19 +153,28 @@ class DRACOONUploads:
 
         try:
             res = await self.dracoon.http.put(api_url, json=params)
+            res.raise_for_status()
+
         except httpx.RequestError as e:
-                raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Finalizing upload failed.")
+            await self.dracoon.handle_http_error(e, raise_on_err)
 
 
         if "content-range" in self.dracoon.http.headers:
             self.dracoon.http.headers.pop("content-range")
-                
+        
+        self.logger.info("Uploaded file.")
         return res
                 
-
     async def upload_encrypted(self, file_path: str, upload_channel: UploadChannelResponse, user_id: int, plain_keypair: PlainUserKeyPairContainer, 
-                            keep_shares: bool = False, resolution_strategy: str = 'autorename', chunksize: int = 5242880):
+                            keep_shares: bool = False, resolution_strategy: str = 'autorename', chunksize: int = 5242880, raise_on_err: bool = False):
         """ uploads a file to an encrypted data room – upload channel and plain user keypair required """
+
+        if self.raise_on_err:
+            raise_on_err = True
+
         file = Path(file_path)
         if not file.is_file():
             raise ValueError(f'A file needs to be provided. {file_path} is not a file.')
@@ -170,16 +200,20 @@ class DRACOONUploads:
 
 
             try:
-                res = await self.dracoon.http.post(url=upload_channel["uploadUrl"], files=files)
+                res = await self.dracoon.http.post(url=upload_channel.uploadUrl, files=files)
                 res.raise_for_status()
                 progress.update(filesize)
             except httpx.RequestError as e:
-                raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+                res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                await self.dracoon.handle_connection_error(e)
             except httpx.HTTPStatusError as e:
-                res = await self.dracoon.http.delete(upload_channel["uploadUrl"])
-                raise ValueError(f'Upload failed: {e.response.status_code} – {e.response.text}')
+                res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                self.logger.error("Finalizing upload failed.")
+                await self.dracoon.handle_http_error(e, raise_on_err)
             finally:
                 progress.close()
+            
+            self.logger.info("Uploaded file.")
 
         #  file size larger than chunk size
         else:
@@ -218,20 +252,19 @@ class DRACOONUploads:
                     self.dracoon.http.headers["Content-Range"] = content_range
 
                     try:      
-                        res = await self.dracoon.http.post(upload_channel["uploadUrl"], files=upload_file)
+                        res = await self.dracoon.http.post(upload_channel.uploadUrl, files=upload_file)
                         res.raise_for_status()
                         progress.update(len(chunk))
                     except httpx.RequestError as e:
-                        progress.close()
-                        raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                        await self.dracoon.handle_connection_error(e)
                     except httpx.HTTPStatusError as e:
-                        progress.close()
-                        res = await self.dracoon.http.delete(upload_channel["uploadUrl"])
-                        raise ValueError(f'Upload failed: {e.response.status_code} – {e.response.text}')
+                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                        self.logger.error("Uploading chunk failed.")
 
             progress.close()
                         
-        api_url = self.dracoon.base_url + self.dracoon.api_base_url + f'/uploads/{upload_channel["token"]}'
+        api_url = self.dracoon.base_url + self.dracoon.api_base_url + f'/uploads/{upload_channel.token}'
 
         enc_file_key = encrypt_file_key(plain_file_key=plain_file_key, keypair=plain_keypair)
 
@@ -252,12 +285,19 @@ class DRACOONUploads:
 
         try:
             res = await self.dracoon.http.put(api_url, json=params)
+            res.raise_for_status()
         except httpx.RequestError as e:
-                raise httpx.RequestError(f'Connection to DRACOON failed: {e.request.url}')
+            res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Finalizing upload failed.")
+            res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+            await self.dracoon.handle_http_error(e, self.raise_on_err)
 
         if "content-range" in self.dracoon.http.headers:
             self.dracoon.http.headers.pop("content-range")
-                
+        
+        self.logger.info("Uploaded file.")
         return res
 
 

@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+from enum import Enum
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+from dracoon.core_models import Range
 
 from dracoon.user_models import UserInfo
 from .crypto_models import EncryptionInfo, FileKey
@@ -124,8 +126,16 @@ class ConfigRoom(BaseModel):
 # required payload for PUT /nodes/files
 class UpdateFiles(BaseModel):
     classification: Optional[int]
-    expiration: Expiration
+    expiration: Optional[Expiration]
     objectIds: List[int]
+
+class UpdateFile(BaseModel):
+    name: Optional[str]
+    expiration: Optional[Expiration]
+    classification: Optional[int]
+    notes: Optional[str]
+    timestampCreation: Optional[datetime]
+    timestampModification: Optional[datetime]
 
 
 class Permissions(BaseModel):
@@ -146,6 +156,8 @@ class UpdateRoomUserItem(BaseModel):
     permissions: Permissions
 
 class UpdateRoomGroupItem(UpdateRoomUserItem):
+    id: int
+    permissions: Permissions
     newGroupMemberAcceptance: Optional[str]
 
 # required payload for PUT /nodes/rooms/{room_id}/groups
@@ -169,7 +181,7 @@ class ProcessRoomPendingItem(BaseModel):
     userId: int
     groupId: int
     roomId: int
-    roomName: int
+    roomName: str
     state: str
 
 # required payload for PUT /nodes/rooms/{room_id}/pending
@@ -177,14 +189,12 @@ class ProcessRoomPendingUsers(BaseModel):
     items: List[ProcessRoomPendingItem]
 
 
-@dataclass
-class NodeType:
+class NodeType(Enum):
     file = "file"
     folder = "folder"
     room = "room"
 
-@dataclass
-class Node:
+class Node(BaseModel):
     id: int
     type: NodeType
     name: str
@@ -222,6 +232,35 @@ class Node:
     contFolders: Optional[int]
     cntFiles: Optional[int]
     authParentId: Optional[int]
+    
+class LogEvent(BaseModel):
+    id: int
+    time: datetime
+    userId: int
+    message: str
+    operationId: Optional[int]
+    operationName: Optional[str]
+    status: Optional[int]
+    userClient: Optional[str]
+    customerId: Optional[int]
+    userName: Optional[str]
+    userIp: Optional[str]
+    authParentSource: Optional[str]
+    authParentTarget: Optional[str]
+    objectId1: Optional[int]
+    objectType1: Optional[int]
+    objectName1: Optional[str]
+    objectId2: Optional[int]
+    objectType2: Optional[int]
+    objectName2: Optional[str]
+    attribute1: Optional[str]
+    attribute2: Optional[str]
+    attribute3: Optional[str]
+    
+class LogEventList(BaseModel):
+    range: Range
+    items: List[LogEvent]
+
 
 
 

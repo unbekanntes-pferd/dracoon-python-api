@@ -1,4 +1,3 @@
-from io import StringIO
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
@@ -55,13 +54,16 @@ class AttributeEntry(BaseModel):
     key: str
     value: str
 
-# required payload for POST /users/{user_id}/userAttributes
+# required payload for POST /users/{user_id}/userAttributes (deprecated)
 class SetUserAttributes(BaseModel):
     items: List[AttributeEntry]
 
 # required payload for PUT /users/{user_id}/userAttributes
 class UpdateUserAttributes(BaseModel):
     items: Optional[List[AttributeEntry]]
+
+
+
 
 
 
