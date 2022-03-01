@@ -1,10 +1,11 @@
 
 from enum import Enum
+from optparse import Option
 from dracoon.crypto_models import PublicKeyContainer
 
 from dracoon.nodes_models import Permissions
 from .user_models import UserInfo
-from .core_models import Range, Expiration
+from .core_models import ErrorMessage, Range, Expiration
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
@@ -163,3 +164,20 @@ class RoomGroup(BaseModel):
 class RoomGroupList(BaseModel):
     range: Range
     items: List[RoomGroup]
+    
+class S3Status(Enum):
+    transfer = 'transfer' 
+    finishing = 'finishing'
+    done = 'done'
+    error = 'error'
+
+class S3FileUploadStatus(BaseModel):
+    status: S3Status
+    node: Optional[Node]
+    errorDetails: Optional[ErrorMessage]
+    class Config:
+        use_enum_values = True
+    
+    
+    
+    

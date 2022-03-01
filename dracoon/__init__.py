@@ -173,6 +173,8 @@ class DRACOON:
             upload = await self.nodes.upload_s3_unencrypted(file_path=file_path, upload_channel=upload_channel, display_progress=display_progress)
 
         self.logger.info("Upload completed.")
+        
+        if upload: return upload
 
     async def download(self, file_path: str, target_path: str, display_progress: bool = False):
         """ download a file to a target """
