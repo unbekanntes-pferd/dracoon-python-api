@@ -10,6 +10,7 @@ https://support.dracoon.com/hc/de/articles/115005512089
 
 """
 
+from typing import List
 import httpx
 from dracoon.crypto_models import PlainUserKeyPairContainer
 from .core import DRACOONClient
@@ -65,8 +66,27 @@ class DRACOONUploads:
             yield data
 
 
+    async def upload_s3_unencrypted(self, file_path: str, upload_channel: UploadChannelResponse, s3_urls: List[str],
+                                 keep_shares: bool = False, resolution_strategy: str = 'autorename', chunksize: int = 33554432, raise_on_err: bool = False):
+        """ uploads a file to an unencrypted data room using S3 direct upload – upload channel required """
+        
+        if self.raise_on_err:
+            raise_on_err = True
+
+        """ Check if file is file """
+
+        file = Path(file_path)
+        
+        if not file.is_file():
+            raise ValueError(f'A file needs to be provided. {file_path} is not a file.')
+        
+        filesize = os.stat(file_path).st_size
+        file_name = file_path.split('/')[-1]
+        
+
+
     async def upload_unencrypted(self, file_path: str, upload_channel: UploadChannelResponse, 
-                                 keep_shares: bool = False, resolution_strategy: str = 'autorename', chunksize: int = 5242880, raise_on_err: bool = False):
+                                 keep_shares: bool = False, resolution_strategy: str = 'autorename', chunksize: int = 33554432, raise_on_err: bool = False):
         """ uploads a file to an unencrypted data room – upload channel required """
 
         if self.raise_on_err:
@@ -86,7 +106,7 @@ class DRACOONUploads:
         """ Single request upload  """
 
         if filesize < chunksize:
-            progress = tqdm(unit='iB',unit_divisor=1024, total=filesize, unit_scale=True)
+            progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True)
             file_obj = open(file, 'rb')
 
             try:

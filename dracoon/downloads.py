@@ -1,9 +1,9 @@
 """
-Async DRACOON uploads adapter based on httpx, tqdm and pydantic
-V1.0.0
-(c) Octavio Simone, November 2021 
+Async DRACOON downloads adapter based on httpx, tqdm and pydantic
+V1.1.0
+(c) Octavio Simone, February 2022 
 
-Documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/uploads
+Documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/downloads
 Please note: maximum 500 items are returned in GET requests
  - refer to documentation on how to upload files:
 https://support.dracoon.com/hc/de/articles/115005512089
@@ -90,28 +90,22 @@ class DRACOONDownloads:
         self.logger.debug("Using chunksize: %s", chunksize)
       
         try:
-            # remove bearer token header 
-            headers = self.dracoon.http.headers
-            self.dracoon.http.headers = None
-            async with self.dracoon.http.stream(method='GET', url=download_url) as res:
-                file_out = open(file_path, 'wb')
-                
-                if display_progress:
-                    async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=node_info.name, unit='iMB',unit_scale=False, unit_divisor=1048576, total=size/1048576):
-                        file_out.write(chunk)
-                else:
-                    async for chunk in res.aiter_bytes(chunksize):
-                        file_out.write(chunk)
+            async with httpx.AsyncClient() as downloader:
+                async with downloader.stream(method='GET', url=download_url) as res:
+                    file_out = open(file_path, 'wb')
                     
-                        
+                    if display_progress:
+                        async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=node_info.name, unit='iMB',unit_scale=False, unit_divisor=1048576, total=size/1048576):
+                            file_out.write(chunk)
+                    else:
+                        async for chunk in res.aiter_bytes(chunksize):
+                            file_out.write(chunk)
+                                      
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-        finally:
-            # add header to client again (bearer token)
-            self.dracoon.http.headers = headers
-            
+       
         file_out.close()
         self.logger.info("Download completed.")
             
@@ -154,91 +148,35 @@ class DRACOONDownloads:
         self.logger.debug("File download for size: %s", size)
         self.logger.debug("Using chunksize: %s", chunksize)
 
-        try:
-            # remove bearer token header 
-            headers = self.dracoon.http.headers
-            self.dracoon.http.headers = None
-            async with self.dracoon.http.stream(method='GET', url=download_url) as res:
-                res.raise_for_status()
-                file_out = open(file_path, 'wb')
-                
-                if display_progress:
-                    async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=node_info.name, unit='iMB',unit_scale=False, unit_divisor=1048576, total=size/1048576):
-                        plain_chunk = decryptor.decode_bytes(chunk)
-                        file_out.write(plain_chunk)
-                        if not chunk:
-                            last_data = decryptor.finalize()
-                            file_out.write(last_data)
-                else:
-                    async for chunk in res.aiter_bytes(chunksize):
-                        plain_chunk = decryptor.decode_bytes(chunk)
-                        file_out.write(plain_chunk)
-                        if not chunk:
-                            last_data = decryptor.finalize()
-                            file_out.write(last_data)
-                  
-                file_out.close()
-                self.logger.info("Download completed.")
-
+        try:    
+            async with httpx.AsyncClient() as downloader:
+                async with downloader.stream(method='GET', url=download_url) as res:
+                    res.raise_for_status()
+                    file_out = open(file_path, 'wb')
+                    
+                    if display_progress:
+                        async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=node_info.name, unit='iMB',unit_scale=False, unit_divisor=1048576, total=size/1048576):
+                            plain_chunk = decryptor.decode_bytes(chunk)
+                            file_out.write(plain_chunk)
+                            if not chunk:
+                                last_data = decryptor.finalize()
+                                file_out.write(last_data)
+                    else:
+                        async for chunk in res.aiter_bytes(chunksize):
+                            plain_chunk = decryptor.decode_bytes(chunk)
+                            file_out.write(plain_chunk)
+                            if not chunk:
+                                last_data = decryptor.finalize()
+                                file_out.write(last_data)
+                    
+                    file_out.close()
+                    self.logger.info("Download completed.")
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-        finally:
-            # add header to client again (bearer token)
-            self.dracoon.http.headers = headers
 
 
-"""         else:
-            index = 0
-            offset = 0
-    
-            for chunk_range in range(chunksize, size + 1, chunksize):
-
-                offset = index + chunk_range
-
-                content_range = f'bytes={index}-{offset}'
-                if offset > size:
-                    content_range = f'bytes={index}-{size - 1}'
-
-                #print(content_range)
-                self.dracoon.http.headers["Range"] = content_range
-                try:
-                    async with self.dracoon.http.stream(method='GET', url=download_url) as res:
-                        
-                        res.raise_for_status()
-                        file_out = open(file_path, 'wb')
-                        desc = node_info["name"] + f' {content_range}'
-                        async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=desc, unit='iMB',unit_scale=False, unit_divisor=1024, total=chunksize/1048576):
-                            
-                            plain_chunk = decryptor.decode_bytes(chunk)
-                            file_out.write(plain_chunk)
-
-                            # finalize on last chunk in total
-                            if not chunk and (size - offset <= chunksize - 2):
-                                last_data = decryptor.finalize()
-                                file_out.write(last_data)
-
-                        file_out.close()
-                                
-                        index = offset + 1
-                    
-                except httpx.RequestError as e:
-                    file_out.close()
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                    await self.dracoon.handle_connection_error(e)
-
-                except httpx.HTTPStatusError as e:
-                    file_out.close()
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                    await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-
-            if "range" in self.dracoon.http.headers:
-               self.dracoon.http.headers.pop("range")
-       
-            self.logger.info("Download completed.") """
 
 
                 
