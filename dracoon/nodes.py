@@ -24,7 +24,7 @@ import logging
 from pydantic import validate_arguments
 from tqdm import tqdm
 
-from .nodes_responses import Comment, CommentList, CreateFileUploadResponse, DeletedNode, DeletedNodeSummaryList, DeletedNodeVersionsList, DownloadTokenGenerateResponse, NodeList, NodeParentList, PendingAssignmentList, PresignedUrlList, RoomGroupList, RoomUserList, RoomWebhookList
+from .nodes_responses import Comment, CommentList, CreateFileUploadResponse, DeletedNode, DeletedNodeSummaryList, DeletedNodeVersionsList, DownloadTokenGenerateResponse, NodeList, NodeParentList, PendingAssignmentList, PresignedUrlList, RoomGroupList, RoomUserList, RoomWebhookList, S3FileUploadStatus, S3Status
 
 from .crypto import FileEncryptionCipher, encrypt_bytes, encrypt_file_key, create_file_key, get_file_key_version
 from .crypto_models import FileKey, PlainUserKeyPairContainer
@@ -273,7 +273,7 @@ class DRACOONNodes:
     
     async def upload_s3_unencrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, keep_shares: bool = False, 
                                     resolution_strategy: str = 'autorename', chunksize: int = CHUNK_SIZE, 
-                                    display_progress: bool = False, raise_on_err: bool = False):
+                                    display_progress: bool = False, raise_on_err: bool = False) -> S3FileUploadStatus:
         if self.raise_on_err:
             raise_on_err = True
 
@@ -395,9 +395,18 @@ class DRACOONNodes:
  
         await self.complete_s3_upload(upload_id=upload_channel.uploadId, upload=s3_complete, raise_on_err=raise_on_err)
         
+        while True:
+            upload_status = await self.check_s3_upload(upload_id=upload_channel.uploadId, raise_on_err=raise_on_err)
+            if upload_status.status == S3Status.done.value:
+                break
+            if upload_status.status == S3Status.error.value:
+                break
+            
+        return upload_status
+        
     async def upload_s3_encrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, plain_keypair: PlainUserKeyPairContainer, 
                                   keep_shares: bool = False, resolution_strategy: str = 'autorename', 
-                                  chunksize: int = CHUNK_SIZE, display_progress: bool = False, raise_on_err: bool = False):
+                                  chunksize: int = CHUNK_SIZE, display_progress: bool = False, raise_on_err: bool = False) -> S3FileUploadStatus:
         
         """ Upload a file into an encrypted container via S3 direct upload """
         
@@ -542,6 +551,37 @@ class DRACOONNodes:
                                                    resolution_strategy=resolution_strategy, file_key=file_key)
  
         await self.complete_s3_upload(upload_id=upload_channel.uploadId, upload=s3_complete, raise_on_err=raise_on_err)
+        
+        while True:
+            upload_status = await self.check_s3_upload(upload_id=upload_channel.uploadId, raise_on_err=raise_on_err)
+            if upload_status.status == S3Status.done.value:
+                break
+            if upload_status.status == S3Status.error.value:
+                break
+            
+        return upload_status
+            
+        
+        
+    async def check_s3_upload(self, upload_id: str, raise_on_err: bool = False) -> S3FileUploadStatus:
+        """ check status of S3 upload """
+        if not await self.dracoon.test_connection() and self.dracoon.connection:
+            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+        
+        api_url = self.api_url + f'/files/uploads/{upload_id}'
+        
+        try:
+            res = await self.dracoon.http.get(api_url)
+            res.raise_for_status()
+        except httpx.RequestError as e:
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Checking S3 upload failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            
+        self.logger.info("Retrieved S3 upload status.")
+        return S3FileUploadStatus(**res.json())
+        
 
     @validate_arguments
     async def get_nodes(self, room_manager: bool = False, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> NodeList:
