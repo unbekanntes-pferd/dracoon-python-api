@@ -121,7 +121,7 @@ from dracoon import DRACOON, OAuth2Connectiontype
 ```
 
 Please note: you can only authenticate if OAuth app is correctly configured. Only local accounts (including Active Directory) can be used via password flow.
-Full example: [Login via password flow](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_login_password_flow.py)
+Full example: [Login via password flow](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/login_password_flow.py)
 
 #### Authorization code flow
 ```Python
@@ -131,7 +131,7 @@ connection = await dracoon.connect(auth_code=auth_code)
 ```
 If you do not provide a connection type, the default will be auth code.
 You should prompt (or fetch) the auth code via the respective url.
-Full example: [Login via auth code](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_login_auth_code_flow.py)
+Full example: [Login via auth code](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/login_auth_code_flow.py)
 
 Please note: you can only authenticate if OAuth app is correctly configured. You will need a custom app with authorization code flow enabled and you will need to set your redirect uri to https://your.domain.com/oauth/callback 
 
@@ -314,24 +314,25 @@ Hint: You do not need to implement the upload process and can directly use full 
 
 ## Uploads
 
-The uploads adapter includes full methods to upload data to DRACOON and includes chunking and encryption support.
+The nodes and uploads adapters include full methods to upload data to DRACOON and includes chunking and encryption support.
+Implementing the upload with respective calls is not recommended - please use the main wrapper (see example below) instead.
 
 Here is an example of uploading a file to an encrypted room with only a few lines of code:
 
 ```Python
-upload_channel = CreateUploadChannel(parentId=9999, name=file_path.split('/')[-1])
 
-res = await dracoon.nodes.create_upload_channel(upload_channel=upload_channel)
-channel_res = res.json()
-
-res = await dracoon.uploads.upload_encrypted(file_path=file_path, target_id=9999, upload_channel=channel_res, plain_keypair=plain_keypair)
+    source = '/Example/Path/test.mov'
+    target = '/Example/Target/'
+    
+    await dracoon.upload(file_path=source, target_path=target, display_progress=True)
     
 ```
 
-The default chunk size is 5 MB but can be passed as an option (chunksize, in bytes).
+The default chunk size is 32 MB but can be passed as an option (chunksize, in bytes).
+If needed, the progress bar can be displayed (see example - by setting to true) - default (or when ommitted) is false, so no progress is displayed.
 
 The main API wrapper includes a method that includes upload for encrypted and unencrypted files.
-Full example: [File upload](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_upload.py)
+Full example: [File upload](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/upload.py)
 
 ## Downloads
 
@@ -341,7 +342,7 @@ In order to download a file, generate a download url and use the relevant method
 
 ```Python
 res = await self.nodes.get_download_url(node_id=node_id)
-download_url = res.json()["downloadUrl"]
+download_url = res.downloadUrl
 
 await.self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info)
     
@@ -362,8 +363,19 @@ file_key = await self.nodes.get_user_file_key(node_id)
 plain_file_key = decrypt_file_key(file_key, plain_keypair)
 ```
 
-As with uploads, the main wrapper has a method which handles encryption, keypair and file key.
-Full example: [Download files](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/async_download.py)
+As with uploads, the main wrapper has a method which handles encryption, keypair and file key – above steps do not need to be performed if not needed.
+Instead, use the main wrapper:
+
+
+```Python
+
+target = '/Example/Target'
+source = '/DEMO/testfile.bin'
+await dracoon.download(file_path=file, target_path=target)
+
+```
+
+Full example: [Download files](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/download.py)
 
 
 ## Examples
@@ -381,8 +393,6 @@ _For examples, check out the example files:_<br>
 
 <!-- ROADMAP -->
 ## Roadmap
-
-* Add S3 direct upload
 * Add branding API 
 
 <!-- LICENSE -->
