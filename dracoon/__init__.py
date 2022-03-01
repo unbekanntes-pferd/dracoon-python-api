@@ -124,7 +124,7 @@ class DRACOON:
 
         return plain_keypair
 
-    async def upload(self, file_path: str, target_path: str, options = None):
+    async def upload(self, file_path: str, target_path: str, display_progress: bool = False):
         """ upload a file to a target """
         if not self.client.connection:
             self.logger.error("DRACOON client not connected: Upload failed.")
@@ -132,7 +132,7 @@ class DRACOON:
 
         node_info = await self.nodes.get_node_from_path(target_path)
         file_name = file_path.split('/')[-1]
-
+        
         self.logger.info("Uploading file.")
         self.logger.debug("File: %s", file_path)
         self.logger.debug("Destination: %s", target_path)
@@ -148,22 +148,29 @@ class DRACOON:
         
         if self.system_info.useS3Storage:
             use_s3_storage = True
-            
+    
         self.logger.debug("Using S3 storage: %s", use_s3_storage)
             
-        upload_channel = self.nodes.make_upload_channel(parent_id=target_id, name=file_name, direct_s3_upload=use_s3_storage)
-        res = await self.nodes.create_upload_channel(upload_channel)
+        upload_channel_payload = self.nodes.make_upload_channel(parent_id=target_id, name=file_name, direct_s3_upload=use_s3_storage)
+        upload_channel = await self.nodes.create_upload_channel(upload_channel_payload)
+    
 
-        self.logger.debug("Created upload channel: %s", res.uploadId)
-        self.logger.debug("Upload URL (redacted): %s", res.uploadUrl[:-4])
+        self.logger.debug("Created upload channel: %s", upload_channel.uploadId)
+        self.logger.debug("Upload URL (redacted): %s", upload_channel.uploadUrl[:-4])
 
-        if is_encrypted and self.check_keypair():       
-            upload = await self.uploads.upload_encrypted(file_path=file_path, user_id=user_id, upload_channel=res, plain_keypair=self.plain_keypair)
+        # crypto upload 
+        if is_encrypted and self.check_keypair() and not use_s3_storage:       
+            upload = await self.uploads.upload_encrypted(file_path=file_path, user_id=user_id, upload_channel=upload_channel, plain_keypair=self.plain_keypair)
+        elif is_encrypted and self.check_keypair() and use_s3_storage:
+            upload = await self.nodes.upload_s3_encrypted(file_path=file_path, upload_channel=upload_channel, plain_keypair=self.plain_keypair, display_progress=display_progress)
         elif is_encrypted and not self.check_keypair():
             self.logger.critical("Upload failed: Keypair not unlocked.")
             raise ValueError('DRACOON crypto upload requires unlocked keypair. Please unlock keypair first.')
-        elif not is_encrypted:
-            upload = await self.uploads.upload_unencrypted(file_path=file_path, upload_channel=res.json())
+        # unencrypted upload
+        elif not is_encrypted and not use_s3_storage:
+            upload = await self.uploads.upload_unencrypted(file_path=file_path, upload_channel=upload_channel)
+        elif not is_encrypted and use_s3_storage:
+            upload = await self.nodes.upload_s3_unencrypted(file_path=file_path, upload_channel=upload_channel, display_progress=display_progress)
 
         self.logger.info("Upload completed.")
 
@@ -198,10 +205,10 @@ class DRACOON:
         self.logger.debug("Download URL (redacted): %s", download_url[:-4])
 
         if not is_encrypted:
-            await self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info)
+            await self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info, display_progress=display_progress)
         elif is_encrypted and self.check_keypair():
             file_key = await self.nodes.get_user_file_key(node_id)
-            await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, plain_keypair=self.plain_keypair, file_key=file_key)
+            await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, plain_keypair=self.plain_keypair, file_key=file_key, display_progress=display_progress)
 
 
     def get_code_url(self) -> str:

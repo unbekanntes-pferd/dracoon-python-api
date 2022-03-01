@@ -6,7 +6,7 @@ from datetime import datetime
 from dracoon.core_models import Range
 
 from dracoon.user_models import UserInfo
-from .crypto_models import EncryptionInfo, FileKey
+from dracoon.crypto_models import EncryptionInfo, FileKey, PublicKeyContainer
 
 # required payload for POST /nodes/{node_id}/comments
 class CommentNode(BaseModel):
@@ -260,6 +260,24 @@ class LogEvent(BaseModel):
 class LogEventList(BaseModel):
     range: Range
     items: List[LogEvent]
+    
+class FileFileKeys(BaseModel):
+    id: int
+    fileKeyContainer: FileKey
+    
+class UserUserPublicKey(BaseModel):
+    id: int
+    publicKeyContainer: PublicKeyContainer
+    
+class UserIdFileIdItem(BaseModel):
+    userId: int 
+    fileId: int
+    
+class MissingKeysResponse(BaseModel):
+    range: Range
+    items: List[UserIdFileIdItem]
+    users: List[UserUserPublicKey]
+    files: List[FileFileKeys]
 
 
 

@@ -7,7 +7,7 @@ V1.0.0
 The client implements all login and logout procedures and is part of every API adapter.
 
 """
-import json  
+import json
 import requests  
 import base64 
 import httpx
@@ -19,9 +19,10 @@ from datetime import datetime
 from pydantic import validate_arguments, HttpUrl
 import logging
 
+
 from .core_models import ApiCall, ApiDestination, CallMethod, model_to_JSON
 
-USER_AGENT = 'dracoon-python-1.0.3'
+USER_AGENT = 'dracoon-python-1.1.0'
 
 class OAuth2ConnectionType(Enum):
     """ enum as connection type for DRACOONClient """
@@ -259,12 +260,17 @@ class DRACOONClient:
         return await self.check_access_token()
 
 
-    async def handle_http_error(self, err: httpx.HTTPStatusError, raise_on_err: bool):
+    async def handle_http_error(self, err: httpx.HTTPStatusError, raise_on_err: bool, is_xml: bool = False):
         if self.raise_on_err:
             raise_on_err = self.raise_on_err
         
         self.logger.error("HTTP request failed: %s", err.response.status_code)
-        self.logger.debug("%s", err.response.text)
+        
+        # handle AWS S3 XML responses
+        if not is_xml:
+            self.logger.debug("%s", err.response.text)
+        elif is_xml:
+            self.logger.debug("%s", err.response.content)
         
         if raise_on_err:
             await self.http.aclose()
@@ -275,6 +281,13 @@ class DRACOONClient:
         self.logger.critical(err.request.url)
         await self.http.aclose()
         raise err
+    
+    async def handle_generic_error(self, err: Exception):
+        self.logger.critical("An error ocurred.")
+        self.logger.debug("%s", err)
+        await self.http.aclose()
+        raise err
+        
 
 
 

@@ -147,7 +147,7 @@ def get_file_key_version_public(public_key: PublicKeyContainer) -> FileKeyVersio
 
 
 @validate_arguments
-def create_file_key(version: PlainFileKeyVersion) -> PlainFileKey:
+def create_file_key(version: PlainFileKeyVersion = PlainFileKeyVersion.AES256GCM) -> PlainFileKey:
     """ create a plain file key (AES 256) """
 
     logger.info("Creating file key: %s", version.value)

@@ -15,18 +15,25 @@ Please note: maximum 500 items are returned in GET requests
 """
 
 import datetime
+import os
+import math
+from pathlib import Path
 from typing import List, Union
 import httpx
 import logging
 from pydantic import validate_arguments
+from tqdm import tqdm
 
 from .nodes_responses import Comment, CommentList, CreateFileUploadResponse, DeletedNode, DeletedNodeSummaryList, DeletedNodeVersionsList, DownloadTokenGenerateResponse, NodeList, NodeParentList, PendingAssignmentList, PresignedUrlList, RoomGroupList, RoomUserList, RoomWebhookList
 
-from .crypto_models import FileKey
+from .crypto import FileEncryptionCipher, encrypt_bytes, encrypt_file_key, create_file_key, get_file_key_version
+from .crypto_models import FileKey, PlainUserKeyPairContainer
 from .groups_models import Expiration
 from .core import DRACOONClient, OAuth2ConnectionType
-from .nodes_models import CompleteS3Upload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, GetS3Urls, LogEventList, Node, Permissions, ProcessRoomPendingUsers, S3Part, SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFile, UpdateFiles, UpdateFolder, UpdateRoom, UpdateRoomGroupItem, UpdateRoomGroups, UpdateRoomHooks, UpdateRoomUserItem, UpdateRoomUsers
+from .nodes_models import CompleteS3Upload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, GetS3Urls, LogEventList, MissingKeysResponse, Node, Permissions, ProcessRoomPendingUsers, S3Part, SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFile, UpdateFiles, UpdateFolder, UpdateRoom, UpdateRoomGroupItem, UpdateRoomGroups, UpdateRoomHooks, UpdateRoomUserItem, UpdateRoomUsers
 
+CHUNK_SIZE = 33554432
+MAX_CHUNKS = 9999
 
 class DRACOONNodes:
 
@@ -50,8 +57,35 @@ class DRACOONNodes:
             self.logger.debug("DRACOON nodes adapter created.")
         else:
             self.logger.error("DRACOON client error: no connection. ")
-            raise ValueError(
+            err = ValueError(
                 'DRACOON client must be connected: client.connect()')
+            self.dracoon.handle_generic_error(err)
+    
+    async def upload_bytes(self, file_obj, progress: tqdm):
+        """ async iterator to stream byte upload """
+        while True:
+            data = file_obj.read()
+            if not data:
+                break
+            if progress: progress.update(len(data))
+            yield data
+            
+    def read_in_chunks(self, file_obj, chunksize: int = CHUNK_SIZE, progress: tqdm = None):
+        """ iterator to read a file object in chunks (default chunk size: 32 MB) """
+        while True:
+            data = file_obj.read(chunksize)
+            if not data:
+                break
+            if progress: progress.update(len(data))
+            yield data
+            
+    async def byte_stream(self, data: bytes, progress: tqdm = None):  
+        """ stream bytes """   
+        while True:
+            if not data:
+                break
+            if progress: progress.update(len(data))
+            yield data
 
     # get download url as authenticated user to download a file
     @validate_arguments
@@ -163,7 +197,7 @@ class DRACOONNodes:
 
 
     @validate_arguments
-    async def complete_s3_upload(self, upload_id: int, upload: CompleteS3Upload, raise_on_err: bool = False) -> None:
+    async def complete_s3_upload(self, upload_id: str, upload: CompleteS3Upload, raise_on_err: bool = False) -> None:
         """ finalize an S3 direct upload """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -200,9 +234,19 @@ class DRACOONNodes:
         if file_key: s3_upload_complete["fileKey"] = file_key
   
         return CompleteS3Upload(**s3_upload_complete)
+    
+    def make_get_s3_urls(self, first_part: int, last_part: int, chunk_size: int = CHUNK_SIZE):
+        
+        payload = {
+            "firstPartNumber": first_part,
+            "lastPartNumber": last_part,
+            "size": chunk_size
+        }
+        
+        return GetS3Urls(**payload)
 
     @validate_arguments
-    async def get_s3_urls(self, upload_id: int, upload: GetS3Urls, raise_on_err: bool = False) -> PresignedUrlList:
+    async def get_s3_urls(self, upload_id: str, upload: GetS3Urls, raise_on_err: bool = False) -> PresignedUrlList:
         """ get a list of S3 urls based on provided chunk count """
         """ chunk size needs to be larger than 5 MB """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -226,6 +270,278 @@ class DRACOONNodes:
         
         self.logger.info("Retrieved S3 presigned upload URLs.")
         return PresignedUrlList(**res.json())
+    
+    async def upload_s3_unencrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, keep_shares: bool = False, 
+                                    resolution_strategy: str = 'autorename', chunksize: int = CHUNK_SIZE, 
+                                    display_progress: bool = False, raise_on_err: bool = False):
+        if self.raise_on_err:
+            raise_on_err = True
+
+        """ Check if file is file """
+
+        file = Path(file_path)
+        
+        if not file.is_file():
+            err = ValueError(f'A file needs to be provided. {file_path} is not a file.')
+            self.dracoon.handle_generic_error(err)
+        
+        filesize = os.stat(file_path).st_size
+        file_name = file_path.split('/')[-1]
+        self.logger.debug("File name: %s", file_name)
+        self.logger.debug("File size: %s", filesize)
+        
+
+        part_count = math.ceil(filesize / chunksize)
+        
+        if part_count == 1:
+            chunksize = filesize
+            s3_upload = self.make_get_s3_urls(first_part=1, last_part=part_count, chunk_size=chunksize)
+        else:
+            last_chunk = filesize - ((part_count - 1) * chunksize)
+            s3_upload = self.make_get_s3_urls(first_part=1, last_part=(part_count - 1), chunk_size=chunksize)
+            s3_upload_final = self.make_get_s3_urls(first_part=part_count, last_part=part_count, chunk_size=last_chunk)
+            final_s3_url = await self.get_s3_urls(upload_id=upload_channel.uploadId, upload=s3_upload_final, raise_on_err=raise_on_err)
+        
+        
+        s3_urls = await self.get_s3_urls(upload_id=upload_channel.uploadId, upload=s3_upload, raise_on_err=raise_on_err)
+        
+        if part_count > 1:
+            s3_urls.urls.append(final_s3_url.urls[0])
+        
+        
+        self.logger.debug("Parts: %s", part_count)
+
+        if len(s3_urls.urls) > MAX_CHUNKS:
+            err = ValueError(f'Maximum count of chunks ({MAX_CHUNKS}) exceeded.')
+            self.dracoon.handle_generic_error(err)
+            
+       
+        parts = []
+        
+        # single part upload
+        if part_count == 1:
+            
+            if display_progress: 
+                progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True, desc=file_name)
+            else:
+                progress = None
+            
+            with open(file, 'rb') as f:
+                         
+                try:
+                    async with httpx.AsyncClient() as uploader:
+                        uploader.headers["Content-Length"] = str(filesize)
+                        res = await uploader.put(url=s3_urls.urls[0].url, content=self.upload_bytes(file_obj=f, progress=progress))
+                        res.raise_for_status()
+                        
+                        # remove double quotes from etag
+                        e_tag = res.headers["ETag"].replace('"', '')
+                        part = S3Part(**{ "partNumber": 1, "partEtag": e_tag })
+                        parts.append(part)
+                        
+                        if display_progress: progress.update(filesize)
+                except httpx.RequestError as e:
+                    res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                    await self.dracoon.handle_connection_error(e)
+                except httpx.HTTPStatusError as e:
+                    self.logger.error("Uploading file failed.")
+                    res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                    await self.dracoon.handle_http_error(err=e, raise_on_err=True, is_xml=True)
+                finally: 
+                    if display_progress: progress.close()
+
+           
+        elif part_count > 1:
+            
+            if display_progress: 
+                progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True, desc=file_name)
+            else:
+                progress = None
+            
+            with open(file, 'rb') as f:
+                
+                part_number = 0
+                                         
+                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, progress=progress):
+                                          
+                    upload_url = s3_urls.urls[part_number].url
+
+                    try:        
+                        async with httpx.AsyncClient(timeout=30) as uploader:
+                            uploader.headers["Content-Length"] = str(len(chunk)) 
+                            
+                            res = await uploader.put(url=upload_url, data=chunk)
+                            
+                            res.raise_for_status()
+                            e_tag = res.headers["ETag"].replace('"', '')
+                            part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })
+                            parts.append(part)
+                    except httpx.RequestError as e:
+                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                        await self.dracoon.handle_connection_error(e)
+                        if display_progress: progress.close()
+                    except httpx.HTTPStatusError as e:
+                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                        self.logger.error("Uploading chunk failed.")
+                        await self.dracoon.handle_http_error(err=e, raise_on_err=True, is_xml=True)
+                        if display_progress: progress.close()
+
+                    part_number += 1
+                    
+                if display_progress: progress.close()
+                    
+        s3_complete = self.make_s3_upload_complete(parts=parts, file_name=file_name, keep_share_links=keep_shares, 
+                                                   resolution_strategy=resolution_strategy)
+ 
+        await self.complete_s3_upload(upload_id=upload_channel.uploadId, upload=s3_complete, raise_on_err=raise_on_err)
+        
+    async def upload_s3_encrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, plain_keypair: PlainUserKeyPairContainer, 
+                                  keep_shares: bool = False, resolution_strategy: str = 'autorename', 
+                                  chunksize: int = CHUNK_SIZE, display_progress: bool = False, raise_on_err: bool = False):
+        
+        """ Upload a file into an encrypted container via S3 direct upload """
+        
+        if self.raise_on_err:
+            raise_on_err = True
+
+        
+        file = Path(file_path)
+        
+        # check if file is a file
+        if not file.is_file():
+            err = ValueError(f'A file needs to be provided. {file_path} is not a file.')
+            self.dracoon.handle_generic_error(err)
+        
+        filesize = os.stat(file_path).st_size
+        file_name = file_path.split('/')[-1]
+        self.logger.debug("File name: %s", file_name)
+        self.logger.debug("File size: %s", filesize)
+         
+        # create file key
+        plain_file_key = create_file_key()
+        
+        # calculate required parts based on chunk size
+        part_count = math.ceil(filesize / chunksize)
+        
+
+        if part_count == 1:
+            chunksize = filesize
+            s3_upload = self.make_get_s3_urls(first_part=1, last_part=part_count, chunk_size=chunksize)
+        else:
+            last_chunk = filesize - ((part_count - 1) * chunksize)
+            s3_upload = self.make_get_s3_urls(first_part=1, last_part=(part_count - 1), chunk_size=chunksize)
+            s3_upload_final = self.make_get_s3_urls(first_part=part_count, last_part=part_count, chunk_size=last_chunk)
+            final_s3_url = await self.get_s3_urls(upload_id=upload_channel.uploadId, upload=s3_upload_final, raise_on_err=raise_on_err)
+        
+        
+        s3_urls = await self.get_s3_urls(upload_id=upload_channel.uploadId, upload=s3_upload, raise_on_err=raise_on_err)
+        
+        if part_count > 1:
+            s3_urls.urls.append(final_s3_url.urls[0])
+        
+        
+        self.logger.debug("Parts: %s", part_count)
+
+        if len(s3_urls.urls) > MAX_CHUNKS:
+            err = ValueError(f'Maximum count of chunks ({MAX_CHUNKS}) exceeded.')
+            self.dracoon.handle_generic_error(err)
+            
+        parts = []
+        
+        # single part upload
+        if part_count == 1:
+            
+            if display_progress:
+                progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True, desc=file_name)
+            else:
+                progress = None
+            
+            with open(file, 'rb') as f:
+                
+                enc_bytes, plain_file_key = encrypt_bytes(plain_data=f.read(), plain_file_key=plain_file_key)
+                         
+                try:
+                    async with httpx.AsyncClient() as uploader:
+                        uploader.headers["Content-Length"] = str(len(enc_bytes))
+                        res = await uploader.put(url=s3_urls.urls[0].url, data=enc_bytes)
+                        res.raise_for_status()
+                        
+                        # remove double quotes from etag
+                        e_tag = res.headers["ETag"].replace('"', '')
+                        part = S3Part(**{ "partNumber": 1, "partEtag": e_tag })
+                        parts.append(part)
+                        progress.update(filesize)
+                except httpx.RequestError as e:
+                    res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                    await self.dracoon.handle_connection_error(e)
+                except httpx.HTTPStatusError as e:
+                    self.logger.error("Uploading file failed.")
+                    res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                    await self.dracoon.handle_http_error(err=e, raise_on_err=True, is_xml=True)
+
+        # multipart upload
+        elif part_count > 1:
+            
+            if display_progress:
+                progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True, desc=file_name)
+            else:
+                progress = None
+            
+            with open(file, 'rb') as f:
+                
+                part_number = 0
+                offset = 0
+                index = 0
+                
+                dracoon_cipher = FileEncryptionCipher(plain_file_key=plain_file_key)
+                                    
+                for chunk in self.read_in_chunks(f, chunksize, progress):
+                    
+                    # if not las chunk
+                    if filesize - offset > chunksize:
+                        enc_chunk = dracoon_cipher.encode_bytes(chunk)
+                    
+                    # last chunk needs to include the final data 
+                    elif filesize - offset <= chunksize:
+                        enc_chunk = dracoon_cipher.encode_bytes(chunk)
+                        last_chunk, plain_file_key = dracoon_cipher.finalize() 
+                        enc_chunk += last_chunk
+                                          
+                    upload_url = s3_urls.urls[part_number].url
+                    
+                    offset = index + len(enc_chunk)
+                    index = offset
+                
+                    try:        
+                        async with httpx.AsyncClient(timeout=30) as uploader:
+                            uploader.headers["Content-Length"] = str(len(enc_chunk)) 
+                            res = await uploader.put(url=upload_url, data=enc_chunk)
+                            res.raise_for_status()
+                            e_tag = res.headers["ETag"].replace('"', '')
+                            part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })
+                            parts.append(part)
+                            self.logger.debug("Uploaded part %s", part_number)
+                    except httpx.RequestError as e:
+                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                        if progress: progress.close()
+                        await self.dracoon.handle_connection_error(e)
+                    except httpx.HTTPStatusError as e:
+                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
+                        self.logger.error("Uploading chunk failed.")
+                        if progress: progress.close()
+                        await self.dracoon.handle_http_error(err=e, raise_on_err=True, is_xml=True)
+
+                    part_number += 1
+                    
+                if progress: progress.close()
+                
+        # encrypt file key    
+        file_key = encrypt_file_key(plain_file_key=plain_file_key, keypair=plain_keypair)
+        
+        s3_complete = self.make_s3_upload_complete(parts=parts, file_name=file_name, keep_share_links=keep_shares, 
+                                                   resolution_strategy=resolution_strategy, file_key=file_key)
+ 
+        await self.complete_s3_upload(upload_id=upload_channel.uploadId, upload=s3_complete, raise_on_err=raise_on_err)
 
     @validate_arguments
     async def get_nodes(self, room_manager: bool = False, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> NodeList:
@@ -933,7 +1249,7 @@ class DRACOONNodes:
     # get missing file keys
     @validate_arguments
     async def get_missing_file_keys(self, file_id: int = None, room_id: int = None, user_id: int = None, use_key: str = None, 
-                                      offset: int = 0, limit: int = None, raise_on_err: bool = False):
+                                      offset: int = 0, limit: int = None, raise_on_err: bool = False) -> MissingKeysResponse:
         """ get (all) missing file keys """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -965,7 +1281,7 @@ class DRACOONNodes:
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         
         self.logger.info("Retrieved missing file keys.")
-        return res.json()
+        return MissingKeysResponse(**res.json())
 
     # create folder
     @validate_arguments
