@@ -3,7 +3,6 @@ Export Room Log DRACOON Server
 24.02.2021 Quirin Wierer
 """
 
-from pickle import TRUE
 from dracoon import DRACOON
 import asyncio
 import csv
