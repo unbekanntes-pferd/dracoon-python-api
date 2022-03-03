@@ -3,8 +3,6 @@ Export Room Log DRACOON Server with CLI Params
 21.02.2021 Quirin Wierer
 """
 
-from operator import concat
-from pickle import TRUE
 from dracoon import DRACOON
 import asyncio
 import csv
