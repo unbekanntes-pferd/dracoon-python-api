@@ -27,7 +27,7 @@
 test.txt
 _test.txt
 test.json
-test*.py
+/test*.py
 test*.sh
 /examples/tests
 
