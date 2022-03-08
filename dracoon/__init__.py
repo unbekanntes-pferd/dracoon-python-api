@@ -41,9 +41,10 @@ class DRACOON:
         """ intialize with instance information: base DRACOON url and OAuth app client credentials """
         self.client = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret)
 
-
         self.logger = create_logger(log_file=log_file, log_level=log_level, log_stream=log_stream)
         self.logger.info("Created DRACOON client.")
+        self.plain_keypair = None
+        self.user_info =  None
 
 
     async def connect(self, connection_type: OAuth2ConnectionType = OAuth2ConnectionType.auth_code, username: str = None, password: str = None, auth_code = None):
@@ -104,6 +105,10 @@ class DRACOON:
         return self.client.check_refresh_token()
 
     def check_keypair(self) -> bool:
+        
+        if not self.plain_keypair:
+            return False
+        
         self.logger.info("Checking user keypair.")
         return self.plain_keypair is not None and self.user_info is not None
 
@@ -131,6 +136,12 @@ class DRACOON:
             raise ValueError('DRACOON client not connected.')
 
         node_info = await self.nodes.get_node_from_path(target_path)
+        
+        if not node_info:
+            self.logger.critical('Upload failed: Invalid target path.')
+            self.logger.debug('Node %s not found.', target_path)
+            raise ValueError('Node %s not found.', target_path)
+        
         file_name = file_path.split('/')[-1]
         
         self.logger.info("Uploading file.")
@@ -188,6 +199,7 @@ class DRACOON:
         
         if not node_info:
             self.logger.error("Download failed: file does not exist.")
+            self.logger.debug("File %s not found", file_path)
             await self.client.http.aclose()
             raise ValueError('File does not exist.')
         
@@ -211,6 +223,8 @@ class DRACOON:
         elif is_encrypted and self.check_keypair():
             file_key = await self.nodes.get_user_file_key(node_id)
             await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, plain_keypair=self.plain_keypair, file_key=file_key, display_progress=display_progress)
+        elif is_encrypted and not self.check_keypair():
+            raise ValueError('Keypair must be entered for encrypted nodes.')
 
 
     def get_code_url(self) -> str:
