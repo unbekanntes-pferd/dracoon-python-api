@@ -12,15 +12,14 @@ https://support.dracoon.com/hc/de/articles/115005512089
 
 import httpx
 
+from .nodes import CHUNK_SIZE
 from .nodes_models import Node, NodeType
 from .crypto_models import FileKey, PlainUserKeyPairContainer
 from .core import DRACOONClient
 from .crypto import FileDecryptionCipher, decrypt_file_key
 from pathlib import Path
-import tqdm.asyncio
-import os
+from tqdm import tqdm
 import logging
-
 
 class DRACOONDownloads:
 
@@ -58,7 +57,7 @@ class DRACOONDownloads:
         return file.exists() and file.is_file()
 
     
-    async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = 33554432, raise_on_err: bool = False,
+    async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = CHUNK_SIZE, raise_on_err: bool = False,
                                    display_progress: bool = False):
         """ Download a file from an unecrypted data room. """
 
@@ -88,30 +87,32 @@ class DRACOONDownloads:
 
         self.logger.debug("File download for size: %s", size)
         self.logger.debug("Using chunksize: %s", chunksize)
-      
+            
         try:
             async with httpx.AsyncClient() as downloader:
+                
+                file_out = open(file_path, 'wb')
+                
                 async with downloader.stream(method='GET', url=download_url) as res:
-                    file_out = open(file_path, 'wb')
                     
-                    if display_progress:
-                        async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=node_info.name, unit='iMB',unit_scale=False, unit_divisor=1048576, total=size/1048576):
-                            file_out.write(chunk)
-                    else:
-                        async for chunk in res.aiter_bytes(chunksize):
-                            file_out.write(chunk)
-                                      
+                    if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)
+                    async for chunk in res.aiter_bytes(chunksize):
+                        file_out.write(chunk)
+                        if display_progress: progress.update(len(chunk))
+                                        
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-       
-        file_out.close()
+        finally:
+            if file_out: file_out.close()
+            if display_progress and progress: progress.close()
+                   
         self.logger.info("Download completed.")
             
 
     async def download_encrypted(self, download_url: str, target_path: str, node_info: Node, plain_keypair: PlainUserKeyPairContainer, file_key: FileKey, 
-                                       chunksize: int = 33554432, raise_on_err: bool = False, display_progress: bool = False):   
+                                       chunksize: int = CHUNK_SIZE, raise_on_err: bool = False, display_progress: bool = False):   
         """ Download a file from an encrypted data room. """
 
         self.logger.info("Download started.")
@@ -150,31 +151,32 @@ class DRACOONDownloads:
 
         try:    
             async with httpx.AsyncClient() as downloader:
+                
+                file_out = open(file_path, 'wb')  
+                
                 async with downloader.stream(method='GET', url=download_url) as res:
                     res.raise_for_status()
-                    file_out = open(file_path, 'wb')
+                    if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)   
                     
-                    if display_progress:
-                        async for chunk in tqdm.asyncio.tqdm(iterable=res.aiter_bytes(1048576), desc=node_info.name, unit='iMB',unit_scale=False, unit_divisor=1048576, total=size/1048576):
-                            plain_chunk = decryptor.decode_bytes(chunk)
-                            file_out.write(plain_chunk)
-                            if not chunk:
-                                last_data = decryptor.finalize()
-                                file_out.write(last_data)
-                    else:
-                        async for chunk in res.aiter_bytes(chunksize):
-                            plain_chunk = decryptor.decode_bytes(chunk)
-                            file_out.write(plain_chunk)
-                            if not chunk:
-                                last_data = decryptor.finalize()
-                                file_out.write(last_data)
-                    
-                    file_out.close()
+                    # decrypt file and then write to disk
+                    async for chunk in res.aiter_bytes(chunksize):            
+                        plain_chunk = decryptor.decode_bytes(chunk)
+                        file_out.write(plain_chunk)
+                        if display_progress: progress.update(len(chunk))
+                        
+                        # finalize encryption after last chunk
+                        if not chunk:
+                            last_data = decryptor.finalize()
+                            file_out.write(last_data)
+                                     
                     self.logger.info("Download completed.")
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        finally:
+            if file_out: file_out.close()
+            if display_progress and progress: progress.close()
 
 
 
