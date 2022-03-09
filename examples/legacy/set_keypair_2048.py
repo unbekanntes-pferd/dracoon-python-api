@@ -5,8 +5,9 @@
 # Author: Octavio Simone, 21.07.2021
 # ---------------------------------------------------------------------------#
 
-from dracoon.crypto_models import UserKeyPairVersion
-from dracoon import core, crypto, user
+from dracoon import crypto
+from dracoon.crypto.models import UserKeyPairVersion
+from dracoon import core, user
 import getpass
 
 # replace with client id from OAuth app - for Cloud you can use dracoon_legacy_scripting if enabled in apps

@@ -1,13 +1,13 @@
 
-from dracoon.nodes_responses import Webhook
+from dracoon.nodes.responses import Webhook
 from dracoon.settings import DRACOONSettings
 from dracoon import DRACOONClient, OAuth2ConnectionType
 import dotenv
 import os
 import asyncio
-from dracoon.settings_models import CreateWebhook, UpdateSettings, UpdateWebhook
+from dracoon.settings.models import CreateWebhook, UpdateSettings, UpdateWebhook
 
-from dracoon.settings_responses import CustomerSettingsResponse, EventTypeList, WebhookList
+from dracoon.settings.responses import CustomerSettingsResponse, EventTypeList, WebhookList
 
 
 dotenv.load_dotenv()
@@ -61,7 +61,7 @@ async def test_settings_e2e():
 
     del_webhook = await settings.delete_webhook(hook_id=webhook.id)
     assert del_webhook == None
-    print('Updating webhook test passed (/)')
+    print('Deleting webhook test passed (/)')
 
     event_types = await settings.get_webhook_event_types()
     assert isinstance(event_types, EventTypeList)

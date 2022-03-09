@@ -10,7 +10,8 @@
 
 import getpass
 import requests
-from dracoon import core, nodes, crypto, user
+from dracoon import core, nodes, user
+from dracoon import crypto
 
 # base settings
 
