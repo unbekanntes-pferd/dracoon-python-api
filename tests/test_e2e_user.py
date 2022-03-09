@@ -1,12 +1,12 @@
-import httpx
-from dracoon.crypto_models import UserKeyPairContainer, UserKeyPairVersion
+
+from dracoon.crypto.models import UserKeyPairContainer, UserKeyPairVersion
 from dracoon.user import DRACOONUser
 from dracoon import DRACOONClient, OAuth2ConnectionType
 import dotenv
 import os
 import asyncio
 
-from dracoon.user_models import UpdateAccount, UserAccount
+from dracoon.user.models import UpdateAccount, UserAccount
 
 
 dotenv.load_dotenv()
@@ -24,7 +24,7 @@ async def test_user_e2e():
     user = DRACOONUser(dracoon_client=dracoon)
     assert isinstance(user, DRACOONUser)
     print('Connection test complete (/)')
-
+        
     user_info = await user.get_account_information(more_info=True)
     assert isinstance(user_info, UserAccount)
     print('Getting user info passed (/)')

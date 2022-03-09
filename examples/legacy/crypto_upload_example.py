@@ -9,9 +9,11 @@
 # ---------------------------------------------------------------------------#
 
 
-from dracoon import core, nodes, crypto, user, uploads
+from dracoon import core, nodes, user, uploads
 import getpass
 import os
+
+from dracoon import crypto
 
 # base settings
 

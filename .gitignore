@@ -5,6 +5,8 @@
 
 # cache
 /dracoon/__pycache__
+/tests/__pycache__
+__pycache__
 
 # build
 /build

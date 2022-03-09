@@ -1,4 +1,4 @@
-from ..dracoon.core import DRACOONClient, DRACOONConnection, OAuth2ConnectionType
+from dracoon.core import DRACOONClient, DRACOONConnection, OAuth2ConnectionType
 import unittest
 import dotenv
 import os

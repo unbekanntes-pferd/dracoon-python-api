@@ -1,7 +1,7 @@
 import unittest
 import sys
 from dracoon import crypto
-from dracoon.crypto_models import FileKey, FileKeyVersion, PlainFileKey, PlainFileKeyVersion, PlainUserKeyPairContainer, UserKeyPairContainer, UserKeyPairVersion
+from dracoon.crypto.models import FileKey, FileKeyVersion, PlainFileKey, PlainFileKeyVersion, PlainUserKeyPairContainer, UserKeyPairContainer, UserKeyPairVersion
 
 class TestDRACOONCrypto(unittest.TestCase):
     """ Test cases for the DRACOON Python Crypto package """

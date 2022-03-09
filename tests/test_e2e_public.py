@@ -5,7 +5,7 @@ import dotenv
 import os
 import asyncio
 
-from dracoon.public_responses import AuthADInfo, AuthADInfoList, AuthOIDCInfo, AuthOIDCInfoList, SystemInfo
+from dracoon.public.responses import AuthADInfoList, AuthOIDCInfoList, SystemInfo
 
 dotenv.load_dotenv()
 

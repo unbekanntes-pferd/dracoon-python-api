@@ -1,10 +1,10 @@
-from dracoon.core import DRACOONClient, OAuth2ConnectionType
-from dracoon.user_responses import AttributesResponse, LastAdminUserRoomList, UserData, UserGroupList, UserList, RoleList
+from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.user.responses import AttributesResponse, LastAdminUserRoomList, UserData, UserGroupList, UserList, RoleList
 from dracoon.users import DRACOONUsers
 import dotenv
 import os
 import asyncio
-from dracoon.users_models import AttributeEntry, CreateUser, UpdateUser, UpdateUserAttributes, UserAuthData
+from dracoon.users.models import AttributeEntry, CreateUser, UpdateUser, UpdateUserAttributes, UserAuthData
 
 
 dotenv.load_dotenv()

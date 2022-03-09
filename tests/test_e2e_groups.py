@@ -4,10 +4,10 @@ from dracoon import DRACOONClient, OAuth2ConnectionType
 import dotenv
 import os
 import asyncio
-from dracoon.groups_models import CreateGroup, UpdateGroup
+from dracoon.groups.models import CreateGroup, UpdateGroup
 
-from dracoon.groups_responses import Group, GroupList, GroupUserList, LastAdminGroupRoomList
-from dracoon.user_responses import RoleList
+from dracoon.groups.responses import Group, GroupList, GroupUserList, LastAdminGroupRoomList
+from dracoon.user.responses import RoleList
 
 dotenv.load_dotenv()
 
