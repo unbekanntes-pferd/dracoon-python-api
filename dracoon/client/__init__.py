@@ -18,7 +18,7 @@ import logging
 
 import httpx
 
-USER_AGENT = 'dracoon-python-1.1.0'
+USER_AGENT = 'dracoon-python-1.1.1'
 
 class OAuth2ConnectionType(Enum):
     """ enum as connection type for DRACOONClient """
@@ -64,14 +64,20 @@ class DRACOONClient:
 
     def __del__(self):
         """ on client destroy terminate async client """
-        loop = asyncio.get_event_loop()
 
-        if loop.is_running():
-            loop.create_task(self.http.aclose())
-        else:
-             loop.run_until_complete(self.http.aclose())
+        # handle asyncio runtime
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = None
         
+        # close httpx client 
+        if loop and loop.is_running():
+            loop.create_task(self.http.aclose())
+        elif loop and not loop.is_running():
+            loop.run_until_complete(self.http.aclose())
 
+   
     async def connect(self, connection_type: OAuth2ConnectionType, username: str = None, password: str = None, auth_code: str = None) -> DRACOONConnection:
         """ connects based on given OAuth2ConnectionType """
         token_url = self.base_url + '/oauth/token'
