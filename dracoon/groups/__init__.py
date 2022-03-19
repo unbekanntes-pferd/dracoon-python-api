@@ -1,6 +1,6 @@
 """
-Async DRACOON users adapter based on httpx and pydantic
-V1.0.0
+Async DRACOON groups adapter based on httpx and pydantic
+V1.2.0
 (c) Octavio Simone, November 2021 
 
 Collection of DRACOON API calls for user management
@@ -14,16 +14,18 @@ Please note: maximum 500 items are returned in GET requests
 
 """
 
+import logging
 from typing import List
+
 import httpx
 from pydantic import validate_arguments
 
 from dracoon.user.responses import RoleList
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .models import CreateGroup, Expiration, UpdateGroup
 from .responses import Group, GroupList, GroupUserList, LastAdminGroupRoomList
 
-import logging
 
 class DRACOONGroups:
 
@@ -35,7 +37,7 @@ class DRACOONGroups:
     def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
-            raise TypeError('Invalid DRACOON client format.')
+            raise InvalidClientError(message='Invalid client.')
         if dracoon_client.connection:
 
             self.dracoon = dracoon_client
@@ -50,16 +52,16 @@ class DRACOONGroups:
         
         else:
             self.logger.error("DRACOON client error: no connection. ")
-            raise ValueError('DRACOON client must be connected: client.connect()')
+            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
     @validate_arguments
-    async def create_group(self, user: CreateGroup, raise_on_err: bool = False) -> Group:
+    async def create_group(self, group: CreateGroup, raise_on_err: bool = False) -> Group:
         """ creates a new group """
 
         if self.raise_on_err:
             raise_on_err = True
 
-        payload = user.dict(exclude_unset=True)
+        payload = group.dict(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)

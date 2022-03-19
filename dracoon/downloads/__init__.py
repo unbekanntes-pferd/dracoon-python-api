@@ -1,6 +1,6 @@
 """
 Async DRACOON downloads adapter based on httpx, tqdm and pydantic
-V1.1.0
+V1.2.0
 (c) Octavio Simone, February 2022 
 
 Documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/downloads
@@ -17,9 +17,11 @@ import httpx
 
 from dracoon.nodes import CHUNK_SIZE
 from dracoon.nodes.models import Node, NodeType
-from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer
 from dracoon.client import DRACOONClient
 from dracoon.crypto import FileDecryptionCipher, decrypt_file_key
+from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer
+from dracoon.errors import (InvalidClientError, ClientDisconnectedError, InvalidFileError, 
+                            FileConflictError, InvalidPathError)
 
 
 class DRACOONDownloads:
@@ -32,7 +34,7 @@ class DRACOONDownloads:
     def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
-            raise TypeError('Invalid DRACOON client format.')
+            raise InvalidClientError(message='Invalid client.')
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/user'
@@ -46,8 +48,7 @@ class DRACOONDownloads:
    
         else:
             self.dracoon.logger.critical("DRACOON client not connected.")
-            raise ValueError(
-                'DRACOON client must be connected: client.connect()')
+            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
     
     def check_file_exists(self, path: str) -> bool:
@@ -70,19 +71,22 @@ class DRACOONDownloads:
         
         if node_info.type != NodeType.file:
             self.logger.critical("Invalid node type: %s", node_info.type)
-            raise TypeError('Ony file download possible.')
+            err = InvalidFileError(message='Ony file download possible.')
+            await self.dracoon.handle_generic_error(err=err)
 
         file_path = target_path + '/' + node_info.name
 
         if self.check_file_exists(file_path):
             self.logger.critical("File already exists: %s", file_path)
-            raise ValueError('File already exists.')
+            err = FileConflictError('File already exists.')
+            await self.dracoon.handle_generic_error(err=err)
 
         folder = Path(target_path)
 
         if not folder.is_dir():
             self.logger.critical("Target path is not a folder.")
-            raise ValueError(f'A folder needs to be provided. {target_path} is not a folder.')
+            err = InvalidPathError(f'A folder needs to be provided. {target_path} is not a folder.')
+            await self.dracoon.handle_generic_error(err=err)
         
         size = node_info.size
 
@@ -123,24 +127,28 @@ class DRACOONDownloads:
             raise_on_err = True
             
         if not node_info:
-            raise ValueError('File does not exist.')
+            err = InvalidFileError(message='File does not exist.')
+            await self.dracoon.handle_generic_error(err=err)
         
         if node_info.type != NodeType.file:
-            raise TypeError('Ony file download possible.')
+            err = InvalidFileError(message='Ony file download possible.')
+            await self.dracoon.handle_generic_error(err=err)
 
         file_path = target_path + '/' + node_info.name
 
         if self.check_file_exists(file_path):
             await self.dracoon.logout()
             self.logger.critical("File already exists: %s", file_path)
-            raise ValueError('File already exists.')
+            err = FileConflictError(message='File already exists.')
+            await self.dracoon.handle_generic_error(err=err)
 
         folder = Path(target_path)
 
         if not folder.is_dir():
             await self.dracoon.logout()
             self.logger.critical("Target path is not a folder.")
-            raise ValueError(f'A file needs to be provided. {target_path} is not a folder.')
+            err = InvalidPathError(f'A file needs to be provided. {target_path} is not a folder.')
+            await self.dracoon.handle_generic_error(err=err)
         
         size = node_info.size
 

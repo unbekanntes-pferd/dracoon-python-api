@@ -1,6 +1,6 @@
 """
 Async DRACOON shares adapter based on httpx and pydantic
-V1.0.0
+V1.2.0
 (c) Octavio Simone, November 2021 
 
 Documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/shares
@@ -14,6 +14,7 @@ from pydantic import validate_arguments
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.crypto.models import FileKey, UserKeyPairContainer
+from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .models import CreateFileRequest, CreateShare, Expiration, SendShare, UpdateFileRequest, UpdateFileRequests, UpdateShare, UpdateShares
 from .responses import DownloadShare, DownloadShareList, UploadShare, UploadShareList
 
@@ -28,7 +29,7 @@ class DRACOONShares:
     def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
-            raise TypeError('Invalid DRACOON client format.')
+            raise InvalidClientError(message='Invalid client.')
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/shares'
@@ -40,7 +41,7 @@ class DRACOONShares:
             self.logger.debug("DRACOON shares adapter created.")
         else:
             self.logger.error("DRACOON client error: no connection. ")
-            raise ValueError('DRACOON client must be connected: client.connect()')
+            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
     # get list of all (download) shares
     @validate_arguments

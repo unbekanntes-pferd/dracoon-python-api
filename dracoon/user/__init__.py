@@ -1,6 +1,6 @@
 """
 Async DRACOON users adapter based on httpx and pydantic
-V1.0.0
+V1.2.0
 (c) Octavio Simone, November 2021 
 
 Collection of DRACOON API calls for user management
@@ -22,6 +22,7 @@ from pydantic import validate_arguments
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.crypto import create_plain_userkeypair, encrypt_private_key
 from dracoon.crypto.models import UserKeyPairContainer, UserKeyPairVersion
+from dracoon.errors import ClientDisconnectedError, InvalidClientError, InvalidArgumentError
 from .models import UpdateAccount, UserAccount
 
 
@@ -36,7 +37,7 @@ class DRACOONUser:
     def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
-            raise TypeError('Invalid DRACOON client format.')
+            raise InvalidClientError(message='Invalid DRACOON client format.')
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/user'
@@ -48,7 +49,7 @@ class DRACOONUser:
             self.logger.debug("DRACOON user adapter created.")
         else:
             self.logger.error("DRACOON client error: no connection. ")
-            raise ValueError('DRACOON client must be connected: client.connect()')
+            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
 
     # get account information for current user
@@ -106,7 +107,7 @@ class DRACOONUser:
         account_update = {}
 
         if acceptEULA == False:
-            raise ValueError('EULA acceptance cannot be undone.')
+            raise InvalidArgumentError(message="EULA acceptance cannot be undone.")
 
         if language: account_update["language"] = language
         if phone: account_update["phone"] = phone

@@ -1,6 +1,6 @@
 """
 Async DRACOON settings adapter based on httpx and pydantic
-V1.0.0
+V1.2.0
 (c) Octavio Simone, November 2021 
 
 Collection of DRACOON API calls for settings (Webhooks)
@@ -18,6 +18,7 @@ import logging
 from pydantic import validate_arguments
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.errors import InvalidArgumentError, InvalidClientError, ClientDisconnectedError
 from .models import CreateWebhook, UpdateSettings, UpdateWebhook
 from .responses import EventTypeList, WebhookList, Webhook, CustomerSettingsResponse
 
@@ -31,7 +32,7 @@ class DRACOONSettings:
     def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
-            raise TypeError('Invalid DRACOON client format.')
+            raise InvalidClientError(message='Invalid client.')
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/settings'
@@ -44,7 +45,7 @@ class DRACOONSettings:
             self.logger.debug("DRACOON settings adapter created.")
         else:
             self.logger.error("DRACOON client error: no connection. ")
-            raise ValueError('DRACOON client must be connected: client.connect()')
+            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
     @validate_arguments
     async def get_settings(self, raise_on_err: bool = False) -> CustomerSettingsResponse:
@@ -97,7 +98,7 @@ class DRACOONSettings:
         settings_update = {}
 
         if home_rooms_active == False:
-            raise ValueError('Home rooms cannot be deactivated')
+            raise InvalidArgumentError(message='Home rooms cannot be deactivated')
 
         if home_rooms_active is not None: settings_update["homeRoomsActive"] = home_rooms_active
         if home_room_quota: settings_update["homeRoomQuota"] = home_room_quota

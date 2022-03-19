@@ -1,6 +1,6 @@
 """
 Async DRACOON API wrapper based on httpx and pydantic
-V1.0.0
+V1.2.0
 (c) Octavio Simone, November 2021 
 
 Collection of DRACOON API calls
@@ -14,6 +14,10 @@ Please note: maximum 500 items are returned in GET requests
 All requests with bodies use generic params variable to pass JSON body
 
 """
+
+
+import logging
+import asyncio
 
 from .crypto.models import PlainUserKeyPairContainer
 from .downloads import DRACOONDownloads
@@ -30,8 +34,8 @@ from .settings import DRACOONSettings
 from .reports import DRACOONReports
 from .crypto import decrypt_private_key
 from .logger import create_logger
-import asyncio
-import logging
+from .errors import CryptoMissingKeypairError, InvalidFileError, InvalidPathError, InvalidArgumentError, ClientDisconnectedError
+
 
 
 class DRACOON:
@@ -45,6 +49,16 @@ class DRACOON:
         self.logger.info("Created DRACOON client.")
         self.plain_keypair = None
         self.user_info =  None
+        self.nodes = None
+        self.users = None
+        self.user = None
+        self.groups = None
+        self.downloads = None
+        self.settings = None
+        self.reports = None
+        self.eventlog = None
+        self.shares = None
+        self.uploads = None
 
 
     async def connect(self, connection_type: OAuth2ConnectionType = OAuth2ConnectionType.auth_code, username: str = None, password: str = None, auth_code = None):
@@ -116,7 +130,7 @@ class DRACOON:
         """ get user keypair """
         if not self.client.connection:
             self.logger.error("DRACOON client not connected: Keypair not retrieved.")
-            raise ValueError('DRACOON client not connected.')
+            raise DRACOONC
 
         enc_keypair = await self.user.get_user_keypair()
       
@@ -133,14 +147,17 @@ class DRACOON:
         """ upload a file to a target """
         if not self.client.connection:
             self.logger.error("DRACOON client not connected: Upload failed.")
-            raise ValueError('DRACOON client not connected.')
+            err = ClientDisconnectedError(message="DRACOON client not connected.")
+            await self.client.handle_generic_error(err=err)
 
         node_info = await self.nodes.get_node_from_path(target_path)
         
         if not node_info:
             self.logger.critical('Upload failed: Invalid target path.')
-            self.logger.debug('Node %s not found.', target_path)
-            raise ValueError('Node %s not found.', target_path)
+            msg = 'Node %s not found.', target_path
+            self.logger.debug(msg)
+            err = InvalidPathError(message=msg)
+            await self.client.handle_generic_error(err=err)
         
         file_name = file_path.split('/')[-1]
         
@@ -176,7 +193,7 @@ class DRACOON:
             upload = await self.nodes.upload_s3_encrypted(file_path=file_path, upload_channel=upload_channel, plain_keypair=self.plain_keypair, display_progress=display_progress)
         elif is_encrypted and not self.check_keypair():
             self.logger.critical("Upload failed: Keypair not unlocked.")
-            raise ValueError('DRACOON crypto upload requires unlocked keypair. Please unlock keypair first.')
+            raise CryptoMissingKeypairError('DRACOON crypto upload requires unlocked keypair. Please unlock keypair first.')
         # unencrypted upload
         elif not is_encrypted and not use_s3_storage:
             upload = await self.uploads.upload_unencrypted(file_path=file_path, upload_channel=upload_channel)
@@ -193,15 +210,15 @@ class DRACOON:
         if not self.client.connection:
             await self.client.http.aclose()
             self.logger.error("DRACOON client not connected: Download failed.")
-            raise ValueError('DRACOON client not connected.')
+            raise DRACOONConnectionError(message='DRACOON client not connected.')
 
         node_info = await self.nodes.get_node_from_path(file_path)
         
         if not node_info:
             self.logger.error("Download failed: file does not exist.")
             self.logger.debug("File %s not found", file_path)
-            await self.client.http.aclose()
-            raise ValueError('File does not exist.')
+            err = InvalidFileError(message='File does not exist.')
+            await self.client.handle_generic_error(err=err)
         
         node_id = node_info.id
 
@@ -224,10 +241,17 @@ class DRACOON:
             file_key = await self.nodes.get_user_file_key(node_id)
             await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, plain_keypair=self.plain_keypair, file_key=file_key, display_progress=display_progress)
         elif is_encrypted and not self.check_keypair():
-            raise ValueError('Keypair must be entered for encrypted nodes.')
+            raise CryptoMissingKeypairError(message='Keypair must be entered for encrypted nodes.')
 
 
     def get_code_url(self) -> str:
         """ get code url for authorization code flow """
         self.logger.info("Getting authorization URL.")
         return self.client.get_code_url()
+
+    def batch_process(self, coro_list, batch_size: int = 5):
+        """ 
+        helper method which returns a generator for a list 
+        of couroutines 
+        """ 
+        return (coro_list[i:i + batch_size]  for i in range(0, len(coro_list), batch_size))

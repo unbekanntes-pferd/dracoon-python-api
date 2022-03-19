@@ -1,6 +1,6 @@
 """
 Async DRACOON nodes adapter based on httpx and pydantic
-V1.0.0
+V1.2.0
 (c) Octavio Simone, November 2021 
 
 Collection of DRACOON API calls for nodes management
@@ -19,8 +19,9 @@ import os
 import math
 from pathlib import Path
 from typing import List, Union
-import httpx
 import logging
+
+import httpx
 from pydantic import validate_arguments
 from tqdm import tqdm
 
@@ -28,6 +29,8 @@ from dracoon.crypto import FileEncryptionCipher, encrypt_bytes, encrypt_file_key
 from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer
 from dracoon.groups.models import Expiration
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.errors import (InvalidClientError, ClientDisconnectedError, InvalidPathError, 
+                           FileConflictError, InvalidFileError, InvalidArgumentError)
 from .models import (CompleteS3Upload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, 
                      GetS3Urls, LogEventList, MissingKeysResponse, Node, Permissions, ProcessRoomPendingUsers, S3Part, 
                      SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFile, UpdateFiles, 
@@ -52,7 +55,8 @@ class DRACOONNodes:
     def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
-            raise TypeError('Invalid DRACOON client format.')
+            raise InvalidClientError(message='Invalid client')
+
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/nodes'
@@ -64,9 +68,7 @@ class DRACOONNodes:
             self.logger.debug("DRACOON nodes adapter created.")
         else:
             self.logger.error("DRACOON client error: no connection. ")
-            err = ValueError(
-                'DRACOON client must be connected: client.connect()')
-            self.dracoon.handle_generic_error(err)
+            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
     
     async def upload_bytes(self, file_obj, progress: tqdm):
         """ async iterator to stream byte upload """
@@ -289,8 +291,8 @@ class DRACOONNodes:
         file = Path(file_path)
         
         if not file.is_file():
-            err = ValueError(f'A file needs to be provided. {file_path} is not a file.')
-            self.dracoon.handle_generic_error(err)
+            err = InvalidFileError(message=f'A file needs to be provided. {file_path} is not a file.')
+            await self.dracoon.handle_generic_error(err)
         
         filesize = os.stat(file_path).st_size
         file_name = file_path.split('/')[-1]
@@ -319,8 +321,8 @@ class DRACOONNodes:
         self.logger.debug("Parts: %s", part_count)
 
         if len(s3_urls.urls) > MAX_CHUNKS:
-            err = ValueError(f'Maximum count of chunks ({MAX_CHUNKS}) exceeded.')
-            self.dracoon.handle_generic_error(err)
+            err = InvalidArgumentError(message=f'Maximum count of chunks ({MAX_CHUNKS}) exceeded.')
+            await self.dracoon.handle_generic_error(err)
             
        
         parts = []
@@ -425,8 +427,8 @@ class DRACOONNodes:
         
         # check if file is a file
         if not file.is_file():
-            err = ValueError(f'A file needs to be provided. {file_path} is not a file.')
-            self.dracoon.handle_generic_error(err)
+            err = InvalidFileError(message=f'A file needs to be provided. {file_path} is not a file.')
+            await self.dracoon.handle_generic_error(err)
         
         filesize = os.stat(file_path).st_size
         file_name = file_path.split('/')[-1]
@@ -459,8 +461,8 @@ class DRACOONNodes:
         self.logger.debug("Parts: %s", part_count)
 
         if len(s3_urls.urls) > MAX_CHUNKS:
-            err = ValueError(f'Maximum count of chunks ({MAX_CHUNKS}) exceeded.')
-            self.dracoon.handle_generic_error(err)
+            err = InvalidArgumentError(message=f'Maximum count of chunks ({MAX_CHUNKS}) exceeded.')
+            await self.dracoon.handle_generic_error(err)
             
         parts = []
         
@@ -1407,7 +1409,7 @@ class DRACOONNodes:
         if classification: room["classification"] = classification
 
         if not admin_ids and not admin_group_ids and inherit_perms is False:
-            raise ValueError('Room admin required: Please provide at least one room admin.')
+            raise InvalidArgumentError(message='Room admin required: Please provide at least one room admin.')
 
         return CreateRoom(**room)
 
