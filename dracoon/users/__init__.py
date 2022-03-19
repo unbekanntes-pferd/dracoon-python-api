@@ -23,6 +23,7 @@ from pydantic import validate_arguments
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.user.responses import (AttributesResponse, LastAdminUserRoomList, RoleList, 
                                     UserData, UserGroupList, UserList)
+from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .models import (AttributeEntry, CreateUser, Expiration, UpdateUser, UpdateUserAttributes, 
                      UserAuthData)
 
@@ -38,7 +39,7 @@ class DRACOONUsers:
         """ requires a DRACOONClient to perform any request """
 
         if not isinstance(dracoon_client, DRACOONClient):
-            raise TypeError('Invalid DRACOON client format.')
+            raise InvalidClientError(message='Invalid client.')
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/users'
@@ -50,7 +51,7 @@ class DRACOONUsers:
             self.logger.debug("DRACOON users adapter created.")
         else:
             self.logger.error("DRACOON client error: no connection. ")
-            raise ValueError('DRACOON client must be connected: client.connect()')
+            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
     @validate_arguments
     async def create_user(self, user: CreateUser, raise_on_err: bool = False) -> UserData:

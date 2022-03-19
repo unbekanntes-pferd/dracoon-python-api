@@ -1,6 +1,6 @@
 """
 Async DRACOON eventlog adapter based on httpx and pydantic
-V1.0.0
+V1.2.0
 (c) Octavio Simone, November 2021 
 
 Collection of DRACOON API calls for user management
@@ -34,7 +34,7 @@ class DRACOONEvents:
     def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
-            raise TypeError('Invalid DRACOON client format.')
+            raise InvalidClientError(message='Invalid client.')
         if dracoon_client.connection:
 
             self.dracoon = dracoon_client
@@ -49,7 +49,7 @@ class DRACOONEvents:
         
         else:
             self.logger.critical("DRACOON client not connected.")
-            raise ValueError('DRACOON client must be connected: client.connect()')
+            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
    
     @validate_arguments
     async def get_permissions(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err = False) -> AuditNodeInfoResponse:

@@ -1,6 +1,6 @@
 """
 Async DRACOON public adapter based on httpx and pydantic
-V1.0.0
+V1.2.0
 (c) Octavio Simone, November 2021 
 
 Collection of DRACOON API calls for public endpoints
@@ -13,10 +13,11 @@ Please note: maximum 500 items are returned in GET requests
 
 
 """
-
-import httpx
 import logging
+import httpx
+
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .responses import AuthOIDCInfoList, AuthADInfoList, SystemInfo
 
 
@@ -30,7 +31,7 @@ class DRACOONPublic:
     def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
-            raise TypeError('Invalid DRACOON client format.')
+            raise InvalidClientError(message='Invalid client.')
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/public/system/info'
@@ -42,8 +43,7 @@ class DRACOONPublic:
             self.logger.debug("DRACOON public adapter created.")
         else:
             self.logger.error("DRACOON client error: no connection. ")
-            raise ValueError(
-                'DRACOON client must be connected: client.connect()')
+            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
     async def get_system_info(self, raise_on_err: bool = False) -> SystemInfo:
         """ get sytem information (S3) """

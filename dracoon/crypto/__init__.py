@@ -1,7 +1,7 @@
 
 """
 DRACOON Crypto utils based on cryptography
-V1.0.0
+V1.2.0
 
 (c) Octavio Simone, November 2021 
 
@@ -28,7 +28,9 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.ciphers import (Cipher, algorithms, modes)
 
-from dracoon.crypto.models import (FileKey, FileKeyVersion, PlainFileKey, PlainFileKeyVersion,  
+
+from dracoon.errors import (InvalidKeypairVersionError, FileKeyEncryptionError, CryptoMissingDataError, InvalidFileKeyError)
+from .models import (FileKey, FileKeyVersion, PlainFileKey, PlainFileKeyVersion,  
                                    PlainUserKeyPairContainer, PublicKeyContainer, UserKeyPairContainer, 
                                    UserKeyPairVersion)
 
@@ -99,8 +101,7 @@ def create_plain_userkeypair(version: UserKeyPairVersion) -> PlainUserKeyPairCon
     elif version == UserKeyPairVersion.RSA4096:
         key = rsa.generate_private_key(public_exponent=65537, key_size=4096)
     else:
-        raise ValueError('Invalid keypair version')
-
+        raise InvalidKeypairVersionError(message='Invalid keypair version')
     private_key_pem = key.private_bytes(encoding=serialization.Encoding.PEM,
                                         format=serialization.PrivateFormat.TraditionalOpenSSL,
                                         encryption_algorithm=serialization.NoEncryption())
@@ -131,7 +132,7 @@ def get_file_key_version(keypair: PlainUserKeyPairContainer) -> FileKeyVersion:
     elif keypair.publicKeyContainer.version == UserKeyPairVersion.RSA4096.value and keypair.privateKeyContainer.version == UserKeyPairVersion.RSA4096.value:
         return FileKeyVersion.RSA_4096_AES256GCM
     else:
-        raise ValueError('Invalid user keypair version')
+        raise InvalidKeypairVersionError(message='Invalid keypair version')
 
 
 def get_file_key_version_public(public_key: PublicKeyContainer) -> FileKeyVersion:
@@ -144,7 +145,7 @@ def get_file_key_version_public(public_key: PublicKeyContainer) -> FileKeyVersio
     elif public_key.version == UserKeyPairVersion.RSA4096.value:
         return FileKeyVersion.RSA_4096_AES256GCM
     else:
-        raise ValueError('Invalid user keypair version')
+        raise InvalidKeypairVersionError(message='Invalid keypair version')
 
 
 @validate_arguments
@@ -273,7 +274,7 @@ def decrypt_file_key(file_key: FileKey, keypair: PlainUserKeyPairContainer) -> P
             "tag": file_key.tag
         })
     else:
-        raise ValueError('Could not encrypt file key.')
+        raise FileKeyEncryptionError(message='Could not encrypt file key')
 
 
 def decrypt_bytes(enc_data: bytes, plain_file_key: PlainFileKey) -> bytes:
@@ -281,7 +282,7 @@ def decrypt_bytes(enc_data: bytes, plain_file_key: PlainFileKey) -> bytes:
     logger.info("Decrypting bytes with version: %s", plain_file_key.version)
 
     if enc_data == None:
-        raise ValueError('No data to process.')
+        raise CryptoMissingDataError(message='No data to process.')
 
     key = base64.b64decode(plain_file_key.key)
     iv = base64.b64decode(plain_file_key.iv)
@@ -300,7 +301,7 @@ def encrypt_bytes(plain_data: bytes, plain_file_key: PlainFileKey) -> Tuple[byte
     logger.info("Encrypting bytes with version: %s", plain_file_key.version)
 
     if not bytes:
-        raise ValueError('No data to process.')
+        raise CryptoMissingDataError(message='No data to process.')
 
     key = base64.b64decode(plain_file_key.key)
     iv = base64.b64decode(plain_file_key.iv)
@@ -339,10 +340,10 @@ class FileEncryptionCipher:
         
         if not plain_file_key.version or not plain_file_key.key or not plain_file_key.iv:
             logger.critical("Invalid file key format (lack of iv or key).")
-            raise TypeError('Invalid file key.')
+            raise InvalidFileKeyError(message="Invalid file key")
         if plain_file_key.version != PlainFileKeyVersion.AES256GCM.value and plain_file_key.version != PlainFileKeyVersion.AES256GCM.value:
             logger.critical("Invalid / unknown file key version.")
-            raise ValueError('Invalid / unknown file key version.')
+            raise InvalidFileKeyError(message="Invalid file key version")
         
         logger.info("Initialized encryptor with version: %s", plain_file_key.version)
 
@@ -393,10 +394,10 @@ class FileDecryptionCipher:
         """ initialize decryptor with a plain file key """
         if not plain_file_key.version or not plain_file_key.key or not plain_file_key.iv:
             logger.critical("Invalid file key format (lack of iv or key).")
-            raise TypeError('Invalid file key.')
+            raise InvalidFileKeyError(message="Invalid file key")
         if plain_file_key.version != PlainFileKeyVersion.AES256GCM.value and plain_file_key.version != PlainFileKeyVersion.AES256GCM.value:
             logger.critical("Invalid / unknown file key version.")
-            raise ValueError('Invalid / unknown file key version.')
+            raise InvalidFileKeyError(message="Invalid file key version")
         self.plain_file_key = plain_file_key
 
         self.key = base64.b64decode(plain_file_key.key)

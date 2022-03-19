@@ -14,12 +14,14 @@ Please note: maximum 500 items are returned in GET requests
 
 """
 
-import httpx
 import logging
+
+import httpx
 from pydantic import validate_arguments
 
-from dracoon.eventlog.responses import AuditNodeInfoResponse, LogEventList
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.errors import ClientDisconnectedError, InvalidClientError
+from .responses import AuditNodeInfoResponse, LogEventList
 
 class DRACOONEvents:
 
@@ -33,7 +35,7 @@ class DRACOONEvents:
     def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
-            raise TypeError('Invalid DRACOON client format.')
+            raise InvalidClientError(message='Invalid client.')
         if dracoon_client.connection:
 
             self.dracoon = dracoon_client
@@ -48,7 +50,7 @@ class DRACOONEvents:
         
         else:
             self.logger.critical("DRACOON client not connected.")
-            raise ValueError('DRACOON client must be connected: client.connect()')
+            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
    
     @validate_arguments
     async def get_permissions(self, offset: int = 0, filter: str = None, 

@@ -1,6 +1,6 @@
 """
 Async DRACOON uploads adapter based on httpx, tqdm and pydantic
-V1.0.0
+V1.2.0
 (c) Octavio Simone, November 2021 
 
 Documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spec_v4/swagger-config#/uploads
@@ -11,15 +11,17 @@ https://support.dracoon.com/hc/de/articles/115005512089
 """
 
 from typing import List
-import httpx
 from pathlib import Path
 import os
 import logging
+
+
 from tqdm import tqdm
 
 from dracoon.crypto.models import PlainUserKeyPairContainer
 from dracoon.client import DRACOONClient
 from dracoon.crypto import FileEncryptionCipher, encrypt_bytes, encrypt_file_key, create_file_key, get_file_key_version
+from dracoon.errors import ClientDisconnectedError, InvalidClientError, InvalidFileError
 from .models import UploadChannelResponse
 
 
@@ -33,7 +35,7 @@ class DRACOONUploads:
     def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
-            raise TypeError('Invalid DRACOON client format.')
+            raise InvalidClientError(message='Invalid client.')
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/user'
@@ -45,8 +47,7 @@ class DRACOONUploads:
             self.logger.debug("DRACOON uploads adapter created.")
         else:
             self.logger.error("DRACOON client error: no connection. ")
-            raise ValueError(
-                'DRACOON client must be connected: client.connect()')
+            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
     def read_in_chunks(self, file_obj, chunksize = 5242880):
         """ iterator to read a file object in chunks (default chunk size: 5 MB) """
@@ -78,7 +79,9 @@ class DRACOONUploads:
         file = Path(file_path)
         
         if not file.is_file():
-            raise ValueError(f'A file needs to be provided. {file_path} is not a file.')
+            self.logger.critical('File not found: %s', file_path)
+            err = InvalidFileError(message=f'A file needs to be provided. {file_path} is not a file.')
+            await self.dracoon.handle_generic_error(err=err)
         
         filesize = os.stat(file_path).st_size
         file_name = file_path.split('/')[-1]
@@ -178,7 +181,9 @@ class DRACOONUploads:
 
         file = Path(file_path)
         if not file.is_file():
-            raise ValueError(f'A file needs to be provided. {file_path} is not a file.')
+            self.logger.critical('File not found: %s', file_path)
+            err = InvalidFileError(message=f'A file needs to be provided. {file_path} is not a file.')
+            await self.dracoon.handle_generic_error(err=err)
 
         filesize = os.stat(file_path).st_size 
         file_name = file_path.split('/')[-1]

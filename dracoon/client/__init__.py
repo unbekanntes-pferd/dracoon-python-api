@@ -1,6 +1,6 @@
 """
 Async DRACOON client based on httpx
-V1.0.0
+V1.2.0
 
 (c) Octavio Simone, November 2021 
 
@@ -18,7 +18,11 @@ import logging
 
 import httpx
 
-USER_AGENT = 'dracoon-python-1.1.1'
+from dracoon.errors import (MissingCredentialsError, DRACOONClientError, HTTPBadRequestError, HTTPUnauthorizedError, 
+                            HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
+                            HTTPUnknownError)
+
+USER_AGENT = 'dracoon-python-1.2.0'
 
 class OAuth2ConnectionType(Enum):
     """ enum as connection type for DRACOONClient """
@@ -78,7 +82,8 @@ class DRACOONClient:
             loop.run_until_complete(self.http.aclose())
 
    
-    async def connect(self, connection_type: OAuth2ConnectionType, username: str = None, password: str = None, auth_code: str = None) -> DRACOONConnection:
+    async def connect(self, connection_type: OAuth2ConnectionType, username: str = None, password: str = None, 
+                      auth_code: str = None, refresh_token: str = None) -> DRACOONConnection:
         """ connects based on given OAuth2ConnectionType """
         token_url = self.base_url + '/oauth/token'
         now = datetime.now()
@@ -89,16 +94,14 @@ class DRACOONClient:
         if connection_type == OAuth2ConnectionType.password_flow and username == None and password == None:
             await self.http.aclose()
             self.logger.error("Missing credentials for OAuth2 password flow.")
-            raise ValueError(
-                'Username and password are mandatory for OAuth2 password flow.')
+            raise MissingCredentialsError(message='Username and password are mandatory for OAuth2 password flow.')
 
         # handle missing auth code for authorization code flow 
         if connection_type == OAuth2ConnectionType.auth_code and auth_code == None:
             await self.http.aclose()
             self.logger.error("Missing auth code for OAuth2 password flow.")
-            raise ValueError(
-                'Auth code is mandatory for OAuth2 authorization code flow.')
-
+            raise MissingCredentialsError(message='Auth code is mandatory for OAuth2 authorization code flow.')
+                
         # get connection via OAuth2 password flow
         if connection_type == OAuth2ConnectionType.password_flow:
             data = {'grant_type': 'password',
@@ -150,7 +153,13 @@ class DRACOONClient:
 
 
         if connection_type == OAuth2ConnectionType.refresh_token:
-            data = {'grant_type': 'refresh_token', 'refresh_token': self.connection.refresh_token, 'client_id': self.client_id, 'client_secret': self.client_secret}
+
+            if self.connection:
+                refresh_token = self.connection.refresh_token
+            if refresh_token == None:
+                raise MissingCredentialsError(message='Missing refresh token.')
+
+            data = {'grant_type': 'refresh_token', 'refresh_token': refresh_token, 'client_id': self.client_id, 'client_secret': self.client_secret}
 
 
             try:
@@ -262,7 +271,7 @@ class DRACOONClient:
         return await self.check_access_token()
 
 
-    async def handle_http_error(self, err: httpx.HTTPStatusError, raise_on_err: bool, is_xml: bool = False):
+    async def handle_http_error(self, err: httpx.HTTPStatusError, raise_on_err: bool, is_xml: bool = False, close_client: bool = False):
         if self.raise_on_err:
             raise_on_err = self.raise_on_err
         
@@ -273,10 +282,12 @@ class DRACOONClient:
             self.logger.debug("%s", err.response.text)
         elif is_xml:
             self.logger.debug("%s", err.response.content)
+
+        if close_client:
+            await self.http.aclose()
         
         if raise_on_err:
-            await self.http.aclose()
-            raise err
+            self.raise_http_error(err=err)
 
     async def handle_connection_error(self, err: httpx.RequestError):
         self.logger.critical("Connection error.")
@@ -289,4 +300,25 @@ class DRACOONClient:
         self.logger.debug("%s", err)
         await self.http.aclose()
         raise err
+
+    def raise_http_error(self, err: httpx.HTTPStatusError):
+
+        if err.response.status_code == 400:
+            raise HTTPBadRequestError(error=err)
+        if err.response.status_code == 401:
+            raise HTTPUnauthorizedError(error=err)
+        if err.response.status_code == 402:
+            raise HTTPPaymentRequiredError(error=err)
+        if err.response.status_code == 403:
+            raise HTTPForbiddenError(error=err)
+        if err.response.status_code == 404:
+            raise HTTPNotFoundError(error=err)
+        if err.response.status_code == 409:
+            raise HTTPConflictError(error=err)
+        if err.response.status_code == 412:
+            raise HTTPPreconditionsFailedError(error=err)
+        else:
+            raise HTTPUnknownError(error=err)
+
+        
         
