@@ -253,5 +253,6 @@ class DRACOON:
         """ 
         helper method which returns a generator for a list 
         of couroutines 
+        utility to process multiple requests async
         """ 
         return (coro_list[i:i + batch_size]  for i in range(0, len(coro_list), batch_size))

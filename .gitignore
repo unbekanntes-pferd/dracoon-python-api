@@ -25,6 +25,7 @@ __pycache__
 /__pycache__
 /.vscode
 
+
 # test stuff
 test.txt
 _test.txt
@@ -32,6 +33,7 @@ test.json
 /test*.py
 test*.sh
 /examples/tests
+/legacy
 
 # env for test credentials
 .env
