@@ -1,6 +1,6 @@
 """
 Async DRACOON reports adapter based on httpx and pydantic
-V1.0.0
+V1.2.0
 (c) Octavio Simone, November 2021 
 
 Collection of DRACOON API calls for report management
@@ -20,6 +20,7 @@ from datetime import datetime
 
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .models import CreateReport, ReportFilter, ReportFormat, ReportSubType, ReportType
 from .responses import ReportList
 
@@ -34,7 +35,7 @@ class DRACOONReports:
     def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
-            raise TypeError('Invalid DRACOON client format.')
+            raise InvalidClientError(message='Invalid client')
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.reporting_base_url + '/reports'
@@ -46,7 +47,7 @@ class DRACOONReports:
             self.logger.debug("DRACOON reports adapter created.")
         else:
             self.logger.error("DRACOON client error: no connection. ")
-            raise ValueError('DRACOON client must be connected: client.connect()')
+            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
     @validate_arguments
     async def create_report(self, report: CreateReport, raise_on_err: bool = False) -> None:
