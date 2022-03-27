@@ -76,7 +76,7 @@ class DRACOONUsers:
 
     def make_local_user(self, first_name: str, last_name: str, email: str, login: str = None,
                         language: str = None, notify: bool = None, expiration: Expiration = None, 
-                        phone: str = None, raise_on_err: bool = False) -> CreateUser:
+                        phone: str = None) -> CreateUser:
         """ makes a new local (basic) user required for create_user() """
         auth = self.make_auth_data(method='basic')
 
