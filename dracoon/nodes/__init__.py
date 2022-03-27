@@ -302,6 +302,10 @@ class DRACOONNodes:
 
         part_count = math.ceil(filesize / chunksize)
         
+        # handle 0KB files
+        if part_count == 0:
+            part_count = 1
+        
         if part_count == 1:
             chunksize = filesize
             s3_upload = self.make_get_s3_urls(first_part=1, last_part=part_count, chunk_size=chunksize)
@@ -441,7 +445,10 @@ class DRACOONNodes:
         # calculate required parts based on chunk size
         part_count = math.ceil(filesize / chunksize)
         
-
+        # handle 0KB file 
+        if part_count == 0:
+            part_count = 1
+        
         if part_count == 1:
             chunksize = filesize
             s3_upload = self.make_get_s3_urls(first_part=1, last_part=part_count, chunk_size=chunksize)

@@ -176,13 +176,13 @@ class DRACOONClientError(Exception):
         super().__init__(self.message)
 
     def __str__(self):
-        if not is_xml:
-            return f"{error.response.text}"
+        if not self.is_xml:
+            return f"{self.error.response.text}"
         else:
-            return f"{error.response.content}"
+            return f"{self.error.response.content}"
 
 
-class HTTPBadRequestError(DRACOONClientError):
+class HTTPBadRequestError(Exception):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 400)
@@ -223,7 +223,7 @@ class HTTPUnauthorizedError(Exception):
         #     return f"{self.error.response.content}"
 
 
-class HTTPPaymentRequiredError(DRACOONClientError):
+class HTTPPaymentRequiredError(Exception):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 402)
@@ -239,7 +239,7 @@ class HTTPPaymentRequiredError(DRACOONClientError):
         super().__init__(self.error, self.is_xml, self.message)
 
 
-class HTTPForbiddenError(DRACOONClientError):
+class HTTPForbiddenError(Exception):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 403)
@@ -255,7 +255,7 @@ class HTTPForbiddenError(DRACOONClientError):
         super().__init__(self.error, self.is_xml, self.message)
 
 
-class HTTPNotFoundError(DRACOONClientError):
+class HTTPNotFoundError(Exception):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 404)
@@ -271,7 +271,7 @@ class HTTPNotFoundError(DRACOONClientError):
         super().__init__(self.error, self.is_xml, self.message)
 
 
-class HTTPConflictError(DRACOONClientError):
+class HTTPConflictError(Exception):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 409)
@@ -287,7 +287,7 @@ class HTTPConflictError(DRACOONClientError):
         super().__init__(self.error, self.is_xml, self.message)
 
 
-class HTTPPreconditionsFailedError(DRACOONClientError):
+class HTTPPreconditionsFailedError(Exception):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 412)
@@ -304,7 +304,7 @@ class HTTPPreconditionsFailedError(DRACOONClientError):
         super().__init__(self.error, self.is_xml, self.message)
 
 
-class HTTPUnknownError(DRACOONClientError):
+class HTTPUnknownError(Exception):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 500 or not covered by other errors above)
