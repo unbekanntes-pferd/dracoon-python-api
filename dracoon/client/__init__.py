@@ -210,7 +210,7 @@ class DRACOONClient:
         except httpx.HTTPStatusError as e:
             self.logger.debug("Token revoke error: %s", e.response.text)
             self.logger.error("Revoking token(s) failed.")
-            self.handle_http_error(err=e, raise_on_err=self.raise_on_err)
+            await self.handle_http_error(err=e, raise_on_err=self.raise_on_err)
 
         self.connected = False
         self.connection = None

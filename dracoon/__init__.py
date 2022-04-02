@@ -34,7 +34,7 @@ from .settings import DRACOONSettings
 from .reports import DRACOONReports
 from .crypto import decrypt_private_key
 from .logger import create_logger
-from .errors import CryptoMissingKeypairError, InvalidFileError, InvalidPathError, ClientDisconnectedError
+from .errors import CryptoMissingFileKeyrError, CryptoMissingKeypairError, HTTPNotFoundError, InvalidFileError, InvalidPathError, ClientDisconnectedError
 
 
 
@@ -249,9 +249,13 @@ class DRACOON:
             await self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info, 
                                                       display_progress=display_progress, raise_on_err=raise_on_err)
         elif is_encrypted and self.check_keypair():
-            file_key = await self.nodes.get_user_file_key(node_id)
-            await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, 
+            try:
+                file_key = await self.nodes.get_user_file_key(node_id, raise_on_err=True)
+                await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, 
                                                     plain_keypair=self.plain_keypair, file_key=file_key, display_progress=display_progress, raise_on_err=raise_on_err)
+            except HTTPNotFoundError:
+                raise CryptoMissingFileKeyrError(message=f'No file key for node {node_id}')
+                
         elif is_encrypted and not self.check_keypair():
             raise CryptoMissingKeypairError(message='Keypair must be entered for encrypted nodes.')
 

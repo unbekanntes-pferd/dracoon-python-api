@@ -173,7 +173,7 @@ def create_file_key(version: PlainFileKeyVersion = PlainFileKeyVersion.AES256GCM
 def encrypt_file_key_public(plain_file_key: PlainFileKey, public_key: PublicKeyContainer) -> FileKey:
     """ encrypt a file key with given public key container """
 
-    logger.info("Creating file key with public key: %s", public_key.version.value)
+    logger.info("Creating file key with public key: %s", public_key.version)
 
     public_key_pem = serialization.load_pem_public_key(
         public_key.publicKey.encode('ascii'))
