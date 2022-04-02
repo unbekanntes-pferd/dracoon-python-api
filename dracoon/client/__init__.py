@@ -22,7 +22,7 @@ from dracoon.errors import (MissingCredentialsError, DRACOONClientError, HTTPBad
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
                             HTTPUnknownError)
 
-USER_AGENT = 'dracoon-python-1.2.1'
+USER_AGENT = 'dracoon-python-1.3.0'
 
 class OAuth2ConnectionType(Enum):
     """ enum as connection type for DRACOONClient """
