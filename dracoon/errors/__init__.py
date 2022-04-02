@@ -67,6 +67,18 @@ class CryptoMissingKeypairError(Exception):
         self.message = message
 
         super().__init__(self.message)
+        
+class CryptoMissingFileKeyrError(Exception):
+    """
+    Exception raised in dracoon
+    Missing file key for user and node
+    """
+
+    def __init__(self, message: str = "Missing file key."):
+
+        self.message = message
+
+        super().__init__(self.message)
 
 
 class MissingCredentialsError(Exception):

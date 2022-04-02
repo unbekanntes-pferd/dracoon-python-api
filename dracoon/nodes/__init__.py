@@ -20,6 +20,7 @@ import math
 from pathlib import Path
 from typing import List, Union
 import logging
+import asyncio
 
 import httpx
 from pydantic import validate_arguments
@@ -44,6 +45,7 @@ from .responses import (Comment, CommentList, CreateFileUploadResponse, DeletedN
 # constants for uploads 
 CHUNK_SIZE = 33554432
 MAX_CHUNKS = 9999
+POLL_WAIT = 0.1
 
 class DRACOONNodes:
 
@@ -408,12 +410,18 @@ class DRACOONNodes:
  
         await self.complete_s3_upload(upload_id=upload_channel.uploadId, upload=s3_complete, raise_on_err=raise_on_err)
         
+        time  = POLL_WAIT
+        
         while True:
             upload_status = await self.check_s3_upload(upload_id=upload_channel.uploadId, raise_on_err=raise_on_err)
             if upload_status.status == S3Status.done.value:
                 break
             if upload_status.status == S3Status.error.value:
                 break
+            # wait until next request
+            await asyncio.sleep(time)
+            # increase wait 
+            time *= 2
             
         return upload_status
         
@@ -426,7 +434,6 @@ class DRACOONNodes:
         if self.raise_on_err:
             raise_on_err = True
 
-        
         file = Path(file_path)
         
         # check if file is a file
@@ -570,17 +577,21 @@ class DRACOONNodes:
  
         await self.complete_s3_upload(upload_id=upload_channel.uploadId, upload=s3_complete, raise_on_err=raise_on_err)
         
+        time  = POLL_WAIT 
+        
         while True:
             upload_status = await self.check_s3_upload(upload_id=upload_channel.uploadId, raise_on_err=raise_on_err)
             if upload_status.status == S3Status.done.value:
                 break
             if upload_status.status == S3Status.error.value:
                 break
+            # wait until next request
+            await asyncio.sleep(time)
+            # increase wait 
+            time *= 2
             
         return upload_status
             
-        
-        
     async def check_s3_upload(self, upload_id: str, raise_on_err: bool = False) -> S3FileUploadStatus:
         """ check status of S3 upload """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
