@@ -138,7 +138,7 @@ def get_file_key_version(keypair: PlainUserKeyPairContainer) -> FileKeyVersion:
 def get_file_key_version_public(public_key: PublicKeyContainer) -> FileKeyVersion:
     """ get file required file key version from given public key (needed for missing file keys request) """
     
-    logger.info("Getting file key version: %s", public_key.privateKeyContainer.version)
+    logger.info("Getting file key version: %s", public_key.version)
 
     if public_key.version == UserKeyPairVersion.RSA2048.value:
         return FileKeyVersion.RSA2048_AES256GCM
