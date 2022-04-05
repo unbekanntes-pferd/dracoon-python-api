@@ -22,7 +22,7 @@ from dracoon.errors import (MissingCredentialsError, DRACOONClientError, HTTPBad
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
                             HTTPUnknownError)
 
-USER_AGENT = 'dracoon-python-1.2.1'
+USER_AGENT = 'dracoon-python-1.3.0'
 
 class OAuth2ConnectionType(Enum):
     """ enum as connection type for DRACOONClient """
@@ -210,7 +210,7 @@ class DRACOONClient:
         except httpx.HTTPStatusError as e:
             self.logger.debug("Token revoke error: %s", e.response.text)
             self.logger.error("Revoking token(s) failed.")
-            self.handle_http_error(err=e, raise_on_err=self.raise_on_err)
+            await self.handle_http_error(err=e, raise_on_err=self.raise_on_err)
 
         self.connected = False
         self.connection = None

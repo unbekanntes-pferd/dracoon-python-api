@@ -138,7 +138,7 @@ def get_file_key_version(keypair: PlainUserKeyPairContainer) -> FileKeyVersion:
 def get_file_key_version_public(public_key: PublicKeyContainer) -> FileKeyVersion:
     """ get file required file key version from given public key (needed for missing file keys request) """
     
-    logger.info("Getting file key version: %s", public_key.privateKeyContainer.version)
+    logger.info("Getting file key version: %s", public_key.version)
 
     if public_key.version == UserKeyPairVersion.RSA2048.value:
         return FileKeyVersion.RSA2048_AES256GCM
@@ -173,7 +173,7 @@ def create_file_key(version: PlainFileKeyVersion = PlainFileKeyVersion.AES256GCM
 def encrypt_file_key_public(plain_file_key: PlainFileKey, public_key: PublicKeyContainer) -> FileKey:
     """ encrypt a file key with given public key container """
 
-    logger.info("Creating file key with public key: %s", public_key.version.value)
+    logger.info("Creating file key with public key: %s", public_key.version)
 
     public_key_pem = serialization.load_pem_public_key(
         public_key.publicKey.encode('ascii'))

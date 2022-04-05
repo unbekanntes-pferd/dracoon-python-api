@@ -161,7 +161,32 @@ class TestDRACOONCrypto(unittest.TestCase):
 
         self.assertIsInstance(decrypted_key_2048, PlainFileKey)
         self.assertIsInstance(decrypted_key_4096, PlainFileKey)
+        
+    def test_public_file_key_encrytion(self):
+        """ Test encryption of a plain file key with a public key for both versions, ensure version check correct """
+        plain_file_key_2048 = crypto.create_file_key(PlainFileKeyVersion.AES256GCM)
+        plain_file_key_4096 = crypto.create_file_key(PlainFileKeyVersion.AES256GCM)
+        
+        plain_keypair_2048 = crypto.create_plain_userkeypair(UserKeyPairVersion.RSA2048)
+        plain_keypair_4096 = crypto.create_plain_userkeypair(UserKeyPairVersion.RSA4096)
 
+        enc_file_key_2048 = crypto.encrypt_file_key_public(public_key=plain_keypair_2048.publicKeyContainer, plain_file_key=plain_file_key_2048)
+        enc_file_key_4096 = crypto.encrypt_file_key_public(public_key=plain_keypair_4096.publicKeyContainer, plain_file_key=plain_file_key_4096)
+
+        self.assertIsInstance(enc_file_key_2048, FileKey)
+        self.assertIsInstance(enc_file_key_4096, FileKey)
+
+        self.assertEqual(enc_file_key_2048.version, FileKeyVersion.RSA2048_AES256GCM.value)
+        self.assertEqual(enc_file_key_4096.version, FileKeyVersion.RSA_4096_AES256GCM.value)
+
+        decrypted_key_2048 = crypto.decrypt_file_key(file_key=enc_file_key_2048, keypair=plain_keypair_2048)
+        decrypted_key_4096 = crypto.decrypt_file_key(file_key=enc_file_key_4096, keypair=plain_keypair_4096)
+
+        self.assertEqual(plain_file_key_2048, decrypted_key_2048)
+        self.assertEqual(plain_file_key_4096, decrypted_key_4096)
+
+        self.assertIsInstance(decrypted_key_2048, PlainFileKey)
+        self.assertIsInstance(decrypted_key_4096, PlainFileKey)
 
 if __name__ == '__main__':
     unittest.main()
