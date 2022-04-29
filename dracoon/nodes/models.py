@@ -69,6 +69,13 @@ class CompleteS3Upload(BaseModel):
     fileName: Optional[str]
     fileKey: Optional[FileKey]
 
+
+class CompleteUpload(BaseModel):
+    resolutionStrategy: Optional[str]
+    keepShareLinks: Optional[bool]
+    fileName: Optional[str]
+    fileKey: Optional[FileKey]
+    
 class GetS3Urls(BaseModel):
     firstPartNumber: int
     lastPartNumber: int
