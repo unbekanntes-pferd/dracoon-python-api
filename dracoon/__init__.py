@@ -18,6 +18,10 @@ All requests with bodies use generic params variable to pass JSON body
 
 import logging
 import asyncio
+from typing import Any, Generator, Union
+from dracoon.nodes.models import Node
+
+from dracoon.nodes.responses import S3FileUploadStatus
 
 from .crypto.models import PlainUserKeyPairContainer
 from .downloads import DRACOONDownloads
@@ -29,7 +33,6 @@ from .shares import DRACOONShares
 from .user import DRACOONUser
 from .users import DRACOONUsers
 from .groups import DRACOONGroups
-from .uploads import DRACOONUploads
 from .settings import DRACOONSettings
 from .reports import DRACOONReports
 from .crypto import decrypt_private_key
@@ -71,7 +74,6 @@ class DRACOON:
         self.user = DRACOONUser(self.client)
         self.groups = DRACOONGroups(self.client)
         self.settings = DRACOONSettings(self.client)
-        self.uploads = DRACOONUploads(self.client)
         self.downloads = DRACOONDownloads(self.client)
         self.reports = DRACOONReports(self.client)
         self.shares = DRACOONShares(self.client)
@@ -144,7 +146,8 @@ class DRACOON:
 
         return plain_keypair
 
-    async def upload(self, file_path: str, target_path: str, resolution_strategy: str = 'autorename', display_progress: bool = False, raise_on_err: bool = False):
+    async def upload(self, file_path: str, target_path: str, resolution_strategy: str = 'autorename', 
+                     display_progress: bool = False, raise_on_err: bool = False) -> Union[S3FileUploadStatus, Node]:
         """ upload a file to a target """
         if not self.client.connection:
             self.logger.error("DRACOON client not connected: Upload failed.")
@@ -173,8 +176,6 @@ class DRACOON:
         is_encrypted = node_info.isEncrypted
 
         self.logger.debug("Encrypted: %s", is_encrypted)
-
-        user_id = self.user_info.id
         
         use_s3_storage = False
         
@@ -192,7 +193,7 @@ class DRACOON:
 
         # crypto upload 
         if is_encrypted and self.check_keypair() and not use_s3_storage:       
-            upload = await self.uploads.upload_encrypted(file_path=file_path, user_id=user_id, upload_channel=upload_channel, 
+            upload = await self.nodes.upload_encrypted(file_path=file_path, upload_channel=upload_channel, display_progress=display_progress,
                                                          plain_keypair=self.plain_keypair, resolution_strategy=resolution_strategy, raise_on_err=raise_on_err)
         elif is_encrypted and self.check_keypair() and use_s3_storage:
             upload = await self.nodes.upload_s3_encrypted(file_path=file_path, upload_channel=upload_channel, plain_keypair=self.plain_keypair, 
@@ -202,14 +203,15 @@ class DRACOON:
             raise CryptoMissingKeypairError('DRACOON crypto upload requires unlocked keypair. Please unlock keypair first.')
         # unencrypted upload
         elif not is_encrypted and not use_s3_storage:
-            upload = await self.uploads.upload_unencrypted(file_path=file_path, upload_channel=upload_channel, resolution_strategy=resolution_strategy, raise_on_err=raise_on_err)
+            upload = await self.nodes.upload_unencrypted(file_path=file_path, upload_channel=upload_channel, resolution_strategy=resolution_strategy, 
+                                                         display_progress=display_progress, raise_on_err=raise_on_err)
         elif not is_encrypted and use_s3_storage:
             upload = await self.nodes.upload_s3_unencrypted(file_path=file_path, upload_channel=upload_channel, 
                                                             display_progress=display_progress, resolution_strategy=resolution_strategy,raise_on_err=raise_on_err)
 
         self.logger.info("Upload completed.")
         
-        if upload: return upload
+        return upload
 
     async def download(self, file_path: str, target_path: str, display_progress: bool = False, raise_on_err: bool = False):
         """ download a file to a target """
@@ -265,7 +267,7 @@ class DRACOON:
         self.logger.info("Getting authorization URL.")
         return self.client.get_code_url()
 
-    def batch_process(self, coro_list, batch_size: int = 5):
+    def batch_process(self, coro_list, batch_size: int = 5) -> Generator[Any, None, None]:
         """ 
         helper method which returns a generator for a list 
         of couroutines 
