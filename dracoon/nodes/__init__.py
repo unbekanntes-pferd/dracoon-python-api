@@ -22,6 +22,7 @@ from time import time
 from typing import List, Union
 import logging
 import asyncio
+import urllib.parse
 
 import httpx
 from pydantic import validate_arguments
@@ -182,6 +183,8 @@ class DRACOONNodes:
 
         
         if filter: filter_str += f'|{filter}'
+        
+        last_node = urllib.parse.quote(last_node)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -2105,6 +2108,8 @@ class DRACOONNodes:
 
         if self.raise_on_err:
             raise_on_err = True
+            
+        search = urllib.parse.quote(search)
 
         api_url = self.api_url + \
             f'/search/?search_string={search}&offset={str(offset)}&parent_id={str(parent_id)}&depth_level={depth_level}'
