@@ -53,32 +53,51 @@ class DRACOON:
         self.logger.info("Created DRACOON client.")
         self.plain_keypair = None
         self.user_info =  None
-        self.nodes = None
-        self.users = None
-        self.user = None
-        self.groups = None
-        self.downloads = None
-        self.settings = None
-        self.reports = None
-        self.eventlog = None
-        self.shares = None
-        self.uploads = None
-
-
+  
+    @property 
+    def nodes(self):
+        return DRACOONNodes(self.client)
+    
+    @property  
+    def public(self):
+        return DRACOONPublic(self.client)
+    
+    @property 
+    def user(self):
+        return DRACOONUser(self.client)
+    
+    @property 
+    def reports(self):
+        return DRACOONReports(self.client)
+    
+    @property 
+    def settings(self):
+        return DRACOONSettings(self.client)
+    
+    @property
+    def users(self):
+       return DRACOONUsers(self.client) 
+   
+    @property 
+    def groups(self):
+        return DRACOONGroups(self.client)
+    
+    @property 
+    def eventlog(self):
+        return DRACOONEvents(self.client)
+    
+    @property
+    def shares(self):
+       return DRACOONShares(self.client) 
+   
+    @property
+    def downloads(self):
+       return DRACOONDownloads(self.client) 
+   
+   
     async def connect(self, connection_type: OAuth2ConnectionType = OAuth2ConnectionType.auth_code, username: str = None, password: str = None, auth_code = None):
         """ establishes a connection required for all adapters """
         connection = await self.client.connect(connection_type=connection_type, username=username, password=password, auth_code=auth_code)
-
-        self.nodes = DRACOONNodes(self.client)
-        self.users = DRACOONUsers(self.client)
-        self.user = DRACOONUser(self.client)
-        self.groups = DRACOONGroups(self.client)
-        self.settings = DRACOONSettings(self.client)
-        self.downloads = DRACOONDownloads(self.client)
-        self.reports = DRACOONReports(self.client)
-        self.shares = DRACOONShares(self.client)
-        self.eventlog = DRACOONEvents(self.client)
-        self.public = DRACOONPublic(self.client)
 
         self.logger.info("Initialized DRACOON adapters.") 
 
