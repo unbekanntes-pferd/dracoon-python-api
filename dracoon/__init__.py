@@ -19,6 +19,8 @@ All requests with bodies use generic params variable to pass JSON body
 import logging
 import asyncio
 from typing import Any, Generator, Union
+from datetime import datetime
+
 from dracoon.nodes.models import Node
 
 from dracoon.nodes.responses import S3FileUploadStatus
@@ -166,7 +168,9 @@ class DRACOON:
         return plain_keypair
 
     async def upload(self, file_path: str, target_path: str, resolution_strategy: str = 'autorename', 
-                     display_progress: bool = False, raise_on_err: bool = False) -> Union[S3FileUploadStatus, Node]:
+                     display_progress: bool = False, modification_date: datetime = datetime.utcnow(), 
+                     creation_date: datetime = datetime.utcnow(), 
+                     raise_on_err: bool = False) -> Union[S3FileUploadStatus, Node]:
         """ upload a file to a target """
         if not self.client.connection:
             self.logger.error("DRACOON client not connected: Upload failed.")
@@ -203,7 +207,8 @@ class DRACOON:
     
         self.logger.debug("Using S3 storage: %s", use_s3_storage)
             
-        upload_channel_payload = self.nodes.make_upload_channel(parent_id=target_id, name=file_name, direct_s3_upload=use_s3_storage)
+        upload_channel_payload = self.nodes.make_upload_channel(parent_id=target_id, name=file_name, direct_s3_upload=use_s3_storage, 
+                                                                modification_date=modification_date, creation_date=creation_date)
         upload_channel = await self.nodes.create_upload_channel(upload_channel=upload_channel_payload, raise_on_err=raise_on_err)
     
 

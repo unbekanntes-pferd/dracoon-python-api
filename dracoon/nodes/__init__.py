@@ -18,7 +18,7 @@ import datetime
 import os
 import math
 from pathlib import Path
-from time import time
+from datetime import datetime
 from typing import List, Union
 import logging
 import asyncio
@@ -127,11 +127,13 @@ class DRACOONNodes:
         return CreateFileUploadResponse(**res.json())
     
     def make_upload_channel(self, parent_id: int, name: str, classification: int = None, size: int = None, expiration: Expiration = None, notes: str = None, 
-                            direct_s3_upload: bool = None, raise_on_err: bool = False) -> CreateUploadChannel:
+                            direct_s3_upload: bool = None, modification_date: datetime = datetime.utcnow(), creation_date: datetime = datetime.utcnow()) -> CreateUploadChannel:
         """ make an upload channel payload for create_upload_channel() """
         upload_channel = {
             "parentId": parent_id,
-            "name": name
+            "name": name,
+            "timestampModification": modification_date,
+            "timestampCreation": creation_date
         }
 
         if classification: upload_channel["classification"] = classification
@@ -690,6 +692,7 @@ class DRACOONNodes:
             await self.dracoon.handle_generic_error(err)
         
         filesize = os.stat(file_path).st_size
+        file_modified = file.stat().st_mtime
         file_name = file_path.split('/')[-1]
         self.logger.debug("File name: %s", file_name)
         self.logger.debug("File size: %s", filesize)
