@@ -127,8 +127,9 @@ class DRACOONNodes:
         return CreateFileUploadResponse(**res.json())
     
     def make_upload_channel(self, parent_id: int, name: str, classification: int = None, size: int = None, expiration: Expiration = None, notes: str = None, 
-                            direct_s3_upload: bool = None, modification_date: datetime = datetime.utcnow(), creation_date: datetime = datetime.utcnow()) -> CreateUploadChannel:
+                            direct_s3_upload: bool = None, modification_date: str = datetime.utcnow().isoformat(), creation_date: str = datetime.utcnow().isoformat()) -> CreateUploadChannel:
         """ make an upload channel payload for create_upload_channel() """
+        
         upload_channel = {
             "parentId": parent_id,
             "name": name,
@@ -1516,7 +1517,7 @@ class DRACOONNodes:
         self.logger.info("Created folder.")
         return Node(**res.json())
 
-    def make_folder(self, name: str, parent_id: int, notes: str = None, created: datetime = None, updated: datetime = None) -> CreateFolder:
+    def make_folder(self, name: str, parent_id: int, notes: str = None, creation_date: str = None, modified_date: str = None) -> CreateFolder:
         """ make a folder payload required for create_folder() """
         folder = {
             "parentId": parent_id,
@@ -1524,19 +1525,19 @@ class DRACOONNodes:
         }
 
         if notes: folder["notes"] = notes
-        if created: folder["timestampCreation"] = created
-        if updated: folder["timestampModification"] = updated
+        if creation_date: folder["timestampCreation"] = creation_date
+        if modified_date: folder["timestampModification"] = modified_date
 
         return CreateFolder(**folder)
 
-    def make_folder_update(self, name: str = None, notes: str = None, created: datetime = None, updated: datetime = None) -> UpdateFolder:
+    def make_folder_update(self, name: str = None, notes: str = None, creation_date: str = None, modified_date: str = None) -> UpdateFolder:
         """" make a folder update payload for update_folder() """
         folder = {}
         
         if name: folder["name"] = notes
         if notes: folder["notes"] = notes
-        if created: folder["timestampCreation"] = created
-        if updated: folder["timestampModification"] = updated
+        if creation_date: folder["timestampCreation"] = creation_date
+        if modified_date: folder["timestampModification"] = modified_date
 
         return UpdateFolder(**folder)
 
@@ -1655,7 +1656,7 @@ class DRACOONNodes:
         self.logger.info("Updated room.")
         return Node(**res.json())
 
-    def make_room(self, name: str, parent_id: int = 0, notes: str = None, created: datetime = None, updated: datetime = None, 
+    def make_room(self, name: str, parent_id: int = 0, notes: str = None, creation_date: str = None, modified_date: str = None,
                   quota: int = None, recycle_bin_period: int = None, inherit_perms: bool = None, classification: int = None, 
                   admin_ids: List[int] = None, admin_group_ids: List[int] = None, activities_log: bool = None,
                   new_group_member_acceptance: str = None) -> CreateRoom:
@@ -1673,8 +1674,8 @@ class DRACOONNodes:
         if admin_ids: room["adminIds"] = admin_ids
         if admin_group_ids: room["adminGroupIds"] = admin_group_ids
         if notes: room["notes"] = notes
-        if created: room["timestampCreation"] = created
-        if updated: room["timestampModification"] = updated
+        if creation_date: room["timestampCreation"] = creation_date
+        if modified_date: room["timestampModification"] = modified_date
         if classification: room["classification"] = classification
 
         if not admin_ids and not admin_group_ids and inherit_perms is False:
@@ -1682,15 +1683,15 @@ class DRACOONNodes:
 
         return CreateRoom(**room)
 
-    def make_room_update(self, name: str = None, notes: str = None, qouta: int = None, created: datetime = None, updated: datetime = None, quota: int = None) -> UpdateRoom:
+    def make_room_update(self, name: str = None, notes: str = None, quota: int = None, creation_date: str = None, modified_date: str = None) -> UpdateRoom:
         """ make a room update payload for update_room() """
         room = {}
         
         if name: room["name"] = name
         if notes: room["notes"] = notes
         if quota: room["quota"] = quota
-        if created: room["timestampCreation"] = created
-        if updated: room["timestampModification"] = updated
+        if creation_date: room["timestampCreation"] = creation_date
+        if modified_date: room["timestampModification"] = modified_date
 
         return UpdateRoom(**room)
 

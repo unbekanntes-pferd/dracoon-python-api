@@ -43,7 +43,7 @@ class SetFileKeys(BaseModel):
 
 class Expiration(BaseModel):
     enableExpiration: bool
-    expireAt: datetime
+    expireAt: str
 
 # required payload for POST /nodes/files/uploads
 class CreateUploadChannel(BaseModel):
@@ -54,8 +54,8 @@ class CreateUploadChannel(BaseModel):
     expiration: Optional[Expiration]
     notes: Optional[str]
     directS3Upload: Optional[bool]
-    timestampCreation: Optional[datetime]
-    timestampModificiation: Optional[datetime]
+    timestampCreation: Optional[str]
+    timestampModificiation: Optional[str]
 
 
 class S3Part(BaseModel):
@@ -93,8 +93,8 @@ class CreateFolder(BaseModel):
 class UpdateFolder(BaseModel):
     name: Optional[str]
     notes: Optional[str]
-    timestampCreation: Optional[datetime]
-    timestampModificiation: Optional[datetime]
+    timestampCreation: Optional[str]
+    timestampModificiation: Optional[str]
 
 # required payload for POST /nodes/rooms
 class CreateRoom(BaseModel):
@@ -109,16 +109,16 @@ class CreateRoom(BaseModel):
     adminGroupIds: Optional[List[int]]
     adminIds: Optional[List[int]]
     classification: Optional[int]
-    timestampCreation: Optional[datetime]
-    timestampModificiation: Optional[datetime]
+    timestampCreation: Optional[str]
+    timestampModificiation: Optional[str]
 
 # required payload for PUT /nodes/rooms/{room_id}
 class UpdateRoom(BaseModel):
     name: Optional[str]
     quota: Optional[int]
     notes: Optional[str]
-    timestampCreation: Optional[datetime]
-    timestampModificiation: Optional[datetime]
+    timestampCreation: Optional[str]
+    timestampModificiation: Optional[str]
 
 # required payload for PUT /nodes/rooms/{room_id}/config
 class ConfigRoom(BaseModel):
@@ -142,8 +142,8 @@ class UpdateFile(BaseModel):
     expiration: Optional[Expiration]
     classification: Optional[int]
     notes: Optional[str]
-    timestampCreation: Optional[datetime]
-    timestampModification: Optional[datetime]
+    timestampCreation: Optional[str]
+    timestampModification: Optional[str]
 
 
 class Permissions(BaseModel):

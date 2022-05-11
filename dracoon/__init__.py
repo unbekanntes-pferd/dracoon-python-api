@@ -168,8 +168,8 @@ class DRACOON:
         return plain_keypair
 
     async def upload(self, file_path: str, target_path: str, resolution_strategy: str = 'autorename', 
-                     display_progress: bool = False, modification_date: datetime = datetime.utcnow(), 
-                     creation_date: datetime = datetime.utcnow(), 
+                     display_progress: bool = False, modification_date: str = datetime.utcnow().isoformat(), 
+                     creation_date: str = datetime.utcnow().isoformat(), 
                      raise_on_err: bool = False) -> Union[S3FileUploadStatus, Node]:
         """ upload a file to a target """
         if not self.client.connection:
