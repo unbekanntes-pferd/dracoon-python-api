@@ -4,6 +4,9 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from dracoon.client.models import Range
+from dracoon.nodes.models import Permissions
+from dracoon.user.models import UserInfo
+
 
 class AuditNodeInfo(BaseModel):
     nodeId: int
@@ -16,6 +19,32 @@ class AuditNodeInfo(BaseModel):
 class AuditNodeInfoResponse(BaseModel):
     range: Range
     items: List[AuditNodeInfo]
+    
+
+class AuditUserPermission(BaseModel):
+    userId: int
+    userLogin: str
+    userFirstName: str
+    userLastName: str
+    permissions: Permissions
+    
+class AuditNodeResponse(BaseModel):
+    nodeId: int
+    nodeName: str
+    nodeParentPath: str
+    nodeCntChildren: int
+    auditUserPermissionList: List[AuditUserPermission]
+    nodeParentId: Optional[int]
+    nodeSize: Optional[int]
+    nodeRecycleBinRetentionPeriod: Optional[int]
+    nodeQuota: Optional[int]
+    nodeIsEncrypted: Optional[bool]
+    nodeHasActivitiesLog: Optional[bool]
+    nodeCreatedAt: Optional[datetime]
+    nodeCreatedBy: Optional[UserInfo]
+    nodeUpdatedAt: Optional[datetime]
+    nodeUpdatedBy: Optional[UserInfo]
+    
 
 class OperationStatus(Enum):
     Success = 0

@@ -163,7 +163,7 @@ class TestDRACOONCrypto(unittest.TestCase):
         self.assertIsInstance(decrypted_key_4096, PlainFileKey)
         
     def test_public_file_key_encrytion(self):
-        """ Test encryption of a plain file key with a public key for both versions, ensure version check correct """
+        """ Test encryption of a plain file key for both versions using a public key """
         plain_file_key_2048 = crypto.create_file_key(PlainFileKeyVersion.AES256GCM)
         plain_file_key_4096 = crypto.create_file_key(PlainFileKeyVersion.AES256GCM)
         
@@ -187,6 +187,7 @@ class TestDRACOONCrypto(unittest.TestCase):
 
         self.assertIsInstance(decrypted_key_2048, PlainFileKey)
         self.assertIsInstance(decrypted_key_4096, PlainFileKey)
+        
 
 if __name__ == '__main__':
     unittest.main()

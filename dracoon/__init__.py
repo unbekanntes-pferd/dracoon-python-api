@@ -18,6 +18,12 @@ All requests with bodies use generic params variable to pass JSON body
 
 import logging
 import asyncio
+from typing import Any, Generator, Union
+from datetime import datetime
+
+from dracoon.nodes.models import Node
+
+from dracoon.nodes.responses import S3FileUploadStatus
 
 from .crypto.models import PlainUserKeyPairContainer
 from .downloads import DRACOONDownloads
@@ -29,7 +35,6 @@ from .shares import DRACOONShares
 from .user import DRACOONUser
 from .users import DRACOONUsers
 from .groups import DRACOONGroups
-from .uploads import DRACOONUploads
 from .settings import DRACOONSettings
 from .reports import DRACOONReports
 from .crypto import decrypt_private_key
@@ -50,33 +55,51 @@ class DRACOON:
         self.logger.info("Created DRACOON client.")
         self.plain_keypair = None
         self.user_info =  None
-        self.nodes = None
-        self.users = None
-        self.user = None
-        self.groups = None
-        self.downloads = None
-        self.settings = None
-        self.reports = None
-        self.eventlog = None
-        self.shares = None
-        self.uploads = None
-
-
+  
+    @property 
+    def nodes(self):
+        return DRACOONNodes(self.client)
+    
+    @property  
+    def public(self):
+        return DRACOONPublic(self.client)
+    
+    @property 
+    def user(self):
+        return DRACOONUser(self.client)
+    
+    @property 
+    def reports(self):
+        return DRACOONReports(self.client)
+    
+    @property 
+    def settings(self):
+        return DRACOONSettings(self.client)
+    
+    @property
+    def users(self):
+       return DRACOONUsers(self.client) 
+   
+    @property 
+    def groups(self):
+        return DRACOONGroups(self.client)
+    
+    @property 
+    def eventlog(self):
+        return DRACOONEvents(self.client)
+    
+    @property
+    def shares(self):
+       return DRACOONShares(self.client) 
+   
+    @property
+    def downloads(self):
+       return DRACOONDownloads(self.client) 
+   
+   
     async def connect(self, connection_type: OAuth2ConnectionType = OAuth2ConnectionType.auth_code, username: str = None, password: str = None, auth_code = None):
         """ establishes a connection required for all adapters """
         connection = await self.client.connect(connection_type=connection_type, username=username, password=password, auth_code=auth_code)
-
-        self.nodes = DRACOONNodes(self.client)
-        self.users = DRACOONUsers(self.client)
-        self.user = DRACOONUser(self.client)
-        self.groups = DRACOONGroups(self.client)
-        self.settings = DRACOONSettings(self.client)
-        self.uploads = DRACOONUploads(self.client)
-        self.downloads = DRACOONDownloads(self.client)
-        self.reports = DRACOONReports(self.client)
-        self.shares = DRACOONShares(self.client)
-        self.eventlog = DRACOONEvents(self.client)
-        self.public = DRACOONPublic(self.client)
 
         self.logger.info("Initialized DRACOON adapters.") 
 
@@ -144,7 +167,10 @@ class DRACOON:
 
         return plain_keypair
 
-    async def upload(self, file_path: str, target_path: str, resolution_strategy: str = 'autorename', display_progress: bool = False, raise_on_err: bool = False):
+    async def upload(self, file_path: str, target_path: str, resolution_strategy: str = 'autorename', 
+                     display_progress: bool = False, modification_date: str = datetime.utcnow().isoformat(), 
+                     creation_date: str = datetime.utcnow().isoformat(), 
+                     raise_on_err: bool = False) -> Union[S3FileUploadStatus, Node]:
         """ upload a file to a target """
         if not self.client.connection:
             self.logger.error("DRACOON client not connected: Upload failed.")
@@ -173,8 +199,6 @@ class DRACOON:
         is_encrypted = node_info.isEncrypted
 
         self.logger.debug("Encrypted: %s", is_encrypted)
-
-        user_id = self.user_info.id
         
         use_s3_storage = False
         
@@ -183,7 +207,8 @@ class DRACOON:
     
         self.logger.debug("Using S3 storage: %s", use_s3_storage)
             
-        upload_channel_payload = self.nodes.make_upload_channel(parent_id=target_id, name=file_name, direct_s3_upload=use_s3_storage)
+        upload_channel_payload = self.nodes.make_upload_channel(parent_id=target_id, name=file_name, direct_s3_upload=use_s3_storage, 
+                                                                modification_date=modification_date, creation_date=creation_date)
         upload_channel = await self.nodes.create_upload_channel(upload_channel=upload_channel_payload, raise_on_err=raise_on_err)
     
 
@@ -192,7 +217,7 @@ class DRACOON:
 
         # crypto upload 
         if is_encrypted and self.check_keypair() and not use_s3_storage:       
-            upload = await self.uploads.upload_encrypted(file_path=file_path, user_id=user_id, upload_channel=upload_channel, 
+            upload = await self.nodes.upload_encrypted(file_path=file_path, upload_channel=upload_channel, display_progress=display_progress,
                                                          plain_keypair=self.plain_keypair, resolution_strategy=resolution_strategy, raise_on_err=raise_on_err)
         elif is_encrypted and self.check_keypair() and use_s3_storage:
             upload = await self.nodes.upload_s3_encrypted(file_path=file_path, upload_channel=upload_channel, plain_keypair=self.plain_keypair, 
@@ -202,14 +227,15 @@ class DRACOON:
             raise CryptoMissingKeypairError('DRACOON crypto upload requires unlocked keypair. Please unlock keypair first.')
         # unencrypted upload
         elif not is_encrypted and not use_s3_storage:
-            upload = await self.uploads.upload_unencrypted(file_path=file_path, upload_channel=upload_channel, resolution_strategy=resolution_strategy, raise_on_err=raise_on_err)
+            upload = await self.nodes.upload_unencrypted(file_path=file_path, upload_channel=upload_channel, resolution_strategy=resolution_strategy, 
+                                                         display_progress=display_progress, raise_on_err=raise_on_err)
         elif not is_encrypted and use_s3_storage:
             upload = await self.nodes.upload_s3_unencrypted(file_path=file_path, upload_channel=upload_channel, 
                                                             display_progress=display_progress, resolution_strategy=resolution_strategy,raise_on_err=raise_on_err)
 
         self.logger.info("Upload completed.")
         
-        if upload: return upload
+        return upload
 
     async def download(self, file_path: str, target_path: str, display_progress: bool = False, raise_on_err: bool = False):
         """ download a file to a target """
@@ -265,7 +291,7 @@ class DRACOON:
         self.logger.info("Getting authorization URL.")
         return self.client.get_code_url()
 
-    def batch_process(self, coro_list, batch_size: int = 5):
+    def batch_process(self, coro_list, batch_size: int = 5) -> Generator[Any, None, None]:
         """ 
         helper method which returns a generator for a list 
         of couroutines 
