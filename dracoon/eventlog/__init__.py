@@ -14,12 +14,14 @@ Please note: maximum 500 items are returned in GET requests
 
 """
 
+from typing import List
 import httpx
 import logging
 from pydantic import validate_arguments
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
-from .responses import AuditNodeInfoResponse, LogEventList
+from dracoon.errors import ClientDisconnectedError, InvalidClientError
+from .responses import AuditNodeInfoResponse, AuditNodeResponse, LogEventList
 
 
 class DRACOONEvents:
@@ -52,7 +54,7 @@ class DRACOONEvents:
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
    
     @validate_arguments
-    async def get_permissions(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err = False) -> AuditNodeInfoResponse:
+    async def get_permissions(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err = False) -> List[AuditNodeResponse]:
         """ get permissions for all nodes (rooms) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -60,10 +62,39 @@ class DRACOONEvents:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/?offset={offset}'
+        api_url = self.api_url + f'/audits/nodes/?offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 
+
+        try:
+            res = await self.dracoon.http.get(api_url)
+            res.raise_for_status()
+        except httpx.RequestError as e:
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Getting permissions failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        
+        self.logger.info("Retrieved node permission audit.")
+        tmp_list = res.json()
+        
+        return [AuditNodeResponse(**node_info) for node_info in tmp_list]
+    
+    @validate_arguments
+    async def get_rooms(self, parent_id: int = 0, offset: int = 0, filter: str = None, 
+                                   limit: int = None, sort: str = None, raise_on_err = False) -> AuditNodeInfoResponse:
+        """ get permissions for all nodes (rooms) """
+        if not await self.dracoon.test_connection() and self.dracoon.connection:
+            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+
+        if self.raise_on_err:
+            raise_on_err = True
+
+        api_url = self.api_url + f'/audits/node_info/?parent_id={str(parent_id)}&offset={offset}'
+        if filter != None: api_url += f'&filter={filter}' 
+        if limit != None: api_url += f'&limit={str(limit)}' 
+        if sort != None: api_url += f'&sort={sort}'
 
         try:
             res = await self.dracoon.http.get(api_url)
@@ -87,7 +118,7 @@ class DRACOONEvents:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/?offset={offset}'
+        api_url = self.api_url + f'/events/?offset={offset}'
         if date_start != None: api_url += f'&date_start={date_start}'
         if date_end != None: api_url += f'&date_end={date_end}'
         if operation_id != None: api_url += f'&type={str(operation_id)}'
