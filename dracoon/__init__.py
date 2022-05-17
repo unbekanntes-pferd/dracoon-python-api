@@ -57,43 +57,43 @@ class DRACOON:
         self.user_info =  None
   
     @property 
-    def nodes(self):
+    def nodes(self) -> DRACOONNodes:
         return DRACOONNodes(self.client)
     
     @property  
-    def public(self):
+    def public(self) -> DRACOONPublic:
         return DRACOONPublic(self.client)
     
     @property 
-    def user(self):
+    def user(self) -> DRACOONUser:
         return DRACOONUser(self.client)
     
     @property 
-    def reports(self):
+    def reports(self) -> DRACOONReports:
         return DRACOONReports(self.client)
     
     @property 
-    def settings(self):
+    def settings(self) -> DRACOONSettings:
         return DRACOONSettings(self.client)
     
     @property
-    def users(self):
+    def users(self) -> DRACOONUsers:
        return DRACOONUsers(self.client) 
    
     @property 
-    def groups(self):
+    def groups(self) -> DRACOONGroups:
         return DRACOONGroups(self.client)
     
     @property 
-    def eventlog(self):
+    def eventlog(self) -> DRACOONEvents:
         return DRACOONEvents(self.client)
     
     @property
-    def shares(self):
+    def shares(self) -> DRACOONShares:
        return DRACOONShares(self.client) 
    
     @property
-    def downloads(self):
+    def downloads(self) -> DRACOONDownloads:
        return DRACOONDownloads(self.client) 
    
    

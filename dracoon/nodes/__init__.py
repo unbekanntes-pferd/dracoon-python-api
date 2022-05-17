@@ -36,7 +36,7 @@ from dracoon.errors import (InvalidClientError, ClientDisconnectedError, Invalid
                            FileConflictError, InvalidFileError, InvalidArgumentError)
 from dracoon.uploads.models import UploadChannelResponse
 from .models import (CompleteS3Upload, CompleteUpload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, 
-                     GetS3Urls, LogEventList, MissingKeysResponse, Node, Permissions, ProcessRoomPendingUsers, S3Part, 
+                     GetS3Urls, LogEventList, MissingKeysResponse, Node, NodeItem, Permissions, ProcessRoomPendingUsers, S3Part, 
                      SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFile, UpdateFiles, 
                      UpdateFolder, UpdateRoom, UpdateRoomGroupItem, UpdateRoomGroups, UpdateRoomHooks, 
                      UpdateRoomUserItem, UpdateRoomUsers)
@@ -238,6 +238,11 @@ class DRACOONNodes:
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         
         self.logger.info("Completed S3 upload.")
+        
+        # handle resolutionStrategy fail and raise_on_err True with conflict
+        if res.status_code == 409:
+            return res.json()
+        
         return None
 
     def make_s3_upload_complete(self, parts: List[S3Part], resolution_strategy: str = None, keep_share_links: str = None, file_name: str = None, 
@@ -371,7 +376,7 @@ class DRACOONNodes:
                         if display_progress: progress.close()
 
          
-                if display_progress: progress.close()
+                if display_progress: progress.close()             
                     
         complete_upload = self.make_upload_complete(file_name=file_name, keep_shares=keep_shares, 
                                                    resolution_strategy=resolution_strategy)
@@ -488,9 +493,14 @@ class DRACOONNodes:
 
                 if display_progress: progress.close()
                     
-        
+
         # encrypt file key    
         file_key = encrypt_file_key(plain_file_key=plain_file_key, keypair=plain_keypair)
+        
+        # handle file conflicts on raise_on_err False
+        if res.status_code == 409 and resolution_strategy == 'fail':
+            self.logger.debug('Upload failed: File already exists')
+            return
         
         complete_upload = self.make_upload_complete(file_name=file_name, keep_shares=keep_shares, 
                                                    resolution_strategy=resolution_strategy, file_key=file_key)
@@ -530,7 +540,7 @@ class DRACOONNodes:
             self.logger.error("Uploading file failed.")
             await self.dracoon.http.delete(upload_channel.uploadUrl)
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
-        
+          
         return Node(**res.json())
     
     async def upload_s3_unencrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, keep_shares: bool = False, 
@@ -659,7 +669,11 @@ class DRACOONNodes:
         s3_complete = self.make_s3_upload_complete(parts=parts, file_name=file_name, keep_share_links=keep_shares, 
                                                    resolution_strategy=resolution_strategy)
  
-        await self.complete_s3_upload(upload_id=upload_channel.uploadId, upload=s3_complete, raise_on_err=raise_on_err)
+        upload = await self.complete_s3_upload(upload_id=upload_channel.uploadId, upload=s3_complete, raise_on_err=raise_on_err)
+        
+        # handle resolutionStrategy fail and raise_on_err True with conflict  (409)
+        if upload is not None:         
+            return 
         
         time  = POLL_WAIT
         
@@ -827,7 +841,11 @@ class DRACOONNodes:
         s3_complete = self.make_s3_upload_complete(parts=parts, file_name=file_name, keep_share_links=keep_shares, 
                                                    resolution_strategy=resolution_strategy, file_key=file_key)
  
-        await self.complete_s3_upload(upload_id=upload_channel.uploadId, upload=s3_complete, raise_on_err=raise_on_err)
+        upload = await self.complete_s3_upload(upload_id=upload_channel.uploadId, upload=s3_complete, raise_on_err=raise_on_err)
+        
+        # handle resolutionStrategy fail and raise_on_err True with conflict (409)
+        if upload is not None:         
+            return 
         
         time  = POLL_WAIT 
         
@@ -1056,17 +1074,17 @@ class DRACOONNodes:
         
         self.logger.info("Copied nodes.")
         return Node(**res.json())
+    
 
-
-    def make_node_transfer(self, items: List[int], resolution_strategy: str = None, keep_share_links: bool = None, parent_id: int = None) -> TransferNode:
+    def make_node_transfer(self, items: List[NodeItem], resolution_strategy: str = None, keep_share_links: bool = None, parent_id: int = None) -> TransferNode:
         """ make a node transfer payload for copy_nodes() and move_nodes() """
         node_transfer = {
             "items": items
         }
 
-        if resolution_strategy: node_transfer["resolutionStrategy"] = resolution_strategy
+        if resolution_strategy is not None: node_transfer["resolutionStrategy"] = resolution_strategy
         if keep_share_links is not None: node_transfer["keepShareLinks"] = keep_share_links
-        if parent_id: node_transfer["parentId"] = parent_id
+        if parent_id is not None: node_transfer["parentId"] = parent_id
         
         return TransferNode(**node_transfer)
 
@@ -1534,7 +1552,7 @@ class DRACOONNodes:
         """" make a folder update payload for update_folder() """
         folder = {}
         
-        if name: folder["name"] = notes
+        if name: folder["name"] = name
         if notes: folder["notes"] = notes
         if creation_date: folder["timestampCreation"] = creation_date
         if modified_date: folder["timestampModification"] = modified_date
