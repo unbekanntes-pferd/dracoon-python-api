@@ -5,7 +5,7 @@ Core models required by other models
 
 
 from pydantic import BaseModel
-from typing import Any, Optional, List
+from typing import Optional, Union
 from datetime import datetime
 
 
@@ -24,3 +24,4 @@ class ErrorMessage(BaseModel):
     debugInfo: Optional[str]
     errorCode: Optional[int]
 
+ProxyConfig = Union[dict[str, str], str]

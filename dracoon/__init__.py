@@ -20,6 +20,7 @@ import logging
 import asyncio
 from typing import Any, Generator, Union
 from datetime import datetime
+from dracoon.client.models import ProxyConfig
 
 from dracoon.nodes.models import Node
 
@@ -47,10 +48,9 @@ class DRACOON:
     """ DRACOON main API wrapper with all adapters to specific endpoints """ 
 
     def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', log_file: str = 'dracoon.log', 
-                 log_level = logging.INFO, log_stream: bool = False, raise_on_err: bool = False):
+                 log_level = logging.INFO, log_stream: bool = False, raise_on_err: bool = False, proxy_config: ProxyConfig = None):
         """ intialize with instance information: base DRACOON url and OAuth app client credentials """
         self.client = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=raise_on_err)
-
         self.logger = create_logger(log_file=log_file, log_level=log_level, log_stream=log_stream)
         self.logger.info("Created DRACOON client.")
         self.plain_keypair = None

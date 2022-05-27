@@ -17,6 +17,7 @@ from datetime import datetime
 import logging
 
 import httpx
+from dracoon.client.models import ProxyConfig
 
 from dracoon.errors import (MissingCredentialsError, DRACOONClientError, HTTPBadRequestError, HTTPUnauthorizedError, 
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
@@ -52,12 +53,13 @@ class DRACOONClient:
 
     }
 
-    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', raise_on_err: bool = False):
+    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', raise_on_err: bool = False,
+                 proxy_config: ProxyConfig = None):
         """ client is initialized with DRACOON instance details (url and OAuth client credentials) """
         self.base_url = base_url
         self.client_id = client_id
         self.client_secret = client_secret
-        self.http = httpx.AsyncClient(headers=self.headers, timeout=30)
+        self.http = httpx.AsyncClient(headers=self.headers, timeout=30, proxies=proxy_config)
         self.connected = False
         self.connection: DRACOONConnection = None
         self.raise_on_err = raise_on_err
