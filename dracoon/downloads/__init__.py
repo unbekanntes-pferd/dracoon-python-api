@@ -11,6 +11,7 @@ https://support.dracoon.com/hc/de/articles/115005512089
 """
 from pathlib import Path
 import logging
+from typing import Any, Callable
 
 from tqdm import tqdm
 import httpx
@@ -59,8 +60,10 @@ class DRACOONDownloads:
         return file.exists() and file.is_file()
 
     
-    async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = CHUNK_SIZE, raise_on_err: bool = False,
-                                   display_progress: bool = False):
+    async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = CHUNK_SIZE, 
+                                   raise_on_err: bool = False, display_progress: bool = False,
+                                   callback_fn: Callable[[int], Any]  = None
+                                   ):
         """ Download a file from an unecrypted data room. """
 
         self.logger.info("Download started.")
@@ -104,6 +107,7 @@ class DRACOONDownloads:
                     async for chunk in res.aiter_bytes(chunksize):
                         file_out.write(chunk)
                         if display_progress: progress.update(len(chunk))
+                        if callback_fn: callback_fn(len(chunk))
                                         
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
@@ -117,7 +121,8 @@ class DRACOONDownloads:
             
 
     async def download_encrypted(self, download_url: str, target_path: str, node_info: Node, plain_keypair: PlainUserKeyPairContainer, file_key: FileKey, 
-                                       chunksize: int = CHUNK_SIZE, raise_on_err: bool = False, display_progress: bool = False):   
+                                       chunksize: int = CHUNK_SIZE, raise_on_err: bool = False, display_progress: bool = False, 
+                                       callback_fn: Callable[[int], Any]  = None):   
         """ Download a file from an encrypted data room. """
 
         self.logger.info("Download started.")
@@ -172,6 +177,7 @@ class DRACOONDownloads:
                         plain_chunk = decryptor.decode_bytes(chunk)
                         file_out.write(plain_chunk)
                         if display_progress: progress.update(len(chunk))
+                        if callback_fn: callback_fn(len(chunk))
                         
                         # finalize encryption after last chunk
                         if not chunk:

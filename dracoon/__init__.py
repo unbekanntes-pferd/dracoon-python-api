@@ -18,7 +18,7 @@ All requests with bodies use generic params variable to pass JSON body
 
 import logging
 import asyncio
-from typing import Any, Generator, Union
+from typing import Any, Callable, Generator, Union
 from datetime import datetime
 from dracoon.client.models import ProxyConfig
 
@@ -170,7 +170,8 @@ class DRACOON:
     async def upload(self, file_path: str, target_path: str, resolution_strategy: str = 'autorename', 
                      display_progress: bool = False, modification_date: str = datetime.utcnow().isoformat(), 
                      creation_date: str = datetime.utcnow().isoformat(), 
-                     raise_on_err: bool = False) -> Union[S3FileUploadStatus, Node]:
+                     raise_on_err: bool = False, callback_fn: Callable[[int], Any] = None
+                     ) -> Union[S3FileUploadStatus, Node]:
         """ upload a file to a target """
         if not self.client.connection:
             self.logger.error("DRACOON client not connected: Upload failed.")
@@ -218,26 +219,30 @@ class DRACOON:
         # crypto upload 
         if is_encrypted and self.check_keypair() and not use_s3_storage:       
             upload = await self.nodes.upload_encrypted(file_path=file_path, upload_channel=upload_channel, display_progress=display_progress,
-                                                         plain_keypair=self.plain_keypair, resolution_strategy=resolution_strategy, raise_on_err=raise_on_err)
+                                                         plain_keypair=self.plain_keypair, resolution_strategy=resolution_strategy, 
+                                                         raise_on_err=raise_on_err, callback_fn=callback_fn)
         elif is_encrypted and self.check_keypair() and use_s3_storage:
             upload = await self.nodes.upload_s3_encrypted(file_path=file_path, upload_channel=upload_channel, plain_keypair=self.plain_keypair, 
-                                                          display_progress=display_progress, resolution_strategy=resolution_strategy, raise_on_err=raise_on_err)
+                                                          display_progress=display_progress, resolution_strategy=resolution_strategy, 
+                                                          raise_on_err=raise_on_err, callback_fn=callback_fn)
         elif is_encrypted and not self.check_keypair():
             self.logger.critical("Upload failed: Keypair not unlocked.")
             raise CryptoMissingKeypairError('DRACOON crypto upload requires unlocked keypair. Please unlock keypair first.')
         # unencrypted upload
         elif not is_encrypted and not use_s3_storage:
             upload = await self.nodes.upload_unencrypted(file_path=file_path, upload_channel=upload_channel, resolution_strategy=resolution_strategy, 
-                                                         display_progress=display_progress, raise_on_err=raise_on_err)
+                                                         display_progress=display_progress, raise_on_err=raise_on_err, callback_fn=callback_fn)
         elif not is_encrypted and use_s3_storage:
             upload = await self.nodes.upload_s3_unencrypted(file_path=file_path, upload_channel=upload_channel, 
-                                                            display_progress=display_progress, resolution_strategy=resolution_strategy,raise_on_err=raise_on_err)
+                                                            display_progress=display_progress, resolution_strategy=resolution_strategy,
+                                                            raise_on_err=raise_on_err, callback_fn=callback_fn)
 
         self.logger.info("Upload completed.")
         
         return upload
 
-    async def download(self, file_path: str, target_path: str, display_progress: bool = False, raise_on_err: bool = False):
+    async def download(self, file_path: str, target_path: str, display_progress: bool = False, raise_on_err: bool = False, 
+                       callback_fn: Callable[[int], Any] = None):
         """ download a file to a target """
 
         if not self.client.connection:
@@ -273,12 +278,14 @@ class DRACOON:
 
         if not is_encrypted:
             await self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info, 
-                                                      display_progress=display_progress, raise_on_err=raise_on_err)
+                                                      display_progress=display_progress, raise_on_err=raise_on_err, 
+                                                      callback_fn=callback_fn)
         elif is_encrypted and self.check_keypair():
             try:
                 file_key = await self.nodes.get_user_file_key(node_id, raise_on_err=True)
                 await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, 
-                                                    plain_keypair=self.plain_keypair, file_key=file_key, display_progress=display_progress, raise_on_err=raise_on_err)
+                                                    plain_keypair=self.plain_keypair, file_key=file_key, display_progress=display_progress, 
+                                                    raise_on_err=raise_on_err, callback_fn=callback_fn)
             except HTTPNotFoundError:
                 raise CryptoMissingFileKeyrError(message=f'No file key for node {node_id}')
                 

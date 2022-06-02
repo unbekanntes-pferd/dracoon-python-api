@@ -237,7 +237,7 @@ class Node(BaseModel):
     mediaToken: Optional[str]
     isBrowsable: Optional[bool]
     cntRooms: Optional[int]
-    contFolders: Optional[int]
+    cntFolders: Optional[int]
     cntFiles: Optional[int]
     authParentId: Optional[int]
     
