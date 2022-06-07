@@ -62,7 +62,8 @@ class DRACOONDownloads:
     
     async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = CHUNK_SIZE, 
                                    raise_on_err: bool = False, display_progress: bool = False,
-                                   callback_fn: Callable[[int], Any]  = None
+                                   callback_fn: Callable[[int], Any]  = None,
+                                   file_name: str = None
                                    ):
         """ Download a file from an unecrypted data room. """
 
@@ -76,9 +77,12 @@ class DRACOONDownloads:
             self.logger.critical("Invalid node type: %s", node_info.type)
             err = InvalidFileError(message='Ony file download possible.')
             await self.dracoon.handle_generic_error(err=err)
-
-        file_path = target_path + '/' + node_info.name
-
+        
+        if file_name is None:
+            file_path = target_path + '/' + node_info.name
+        elif file_name is not None:
+            file_path = target_path + '/' + file_name
+            
         if self.check_file_exists(file_path):
             self.logger.critical("File already exists: %s", file_path)
             err = FileConflictError('File already exists.')
@@ -122,7 +126,7 @@ class DRACOONDownloads:
 
     async def download_encrypted(self, download_url: str, target_path: str, node_info: Node, plain_keypair: PlainUserKeyPairContainer, file_key: FileKey, 
                                        chunksize: int = CHUNK_SIZE, raise_on_err: bool = False, display_progress: bool = False, 
-                                       callback_fn: Callable[[int], Any]  = None):   
+                                       callback_fn: Callable[[int], Any]  = None, file_name: str = None):   
         """ Download a file from an encrypted data room. """
 
         self.logger.info("Download started.")
@@ -139,7 +143,10 @@ class DRACOONDownloads:
             err = InvalidFileError(message='Ony file download possible.')
             await self.dracoon.handle_generic_error(err=err)
 
-        file_path = target_path + '/' + node_info.name
+        if file_name is None:
+            file_path = target_path + '/' + node_info.name
+        elif file_name is not None:
+            file_path = target_path + '/' + file_name
 
         if self.check_file_exists(file_path):
             await self.dracoon.logout()
