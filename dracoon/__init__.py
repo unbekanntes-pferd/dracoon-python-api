@@ -259,7 +259,7 @@ class DRACOON:
         return upload
 
     async def download(self, file_path: str, target_path: str, display_progress: bool = False, raise_on_err: bool = False, 
-                       callback_fn: Callable[[int], Any] = None):
+                       callback_fn: Callable[[int], Any] = None, file_name: str = None):
         """ download a file to a target """
 
         if not self.client.connection:
@@ -296,13 +296,13 @@ class DRACOON:
         if not is_encrypted:
             await self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info, 
                                                       display_progress=display_progress, raise_on_err=raise_on_err, 
-                                                      callback_fn=callback_fn)
+                                                      callback_fn=callback_fn, file_name=file_name)
         elif is_encrypted and self.check_keypair():
             try:
                 file_key = await self.nodes.get_user_file_key(node_id, raise_on_err=True)
                 await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, 
                                                     plain_keypair=self.plain_keypair, file_key=file_key, display_progress=display_progress, 
-                                                    raise_on_err=raise_on_err, callback_fn=callback_fn)
+                                                    raise_on_err=raise_on_err, callback_fn=callback_fn, file_name=file_name)
             except HTTPNotFoundError:
                 raise CryptoMissingFileKeyrError(message=f'No file key for node {node_id}')
                 
