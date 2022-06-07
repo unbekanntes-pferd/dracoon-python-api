@@ -173,11 +173,12 @@ class DRACOON:
 
         return plain_keypair
 
-    async def upload(self, file_path: str, target_path: str, resolution_strategy: str = 'autorename', 
+    async def upload(self, file_path: str, target_path: str = None, resolution_strategy: str = 'autorename', 
                      display_progress: bool = False, modification_date: str = datetime.utcnow().isoformat(), 
                      creation_date: str = datetime.utcnow().isoformat(), 
-                     raise_on_err: bool = False, callback_fn: Callable[[int], Any] = None
-                     ) -> Union[S3FileUploadStatus, Node]:
+                     raise_on_err: bool = False, callback_fn: Callable[[int], Any] = None,
+                     target_parent_id: int = None
+                     ) -> S3FileUploadStatus:
         """ upload a file to a target """
         if not self.client.connection:
             self.logger.error("DRACOON client not connected: Upload failed.")
@@ -186,8 +187,17 @@ class DRACOON:
             
         if self.client.raise_on_err:
             raise_on_err = True
-
-        node_info = await self.nodes.get_node_from_path(path=target_path, raise_on_err=raise_on_err)
+            
+        if target_parent_id is None and target_path is None:
+            self.logger.critical('Upload failed: Missing target info - id or path must be provided.')
+            err = InvalidPathError(message='Missing mandatory arguments: target path or target parent id')
+            await self.client.handle_generic_error(err=err)
+            
+            
+        if target_parent_id is not None:
+            node_info = await self.nodes.get_node(node_id=target_parent_id, raise_on_err=raise_on_err)
+        elif target_path is not None:
+            node_info = await self.nodes.get_node_from_path(path=target_path, raise_on_err=raise_on_err)
         
         if not node_info:
             self.logger.critical('Upload failed: Invalid target path.')
