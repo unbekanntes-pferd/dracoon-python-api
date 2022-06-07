@@ -205,6 +205,7 @@ class NodeType(Enum):
 class Node(BaseModel):
     id: int
     type: NodeType
+    referenceId: int
     name: str
     timestampCreation: Optional[datetime]
     timestampModification: Optional[datetime]
@@ -286,6 +287,17 @@ class MissingKeysResponse(BaseModel):
     items: List[UserIdFileIdItem]
     users: List[UserUserPublicKey]
     files: List[FileFileKeys]
+    
+class FileVersion(BaseModel):
+    id: int
+    referenceId: int
+    name: str
+    parentId: Optional[int]
+    deleted: Optional[bool]
+    
+class FileVersionList(BaseModel):
+    range: Range
+    items: List[FileVersion]
 
 
 

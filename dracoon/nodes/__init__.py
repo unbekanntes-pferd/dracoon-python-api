@@ -915,9 +915,8 @@ class DRACOONNodes:
         
         self.logger.info("Retrieved nodes.")
         return NodeList(**res.json())
-
+    
     # delete nodes for given array of node ids
-
     @validate_arguments
     async def delete_nodes(self, node_list: List[int], raise_on_err: bool = False) -> None:
         """ delete a list of nodes (by id) """
@@ -1511,7 +1510,29 @@ class DRACOONNodes:
             "userId": user_id, 
             "fileKey": file_key
         })
+        
+    async def get_file_versions(self, reference_id: int, raise_on_err: bool = False):
+        """ get all file versions (including deleted nodes) for given reference id """
+        
+        if not await self.dracoon.test_connection() and self.dracoon.connection:
+            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
+        if self.raise_on_err:
+            raise_on_err = True
+
+        api_url = self.api_url + f'/files/versions/{str(reference_id)}'
+
+        try:
+            res = await self.dracoon.http.get(api_url)
+            res.raise_for_status()
+        except httpx.RequestError as e:
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Getting node failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        
+        self.logger.info("Retrieved node.")
+        return Node(**res.json())
 
     @validate_arguments
     async def create_folder(self, folder: CreateFolder, raise_on_err: bool = False) -> Node:
