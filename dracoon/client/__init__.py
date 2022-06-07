@@ -60,6 +60,8 @@ class DRACOONClient:
         self.client_id = client_id
         self.client_secret = client_secret
         self.http = httpx.AsyncClient(headers=self.headers, timeout=30, proxies=proxy_config)
+        self.uploader = httpx.AsyncClient(timeout=30, proxies=proxy_config)
+        self.downloader = httpx.AsyncClient(timeout=30, proxies=proxy_config)
         self.connected = False
         self.connection: DRACOONConnection = None
         self.raise_on_err = raise_on_err
@@ -80,8 +82,13 @@ class DRACOONClient:
         # close httpx client 
         if loop and loop.is_running():
             loop.create_task(self.http.aclose())
+            loop.create_task(self.uploader.aclose())
+            loop.create_task(self.downloader.aclose())
         elif loop and not loop.is_running():
             loop.run_until_complete(self.http.aclose())
+            loop.run_until_complete(self.downloader.aclose())
+            loop.run_until_complete(self.uploader.aclose())
+            
 
    
     async def connect(self, connection_type: OAuth2ConnectionType, username: str = None, password: str = None, 
@@ -217,6 +224,8 @@ class DRACOONClient:
         self.connected = False
         self.connection = None
         await self.http.aclose()
+        await self.downloader.aclose()
+        await self.uploader.aclose()
 
     
     async def check_access_token(self, test: bool = False):
@@ -297,10 +306,11 @@ class DRACOONClient:
         await self.http.aclose()
         raise err
     
-    async def handle_generic_error(self, err: Exception):
+    async def handle_generic_error(self, err: Exception, close_client: bool = False):
         self.logger.critical("An error ocurred.")
         self.logger.debug("%s", err)
-        await self.http.aclose()
+        if close_client:
+            await self.http.aclose()
         raise err
 
     def raise_http_error(self, err: httpx.HTTPStatusError):

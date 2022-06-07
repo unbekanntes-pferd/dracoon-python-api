@@ -1,6 +1,6 @@
 from logging import Logger, StreamHandler, FileHandler, Formatter, getLogger
 
-def create_logger(log_file: str, log_level: int, log_stream: bool) -> Logger:
+def create_logger(log_level: int, log_stream: bool, log_file_out: bool = False, log_file: str = None) -> Logger:
 
     logger = getLogger('dracoon')
 
@@ -11,10 +11,11 @@ def create_logger(log_file: str, log_level: int, log_stream: bool) -> Logger:
         stream_handler.setFormatter(formatter)
         logger.addHandler(stream_handler)
         
-    file_handler = FileHandler(filename=log_file)
-    
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    if log_file_out and log_file is not None:
+        file_handler = FileHandler(filename=log_file)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+        
     logger.setLevel(log_level)
     
     return logger
