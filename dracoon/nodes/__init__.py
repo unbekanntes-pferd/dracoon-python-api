@@ -95,12 +95,13 @@ class DRACOONNodes:
             if callback_fn: callback_fn(len(data))
             yield data
             
-    async def byte_stream(self, data: bytes, progress: tqdm = None):  
+    async def byte_stream(self, data: bytes, progress: tqdm = None, callback_fn: Callable[[int], Any] = None):  
         """ stream bytes """   
         while True:
             if not data:
                 break
             if progress: progress.update(len(data))
+            if callback_fn: callback_fn(len(data))
             yield data
 
     # get download url as authenticated user to download a file
@@ -324,11 +325,9 @@ class DRACOONNodes:
             with open(file, 'rb') as f:
                          
                 try:
-                    async with httpx.AsyncClient(timeout=30) as uploader:
-                        res = await uploader.post(url=upload_channel.uploadUrl, content=self.upload_bytes(file_obj=f, progress=progress, callback_fn=callback_fn))
-                        res.raise_for_status()
-                         
-                        if display_progress: progress.update(filesize)
+                    res = await self.dracoon.uploader.post(url=upload_channel.uploadUrl, content=self.upload_bytes(file_obj=f, progress=progress, callback_fn=callback_fn))
+                    res.raise_for_status()     
+                    if display_progress: progress.update(filesize)
                 except httpx.RequestError as e:
                     res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                     await self.dracoon.handle_connection_error(e)
@@ -364,10 +363,10 @@ class DRACOONNodes:
                     index = offset 
                     
                     try:        
-                        async with httpx.AsyncClient(timeout=30) as uploader:
-                            uploader.headers["Content-Range"] = content_range
-                            res = await uploader.post(url=upload_url, files=upload_file) 
-                            res.raise_for_status()
+
+                        self.dracoon.uploader.headers["Content-Range"] = content_range
+                        res = await self.dracoon.uploader.post(url=upload_url, files=upload_file) 
+                        res.raise_for_status()
 
                     except httpx.RequestError as e:
                         res = await self.dracoon.http.delete(upload_channel.uploadUrl)
@@ -425,11 +424,10 @@ class DRACOONNodes:
                 }
                      
                 try:
-                    async with httpx.AsyncClient(timeout=30) as uploader:
-                        res = await uploader.post(url=upload_channel.uploadUrl, files=files)
-                        res.raise_for_status()
-                        if display_progress: progress.update(filesize)
-                        if callback_fn: callback_fn(filesize)
+                    res = await self.dracoon.uploader.post(url=upload_channel.uploadUrl, files=files)
+                    res.raise_for_status()
+                    if display_progress: progress.update(filesize)
+                    if callback_fn: callback_fn(filesize)
                 except httpx.RequestError as e:
                     res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                     await self.dracoon.handle_connection_error(e)
@@ -480,12 +478,10 @@ class DRACOONNodes:
                         }
                     
                     
-                    try:        
-                        async with httpx.AsyncClient(timeout=30) as uploader:
-                            
-                            uploader.headers["Content-Range"] = content_range                    
-                            res = await uploader.post(url=upload_url, files=upload_file) 
-                            res.raise_for_status()
+                    try:                              
+                        self.dracoon.uploader.headers["Content-Range"] = content_range                    
+                        res = await self.dracoon.uploader.post(url=upload_url, files=upload_file) 
+                        res.raise_for_status()
 
                     except httpx.RequestError as e:
                         res = await self.dracoon.http.delete(upload_channel.uploadUrl)
@@ -612,17 +608,16 @@ class DRACOONNodes:
             with open(file, 'rb') as f:
                          
                 try:
-                    async with httpx.AsyncClient() as uploader:
-                        uploader.headers["Content-Length"] = str(filesize)
-                        res = await uploader.put(url=s3_urls.urls[0].url, content=self.upload_bytes(file_obj=f, progress=progress, callback_fn=callback_fn))
-                        res.raise_for_status()
+                    self.dracoon.uploader.headers["Content-Length"] = str(filesize)
+                    res = await self.dracoon.uploader.put(url=s3_urls.urls[0].url, content=self.upload_bytes(file_obj=f, progress=progress, callback_fn=callback_fn))
+                    res.raise_for_status()
                         
-                        # remove double quotes from etag
-                        e_tag = res.headers["ETag"].replace('"', '')
-                        part = S3Part(**{ "partNumber": 1, "partEtag": e_tag })
-                        parts.append(part)
+                    # remove double quotes from etag
+                    e_tag = res.headers["ETag"].replace('"', '')
+                    part = S3Part(**{ "partNumber": 1, "partEtag": e_tag })
+                    parts.append(part)
                         
-                        if display_progress: progress.update(filesize)
+                    if display_progress: progress.update(filesize)
                 except httpx.RequestError as e:
                     res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                     await self.dracoon.handle_connection_error(e)
@@ -650,15 +645,14 @@ class DRACOONNodes:
                     upload_url = s3_urls.urls[part_number].url
 
                     try:        
-                        async with httpx.AsyncClient(timeout=30) as uploader:
-                            uploader.headers["Content-Length"] = str(len(chunk)) 
+                        self.dracoon.uploader.headers["Content-Length"] = str(len(chunk)) 
                             
-                            res = await uploader.put(url=upload_url, data=chunk)
+                        res = await self.dracoon.uploader.put(url=upload_url, data=chunk)
                             
-                            res.raise_for_status()
-                            e_tag = res.headers["ETag"].replace('"', '')
-                            part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })
-                            parts.append(part)
+                        res.raise_for_status()
+                        e_tag = res.headers["ETag"].replace('"', '')
+                        part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })
+                        parts.append(part)
                     except httpx.RequestError as e:
                         res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                         await self.dracoon.handle_connection_error(e)
@@ -768,17 +762,17 @@ class DRACOONNodes:
                 enc_bytes, plain_file_key = encrypt_bytes(plain_data=f.read(), plain_file_key=plain_file_key)
                          
                 try:
-                    async with httpx.AsyncClient() as uploader:
-                        uploader.headers["Content-Length"] = str(len(enc_bytes))
-                        res = await uploader.put(url=s3_urls.urls[0].url, data=enc_bytes)
-                        res.raise_for_status()
+
+                    self.dracoon.uploader.headers["Content-Length"] = str(len(enc_bytes))
+                    res = await self.dracoon.uploader.put(url=s3_urls.urls[0].url, data=enc_bytes)
+                    res.raise_for_status()
                         
-                        # remove double quotes from etag
-                        e_tag = res.headers["ETag"].replace('"', '')
-                        part = S3Part(**{ "partNumber": 1, "partEtag": e_tag })
-                        parts.append(part)
-                        if display_progress: progress.update(filesize)
-                        if callback_fn: callback_fn(filesize)
+                    # remove double quotes from etag
+                    e_tag = res.headers["ETag"].replace('"', '')
+                    part = S3Part(**{ "partNumber": 1, "partEtag": e_tag })
+                    parts.append(part)
+                    if display_progress: progress.update(filesize)
+                    if callback_fn: callback_fn(filesize)
                 except httpx.RequestError as e:
                     res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                     await self.dracoon.handle_connection_error(e)
