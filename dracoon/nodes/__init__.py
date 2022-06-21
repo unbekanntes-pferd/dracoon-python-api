@@ -129,16 +129,16 @@ class DRACOONNodes:
         return CreateFileUploadResponse(**res.json())
     
     def make_upload_channel(self, parent_id: int, name: str, classification: int = None, size: int = None, expiration: Expiration = None, notes: str = None, 
-                            direct_s3_upload: bool = None, modification_date: str = datetime.utcnow().isoformat(), creation_date: str = datetime.utcnow().isoformat()) -> CreateUploadChannel:
+                            direct_s3_upload: bool = None, modification_date: str = None, creation_date: str = None) -> CreateUploadChannel:
         """ make an upload channel payload for create_upload_channel() """
         
         upload_channel = {
             "parentId": parent_id,
-            "name": name,
-            "timestampModification": modification_date,
-            "timestampCreation": creation_date
+            "name": name
         }
-
+        
+        if modification_date:  upload_channel["timestampModification"] = modification_date
+        if creation_date:  upload_channel["timestampCreation"] = creation_date
         if classification: upload_channel["classification"] = classification
         if size: upload_channel["size"] = size
         if expiration: upload_channel["expiration"] = expiration
@@ -311,11 +311,11 @@ class DRACOONNodes:
             err = InvalidFileError(message=f'A file needs to be provided. {file_path} is not a file.')
             await self.dracoon.handle_generic_error(err=err)
         
-        filesize = os.stat(file_path).st_size
-        file_name = file_path.split('/')[-1]
+        filesize = file.stat().st_size
+        file_name = file.name
         
         # init callback size
-        callback_fn(0, filesize)
+        if callback_fn: callback_fn(0, filesize)
         
         if filesize <= chunksize:
             
@@ -405,11 +405,11 @@ class DRACOONNodes:
             err = InvalidFileError(message=f'A file needs to be provided. {file_path} is not a file.')
             await self.dracoon.handle_generic_error(err=err)
         
-        filesize = os.stat(file_path).st_size
-        file_name = file_path.split('/')[-1]
+        filesize = file.stat().st_size
+        file_name = file.name
         
         # init callback size
-        callback_fn(0, filesize)
+        if callback_fn: callback_fn(0, filesize)
         
         if filesize <= chunksize:
             
@@ -565,11 +565,11 @@ class DRACOONNodes:
             err = InvalidFileError(message=f'A file needs to be provided. {file_path} is not a file.')
             await self.dracoon.handle_generic_error(err)
         
-        filesize = os.stat(file_path).st_size
-        file_name = file_path.split('/')[-1]
+        filesize = file.stat().st_size
+        file_name = file.name
         
         # init callback size
-        callback_fn(0, filesize)
+        if callback_fn: callback_fn(0, filesize)
         
         self.logger.debug("File name: %s", file_name)
         self.logger.debug("File size: %s", filesize)
@@ -718,11 +718,12 @@ class DRACOONNodes:
             err = InvalidFileError(message=f'A file needs to be provided. {file_path} is not a file.')
             await self.dracoon.handle_generic_error(err)
         
-        filesize = os.stat(file_path).st_size
+
         #init callback size
-        callback_fn(0, filesize)
-        file_modified = file.stat().st_mtime
-        file_name = file_path.split('/')[-1]
+        
+        filesize = file.stat().st_size
+        file_name = file.name
+        if callback_fn: callback_fn(0, filesize)
         self.logger.debug("File name: %s", file_name)
         self.logger.debug("File size: %s", filesize)
          

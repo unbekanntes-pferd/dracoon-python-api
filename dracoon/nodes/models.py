@@ -56,7 +56,7 @@ class CreateUploadChannel(BaseModel):
     notes: Optional[str]
     directS3Upload: Optional[bool]
     timestampCreation: Optional[str]
-    timestampModificiation: Optional[str]
+    timestampModification: Optional[str]
 
 
 class S3Part(BaseModel):

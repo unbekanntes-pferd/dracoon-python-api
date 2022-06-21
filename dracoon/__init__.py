@@ -18,6 +18,7 @@ All requests with bodies use generic params variable to pass JSON body
 
 import logging
 import asyncio
+from pathlib import Path
 from typing import Any, Callable, Generator, List, Union
 from datetime import datetime
 from weakref import ref
@@ -176,8 +177,8 @@ class DRACOON:
         return plain_keypair
 
     async def upload(self, file_path: str, target_path: str = None, resolution_strategy: str = 'autorename', 
-                     display_progress: bool = False, modification_date: str = datetime.utcnow().isoformat(), 
-                     creation_date: str = datetime.utcnow().isoformat(), 
+                     display_progress: bool = False, modification_date: str = None, 
+                     creation_date: str = None, 
                      raise_on_err: bool = False, callback_fn: Callback  = None,
                      target_parent_id: int = None
                      ) -> S3FileUploadStatus:
@@ -208,8 +209,13 @@ class DRACOON:
             err = InvalidPathError(message=msg)
             await self.client.handle_generic_error(err=err)
         
-        file_name = file_path.split('/')[-1]
+        file_name = Path(file_path).name
+        file_modified = Path(file_path).stat().st_mtime
         
+        if modification_date is None:
+            modification_date = datetime.fromtimestamp(file_modified).strftime('%Y-%m-%dT%H:%M:%S')
+
+           
         self.logger.info("Uploading file.")
         self.logger.debug("File: %s", file_path)
         self.logger.debug("Destination: %s", target_path)

@@ -12,7 +12,6 @@ https://support.dracoon.com/hc/de/articles/115005512089
 import os
 from pathlib import Path
 import logging
-from typing import Any, Callable
 
 from tqdm import tqdm
 import httpx
