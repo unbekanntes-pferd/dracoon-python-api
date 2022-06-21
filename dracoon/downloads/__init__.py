@@ -9,6 +9,7 @@ Please note: maximum 500 items are returned in GET requests
 https://support.dracoon.com/hc/de/articles/115005512089
 
 """
+import os
 from pathlib import Path
 import logging
 from typing import Any, Callable
@@ -17,7 +18,7 @@ from tqdm import tqdm
 import httpx
 
 from dracoon.nodes import CHUNK_SIZE
-from dracoon.nodes.models import Node, NodeType
+from dracoon.nodes.models import Callback, Node, NodeType
 from dracoon.client import DRACOONClient
 from dracoon.crypto import FileDecryptionCipher, decrypt_file_key
 from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer
@@ -62,7 +63,7 @@ class DRACOONDownloads:
     
     async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = CHUNK_SIZE, 
                                    raise_on_err: bool = False, display_progress: bool = False,
-                                   callback_fn: Callable[[int], Any]  = None,
+                                   callback_fn: Callback  = None,
                                    file_name: str = None
                                    ):
         """ Download a file from an unecrypted data room. """
@@ -79,9 +80,9 @@ class DRACOONDownloads:
             await self.dracoon.handle_generic_error(err=err)
         
         if file_name is None:
-            file_path = target_path + '/' + node_info.name
+            file_path = os.path.join(target_path, node_info.name)
         elif file_name is not None:
-            file_path = target_path + '/' + file_name
+            file_path = os.path.join(target_path, node_info.name)
             
         if self.check_file_exists(file_path):
             self.logger.critical("File already exists: %s", file_path)
@@ -96,6 +97,9 @@ class DRACOONDownloads:
             await self.dracoon.handle_generic_error(err=err)
         
         size = node_info.size
+        
+        # init callback size
+        callback_fn(0, size)
 
         self.logger.debug("File download for size: %s", size)
         self.logger.debug("Using chunksize: %s", chunksize)
@@ -124,7 +128,7 @@ class DRACOONDownloads:
 
     async def download_encrypted(self, download_url: str, target_path: str, node_info: Node, plain_keypair: PlainUserKeyPairContainer, file_key: FileKey, 
                                        chunksize: int = CHUNK_SIZE, raise_on_err: bool = False, display_progress: bool = False, 
-                                       callback_fn: Callable[[int], Any]  = None, file_name: str = None):   
+                                       callback_fn: Callback  = None, file_name: str = None):   
         """ Download a file from an encrypted data room. """
 
         self.logger.info("Download started.")
@@ -142,9 +146,9 @@ class DRACOONDownloads:
             await self.dracoon.handle_generic_error(err=err)
 
         if file_name is None:
-            file_path = target_path + '/' + node_info.name
+            file_path = os.path.join(target_path, node_info.name)
         elif file_name is not None:
-            file_path = target_path + '/' + file_name
+            file_path = os.path.join(target_path, node_info.name)
 
         if self.check_file_exists(file_path):
             await self.dracoon.logout()
@@ -167,6 +171,9 @@ class DRACOONDownloads:
 
         self.logger.debug("File download for size: %s", size)
         self.logger.debug("Using chunksize: %s", chunksize)
+        
+        # init callback size
+        callback_fn(0, size)
 
         try:         
             file_out = open(file_path, 'wb')  

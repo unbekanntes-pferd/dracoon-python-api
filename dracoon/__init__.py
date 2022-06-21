@@ -20,7 +20,9 @@ import logging
 import asyncio
 from typing import Any, Callable, Generator, List, Union
 from datetime import datetime
+from weakref import ref
 from dracoon.client.models import ProxyConfig
+from dracoon.nodes.models import Callback
 
 
 from dracoon.nodes.responses import S3FileUploadStatus
@@ -100,9 +102,10 @@ class DRACOON:
    
    
     async def connect(self, connection_type: OAuth2ConnectionType = OAuth2ConnectionType.auth_code, username: str = None, 
-                      password: str = None, auth_code = None) -> DRACOONConnection:
+                      password: str = None, auth_code: str = None, refresh_token: str = None, redirect_uri: str = None) -> DRACOONConnection:
         """ establishes a connection required for all adapters """
-        connection = await self.client.connect(connection_type=connection_type, username=username, password=password, auth_code=auth_code)
+        connection = await self.client.connect(connection_type=connection_type, username=username, password=password, 
+                                               auth_code=auth_code, refresh_token=refresh_token, redirect_uri=redirect_uri)
 
         self.logger.info("Initialized DRACOON adapters.") 
 
@@ -175,7 +178,7 @@ class DRACOON:
     async def upload(self, file_path: str, target_path: str = None, resolution_strategy: str = 'autorename', 
                      display_progress: bool = False, modification_date: str = datetime.utcnow().isoformat(), 
                      creation_date: str = datetime.utcnow().isoformat(), 
-                     raise_on_err: bool = False, callback_fn: Callable[[int], Any] = None,
+                     raise_on_err: bool = False, callback_fn: Callback  = None,
                      target_parent_id: int = None
                      ) -> S3FileUploadStatus:
         """ upload a file to a target """
@@ -258,7 +261,7 @@ class DRACOON:
         return upload
 
     async def download(self, file_path: str, target_path: str, display_progress: bool = False, raise_on_err: bool = False, 
-                       callback_fn: Callable[[int], Any] = None, file_name: str = None):
+                       callback_fn: Callback  = None, file_name: str = None):
         """ download a file to a target """
 
         if not self.client.connection:
