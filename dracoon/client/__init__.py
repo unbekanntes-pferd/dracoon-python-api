@@ -39,7 +39,7 @@ class DRACOONConnection:
     access_token: str
     access_token_validity: int
     refresh_token: str
-    refresh_token_validity: int
+
 
 
 class DRACOONClient:
@@ -134,8 +134,8 @@ class DRACOONClient:
                 await self.handle_http_error(e, True)
 
 
-            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
-                                         res.json()["refresh_token"], res.json()["expires_in"])
+            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in"],
+                                         res.json()["refresh_token"])
 
 
         if connection_type == OAuth2ConnectionType.auth_code:
@@ -153,12 +153,12 @@ class DRACOONClient:
                 self.logger.error("Authorization code authentication failed.")
                 await self.handle_http_error(e, True)
 
-            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
-                                         res.json()["refresh_token"], res.json()["expires_in"])
+            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in"],
+                                         res.json()["refresh_token"])
 
             self.logger.info("Established connection.")
             self.logger.debug("Access token valid: %s", self.connection.access_token_validity)
-            self.logger.debug("Refresh token valid: %s", self.connection.refresh_token_validity)
+
 
 
         if connection_type == OAuth2ConnectionType.refresh_token:
@@ -183,8 +183,8 @@ class DRACOONClient:
                 await self.handle_http_error(e, True)
 
 
-            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
-                                         res.json()["refresh_token"], res.json()["expires_in"])
+            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in"],
+                                         res.json()["refresh_token"])
 
         self.connected = True
         self.http.headers["Authorization"] = "Bearer " + self.connection.access_token
@@ -240,17 +240,6 @@ class DRACOONClient:
             return await self.test_connection()
         else:
             self.logger.error("Access token no longer valid.")
-            return False
-
-    def check_refresh_token(self):
-        """ check refresh token validity (based on connection time and token validity) """
-        self.logger.info("Testing refresh token validity.")
-
-        if self.connection:
-            now = datetime.now()
-            return (now - self.connection.connected_at).seconds < self.connection.refresh_token_validity
-        else:
-            self.logger.error("Refresh token no longer valid.")
             return False
 
     async def test_connection(self, test: bool = False) -> bool:

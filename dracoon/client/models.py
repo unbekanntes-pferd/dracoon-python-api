@@ -24,4 +24,5 @@ class ErrorMessage(BaseModel):
     debugInfo: Optional[str]
     errorCode: Optional[int]
 
+# adheres to proxy model from httpx (dict with http / https and respective str) or single str
 ProxyConfig = Union[dict[str, str], str]

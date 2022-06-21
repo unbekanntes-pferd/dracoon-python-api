@@ -100,18 +100,16 @@ class DRACOONDownloads:
         self.logger.debug("File download for size: %s", size)
         self.logger.debug("Using chunksize: %s", chunksize)
             
-        try:
-            async with httpx.AsyncClient() as downloader:
+        try:             
+            file_out = open(file_path, 'wb')
                 
-                file_out = open(file_path, 'wb')
-                
-                async with downloader.stream(method='GET', url=download_url) as res:
+            async with self.dracoon.downloader.stream(method='GET', url=download_url) as res:
                     
-                    if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)
-                    async for chunk in res.aiter_bytes(chunksize):
-                        file_out.write(chunk)
-                        if display_progress: progress.update(len(chunk))
-                        if callback_fn: callback_fn(len(chunk))
+                if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)
+                async for chunk in res.aiter_bytes(chunksize):
+                    file_out.write(chunk)
+                    if display_progress: progress.update(len(chunk))
+                    if callback_fn: callback_fn(len(chunk))
                                         
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
@@ -170,26 +168,24 @@ class DRACOONDownloads:
         self.logger.debug("File download for size: %s", size)
         self.logger.debug("Using chunksize: %s", chunksize)
 
-        try:    
-            async with httpx.AsyncClient() as downloader:
+        try:         
+            file_out = open(file_path, 'wb')  
                 
-                file_out = open(file_path, 'wb')  
-                
-                async with downloader.stream(method='GET', url=download_url) as res:
-                    res.raise_for_status()
-                    if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)   
+            async with self.dracoon.downloader.stream(method='GET', url=download_url) as res:
+                res.raise_for_status()
+                if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)   
                     
-                    # decrypt file and then write to disk
-                    async for chunk in res.aiter_bytes(chunksize):            
-                        plain_chunk = decryptor.decode_bytes(chunk)
-                        file_out.write(plain_chunk)
-                        if display_progress: progress.update(len(chunk))
-                        if callback_fn: callback_fn(len(chunk))
+                # decrypt file and then write to disk
+                async for chunk in res.aiter_bytes(chunksize):            
+                    plain_chunk = decryptor.decode_bytes(chunk)
+                    file_out.write(plain_chunk)
+                    if display_progress: progress.update(len(chunk))
+                    if callback_fn: callback_fn(len(chunk))
                         
                         # finalize encryption after last chunk
-                        if not chunk:
-                            last_data = decryptor.finalize()
-                            file_out.write(last_data)
+                    if not chunk:
+                        last_data = decryptor.finalize()
+                        file_out.write(last_data)
                                      
                     self.logger.info("Download completed.")
         except httpx.RequestError as e:
