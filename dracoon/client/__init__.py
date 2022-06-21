@@ -15,15 +15,17 @@ import base64
 import asyncio
 from datetime import datetime
 import logging
+import re
 
 import httpx
 from dracoon.client.models import ProxyConfig
 
-from dracoon.errors import (MissingCredentialsError, DRACOONClientError, HTTPBadRequestError, HTTPUnauthorizedError, 
+from dracoon.errors import (MissingCredentialsError, HTTPBadRequestError, HTTPUnauthorizedError, 
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
                             HTTPUnknownError)
 
-USER_AGENT = 'dracoon-python-1.4.1'
+USER_AGENT = 'dracoon-python-1.5.0'
+DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=20, read=20)
 
 class OAuth2ConnectionType(Enum):
     """ enum as connection type for DRACOONClient """
@@ -59,9 +61,9 @@ class DRACOONClient:
         self.base_url = base_url
         self.client_id = client_id
         self.client_secret = client_secret
-        self.http = httpx.AsyncClient(headers=self.headers, timeout=30, proxies=proxy_config)
-        self.uploader = httpx.AsyncClient(timeout=30, proxies=proxy_config)
-        self.downloader = httpx.AsyncClient(timeout=30, proxies=proxy_config)
+        self.http = httpx.AsyncClient(headers=self.headers, timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
+        self.uploader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
+        self.downloader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
         self.connected = False
         self.connection: DRACOONConnection = None
         self.raise_on_err = raise_on_err
@@ -92,7 +94,7 @@ class DRACOONClient:
 
    
     async def connect(self, connection_type: OAuth2ConnectionType, username: str = None, password: str = None, 
-                      auth_code: str = None, refresh_token: str = None) -> DRACOONConnection:
+                      auth_code: str = None, refresh_token: str = None, redirect_uri: str = None) -> DRACOONConnection:
         """ connects based on given OAuth2ConnectionType """
         token_url = self.base_url + '/oauth/token'
         now = datetime.now()
@@ -139,8 +141,14 @@ class DRACOONClient:
 
 
         if connection_type == OAuth2ConnectionType.auth_code:
+            
+            
+            if redirect_uri:
+                _redirect_uri = redirect_uri
+            else:
+                _redirect_uri = self.base_url + '/oauth/callback'
 
-            data = {'grant_type': 'authorization_code', 'code': auth_code, 'client_id': self.client_id, 'client_secret': self.client_secret, 'redirect_uri': self.base_url + '/oauth/callback'}
+            data = {'grant_type': 'authorization_code', 'code': auth_code, 'client_id': self.client_id, 'client_secret': self.client_secret, 'redirect_uri': _redirect_uri}
 
             try:
                 res = await self.http.post(url=token_url, data=data)

@@ -1,7 +1,8 @@
 
 from enum import Enum
+from typing_extensions import Protocol
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Any, List, Optional
 from datetime import datetime
 
 
@@ -205,7 +206,7 @@ class NodeType(Enum):
 class Node(BaseModel):
     id: int
     type: NodeType
-    referenceId: int
+    referenceId: Optional[int]
     name: str
     timestampCreation: Optional[datetime]
     timestampModification: Optional[datetime]
@@ -298,6 +299,31 @@ class FileVersion(BaseModel):
 class FileVersionList(BaseModel):
     range: Range
     items: List[FileVersion]
+    
+
+class Callback(Protocol):
+    """ callback function signature - example see TransferJob.update_progress() """
+    def __call__(self, val: int, total: int = ...) -> Any:
+        ...
+        
+class TransferJob:
+    """ object representing a single transfer (up- / download) """
+    progress = 0
+    transferred = 0
+    total = 0
+    
+    def update_progress(self, val: int, total: int = None) -> None:
+        self.transferred += val
+        if total is not None and self.total == 0:
+            # only set total if present and not set
+            self.total = total
+        
+    @property
+    def progress(self):
+        if self.total > 0:
+            return self.transferred / self.total
+        else:
+            return 0
 
 
 

@@ -19,7 +19,7 @@ import os
 import math
 from pathlib import Path
 from datetime import datetime
-from typing import Any, Callable, List, Union
+from typing import List, Union
 import logging
 import asyncio
 import urllib.parse
@@ -32,10 +32,9 @@ from dracoon.crypto import FileEncryptionCipher, encrypt_bytes, encrypt_file_key
 from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer
 from dracoon.groups.models import Expiration
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
-from dracoon.errors import (InvalidClientError, ClientDisconnectedError, InvalidPathError, 
-                           FileConflictError, InvalidFileError, InvalidArgumentError)
+from dracoon.errors import (InvalidClientError, ClientDisconnectedError, InvalidFileError, InvalidArgumentError)
 from dracoon.uploads.models import UploadChannelResponse
-from .models import (CompleteS3Upload, CompleteUpload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, 
+from .models import (Callback, CompleteS3Upload, CompleteUpload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, 
                      GetS3Urls, LogEventList, MissingKeysResponse, Node, NodeItem, Permissions, ProcessRoomPendingUsers, S3Part, 
                      SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFile, UpdateFiles, 
                      UpdateFolder, UpdateRoom, UpdateRoomGroupItem, UpdateRoomGroups, UpdateRoomHooks, 
@@ -75,7 +74,7 @@ class DRACOONNodes:
             self.logger.error("DRACOON client error: no connection. ")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
     
-    async def upload_bytes(self, file_obj, progress: tqdm = None, callback_fn: Callable[[int], Any]  = None):
+    async def upload_bytes(self, file_obj, progress: tqdm = None, callback_fn: Callback  = None):
         """ async iterator to stream byte upload """
         while True:
             data = file_obj.read()
@@ -85,7 +84,7 @@ class DRACOONNodes:
             if callback_fn: callback_fn(len(data))
             yield data
             
-    def read_in_chunks(self, file_obj, chunksize: int = CHUNK_SIZE, progress: tqdm = None, callback_fn: Callable[[int], Any] = None):
+    def read_in_chunks(self, file_obj, chunksize: int = CHUNK_SIZE, progress: tqdm = None, callback_fn: Callback  = None):
         """ iterator to read a file object in chunks (default chunk size: 32 MB) """
         while True:
             data = file_obj.read(chunksize)
@@ -95,7 +94,7 @@ class DRACOONNodes:
             if callback_fn: callback_fn(len(data))
             yield data
             
-    async def byte_stream(self, data: bytes, progress: tqdm = None, callback_fn: Callable[[int], Any] = None):  
+    async def byte_stream(self, data: bytes, progress: tqdm = None, callback_fn: Callback  = None):  
         """ stream bytes """   
         while True:
             if not data:
@@ -301,7 +300,7 @@ class DRACOONNodes:
     async def upload_unencrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, keep_shares: bool = False, 
                                     resolution_strategy: str = 'autorename', chunksize: int = CHUNK_SIZE, 
                                     display_progress: bool = False, raise_on_err: bool = False, 
-                                    callback_fn: Callable[[int], Any] = None
+                                    callback_fn: Callback  = None
                                     ) -> Node:
         if self.raise_on_err:
             raise_on_err = True 
@@ -313,7 +312,10 @@ class DRACOONNodes:
             await self.dracoon.handle_generic_error(err=err)
         
         filesize = os.stat(file_path).st_size
-        file_name = file_path.split('/')[-1] 
+        file_name = file_path.split('/')[-1]
+        
+        # init callback size
+        callback_fn(0, filesize)
         
         if filesize <= chunksize:
             
@@ -392,7 +394,7 @@ class DRACOONNodes:
     async def upload_encrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, plain_keypair: PlainUserKeyPairContainer, 
                                   keep_shares: bool = False, resolution_strategy: str = 'autorename', 
                                   chunksize: int = CHUNK_SIZE, display_progress: bool = False, raise_on_err: bool = False,
-                                  callback_fn: Callable[[int], Any]  = None
+                                  callback_fn: Callback  = None
                                   ) -> Node:
         if self.raise_on_err:
             raise_on_err = True 
@@ -404,7 +406,10 @@ class DRACOONNodes:
             await self.dracoon.handle_generic_error(err=err)
         
         filesize = os.stat(file_path).st_size
-        file_name = file_path.split('/')[-1] 
+        file_name = file_path.split('/')[-1]
+        
+        # init callback size
+        callback_fn(0, filesize)
         
         if filesize <= chunksize:
             
@@ -548,7 +553,7 @@ class DRACOONNodes:
     async def upload_s3_unencrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, keep_shares: bool = False, 
                                     resolution_strategy: str = 'autorename', chunksize: int = CHUNK_SIZE, 
                                     display_progress: bool = False, raise_on_err: bool = False, 
-                                    callback_fn: Callable[[int], Any]  = None) -> S3FileUploadStatus:
+                                    callback_fn: Callback  = None) -> S3FileUploadStatus:
         if self.raise_on_err:
             raise_on_err = True
 
@@ -562,6 +567,10 @@ class DRACOONNodes:
         
         filesize = os.stat(file_path).st_size
         file_name = file_path.split('/')[-1]
+        
+        # init callback size
+        callback_fn(0, filesize)
+        
         self.logger.debug("File name: %s", file_name)
         self.logger.debug("File size: %s", filesize)
         
@@ -694,7 +703,7 @@ class DRACOONNodes:
     async def upload_s3_encrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, plain_keypair: PlainUserKeyPairContainer, 
                                   keep_shares: bool = False, resolution_strategy: str = 'autorename', 
                                   chunksize: int = CHUNK_SIZE, display_progress: bool = False, raise_on_err: bool = False,
-                                  callback_fn: Callable[[int], Any]  = None
+                                  callback_fn: Callback  = None
                                   ) -> S3FileUploadStatus:
         
         """ Upload a file into an encrypted container via S3 direct upload """
@@ -710,6 +719,8 @@ class DRACOONNodes:
             await self.dracoon.handle_generic_error(err)
         
         filesize = os.stat(file_path).st_size
+        #init callback size
+        callback_fn(0, filesize)
         file_modified = file.stat().st_mtime
         file_name = file_path.split('/')[-1]
         self.logger.debug("File name: %s", file_name)
