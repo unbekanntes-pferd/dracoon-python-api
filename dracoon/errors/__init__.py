@@ -1,6 +1,19 @@
 from httpx import HTTPStatusError
 
-class DRACOONCryptoError(Exception):
+
+class DRACOONBaseError(Exception):
+    """
+    Base exception for all errors
+
+    """
+
+    def __init__(self, message: str):
+
+        self.message = message
+
+        super().__init__(self.message)
+
+class DRACOONCryptoError(DRACOONBaseError):
     """
     Base exception for crypto related errors
 
@@ -13,7 +26,7 @@ class DRACOONCryptoError(Exception):
         super().__init__(self.message)
         
 
-class DRACOONClientError(Exception):
+class DRACOONClientError(DRACOONBaseError):
     """
     Base exception for client related errors
 
@@ -26,7 +39,7 @@ class DRACOONClientError(Exception):
         super().__init__(self.message)
 
         
-class DRACOONValidationError(Exception):
+class DRACOONValidationError(DRACOONBaseError):
     """
     Base exception for validation related errors
 
@@ -211,7 +224,7 @@ class InvalidPathError(DRACOONValidationError):
         super().__init__(self.message)
 
 
-class DRACOONHttpError(Exception):
+class DRACOONHttpError(DRACOONBaseError):
     """
     Exception raised for errors returned by DRACOON API 
     (status code >= 400)
@@ -257,16 +270,6 @@ class HTTPUnauthorizedError(DRACOONHttpError):
         self.message = message
 
         super().__init__(self.message)
-
-    def __str__(self):
-
-        return f"{self.error.response.text}"
-
-        # if not is_xml:
-        #     return f"{self.error.response.text}"
-        # else:
-        #     return f"{self.error.response.content}"
-
 
 class HTTPPaymentRequiredError(DRACOONHttpError):
     """

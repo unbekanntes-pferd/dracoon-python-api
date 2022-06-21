@@ -22,7 +22,6 @@ from typing import Any, Callable, Generator, List, Union
 from datetime import datetime
 from dracoon.client.models import ProxyConfig
 
-from dracoon.nodes.models import Node
 
 from dracoon.nodes.responses import S3FileUploadStatus
 
