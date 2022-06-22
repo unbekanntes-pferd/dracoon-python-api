@@ -281,7 +281,8 @@ class DRACOONGroups:
 
         if self.raise_on_err:
             raise_on_err = True
-
+        
+ 
         api_url = self.api_url + f'/{str(group_id)}/users'
 
         payload = {
@@ -290,6 +291,7 @@ class DRACOONGroups:
 
         try:
             res = await self.dracoon.http.post(url=api_url, json=payload)
+            res.raise_for_status()
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
@@ -316,7 +318,6 @@ class DRACOONGroups:
 
         try:
             res = await self.dracoon.http.request(method='DELETE', url=api_url, json=payload, headers=self.dracoon.http.headers)
-
             res.raise_for_status()
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
