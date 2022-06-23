@@ -81,7 +81,7 @@ class DRACOONDownloads:
         if file_name is None:
             file_path = os.path.join(target_path, node_info.name)
         elif file_name is not None:
-            file_path = os.path.join(target_path, node_info.name)
+            file_path = os.path.join(target_path, file_name)
             
         if self.check_file_exists(file_path):
             self.logger.critical("File already exists: %s", file_path)
@@ -147,7 +147,7 @@ class DRACOONDownloads:
         if file_name is None:
             file_path = os.path.join(target_path, node_info.name)
         elif file_name is not None:
-            file_path = os.path.join(target_path, node_info.name)
+            file_path = os.path.join(target_path, file_name)
 
         if self.check_file_exists(file_path):
             await self.dracoon.logout()
