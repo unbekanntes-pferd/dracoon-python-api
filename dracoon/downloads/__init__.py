@@ -9,6 +9,7 @@ Please note: maximum 500 items are returned in GET requests
 https://support.dracoon.com/hc/de/articles/115005512089
 
 """
+import os
 from pathlib import Path
 import logging
 
@@ -16,7 +17,7 @@ from tqdm import tqdm
 import httpx
 
 from dracoon.nodes import CHUNK_SIZE
-from dracoon.nodes.models import Node, NodeType
+from dracoon.nodes.models import Callback, Node, NodeType
 from dracoon.client import DRACOONClient
 from dracoon.crypto import FileDecryptionCipher, decrypt_file_key
 from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer
@@ -59,8 +60,11 @@ class DRACOONDownloads:
         return file.exists() and file.is_file()
 
     
-    async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = CHUNK_SIZE, raise_on_err: bool = False,
-                                   display_progress: bool = False):
+    async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = CHUNK_SIZE, 
+                                   raise_on_err: bool = False, display_progress: bool = False,
+                                   callback_fn: Callback  = None,
+                                   file_name: str = None
+                                   ):
         """ Download a file from an unecrypted data room. """
 
         self.logger.info("Download started.")
@@ -73,9 +77,12 @@ class DRACOONDownloads:
             self.logger.critical("Invalid node type: %s", node_info.type)
             err = InvalidFileError(message='Ony file download possible.')
             await self.dracoon.handle_generic_error(err=err)
-
-        file_path = target_path + '/' + node_info.name
-
+        
+        if file_name is None:
+            file_path = os.path.join(target_path, node_info.name)
+        elif file_name is not None:
+            file_path = os.path.join(target_path, node_info.name)
+            
         if self.check_file_exists(file_path):
             self.logger.critical("File already exists: %s", file_path)
             err = FileConflictError('File already exists.')
@@ -89,21 +96,23 @@ class DRACOONDownloads:
             await self.dracoon.handle_generic_error(err=err)
         
         size = node_info.size
+        
+        # init callback size
+        callback_fn(0, size)
 
         self.logger.debug("File download for size: %s", size)
         self.logger.debug("Using chunksize: %s", chunksize)
             
-        try:
-            async with httpx.AsyncClient() as downloader:
+        try:             
+            file_out = open(file_path, 'wb')
                 
-                file_out = open(file_path, 'wb')
-                
-                async with downloader.stream(method='GET', url=download_url) as res:
+            async with self.dracoon.downloader.stream(method='GET', url=download_url) as res:
                     
-                    if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)
-                    async for chunk in res.aiter_bytes(chunksize):
-                        file_out.write(chunk)
-                        if display_progress: progress.update(len(chunk))
+                if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)
+                async for chunk in res.aiter_bytes(chunksize):
+                    file_out.write(chunk)
+                    if display_progress: progress.update(len(chunk))
+                    if callback_fn: callback_fn(len(chunk))
                                         
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
@@ -117,7 +126,8 @@ class DRACOONDownloads:
             
 
     async def download_encrypted(self, download_url: str, target_path: str, node_info: Node, plain_keypair: PlainUserKeyPairContainer, file_key: FileKey, 
-                                       chunksize: int = CHUNK_SIZE, raise_on_err: bool = False, display_progress: bool = False):   
+                                       chunksize: int = CHUNK_SIZE, raise_on_err: bool = False, display_progress: bool = False, 
+                                       callback_fn: Callback  = None, file_name: str = None):   
         """ Download a file from an encrypted data room. """
 
         self.logger.info("Download started.")
@@ -134,7 +144,10 @@ class DRACOONDownloads:
             err = InvalidFileError(message='Ony file download possible.')
             await self.dracoon.handle_generic_error(err=err)
 
-        file_path = target_path + '/' + node_info.name
+        if file_name is None:
+            file_path = os.path.join(target_path, node_info.name)
+        elif file_name is not None:
+            file_path = os.path.join(target_path, node_info.name)
 
         if self.check_file_exists(file_path):
             await self.dracoon.logout()
@@ -157,26 +170,28 @@ class DRACOONDownloads:
 
         self.logger.debug("File download for size: %s", size)
         self.logger.debug("Using chunksize: %s", chunksize)
+        
+        # init callback size
+        callback_fn(0, size)
 
-        try:    
-            async with httpx.AsyncClient() as downloader:
+        try:         
+            file_out = open(file_path, 'wb')  
                 
-                file_out = open(file_path, 'wb')  
-                
-                async with downloader.stream(method='GET', url=download_url) as res:
-                    res.raise_for_status()
-                    if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)   
+            async with self.dracoon.downloader.stream(method='GET', url=download_url) as res:
+                res.raise_for_status()
+                if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)   
                     
-                    # decrypt file and then write to disk
-                    async for chunk in res.aiter_bytes(chunksize):            
-                        plain_chunk = decryptor.decode_bytes(chunk)
-                        file_out.write(plain_chunk)
-                        if display_progress: progress.update(len(chunk))
+                # decrypt file and then write to disk
+                async for chunk in res.aiter_bytes(chunksize):            
+                    plain_chunk = decryptor.decode_bytes(chunk)
+                    file_out.write(plain_chunk)
+                    if display_progress: progress.update(len(chunk))
+                    if callback_fn: callback_fn(len(chunk))
                         
                         # finalize encryption after last chunk
-                        if not chunk:
-                            last_data = decryptor.finalize()
-                            file_out.write(last_data)
+                    if not chunk:
+                        last_data = decryptor.finalize()
+                        file_out.write(last_data)
                                      
                     self.logger.info("Download completed.")
         except httpx.RequestError as e:

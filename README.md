@@ -141,9 +141,8 @@ connected = dracoon.test_connection()
 ```
 This will provide a true / false result depending on the connection.
 If no flag is set, this will just check if the access token is valid based on the token validity.
-In order to test the connection with a request, is the test flag:
+In order to test the connection with a request, use the test flag:
 
-#### Test connection
 ```Python
 connected = dracoon.test_connection(test=True)
 ```
@@ -155,13 +154,26 @@ An authenticated ping is used to verify the tokens are valid.
 All methods check for access token validity and fetch new tokens, if the access tokens expire.
 Therefore it should not be necessary to manually request it.
 
-You can manually use the refresh token auth as follows:
+You can manually use the refresh token auth as follows, if you have an authenticated instance:
 
 ```Python
 connection = await dracoon.client.connect(OAuth2ConnectionType.refresh_token)
 ```
 
 Every connect process will update the connection.
+
+In order to securely store a refresh token, you can access the connection:
+
+```Python
+refresh_token = dracoon.connection.refresh_token
+```
+
+You can then create a new authenticated object like this:
+
+```Python
+connection = await dracoon.connect(connection_type=OAuth2ConnectionType.refresh_token, refresh_token=xxxxx)
+```
+
 
 
 #### Log out
@@ -245,10 +257,20 @@ room3_res = dracoon.nodes_create_room(room3)
 ...
 
 rooms = await asyncio.gather(room1_res, room2_res, room3_res, ...)
+```
 
-for i in range(0, len(rooms) + 3, 3):
-  rooms_res = await asyncio.gather(rooms[i:i+3])
+You can additionally use a helper to create an iterator with a given batch size:
 
+```Python
+rooms_reqs = [dracoon.nodes.create_room(room) for room in rooms]
+
+# will process 10 requests concurrently 
+for reqs in dracoon.batch_process(coro_list=room_reqs, batch_size=10):
+  await asyncio.gather(*reqs)
+
+...
+
+rooms = await asyncio.gather(room1_res, room2_res, room3_res, ...)
 ```
 
 ## Cryptography
@@ -312,12 +334,14 @@ The result of the completed encryption is an updated plain_file_key with a speci
 
 Hint: You do not need to implement the upload process and can directly use full methods in the uploads adapter (see next chapter).
 
-## Uploads
+## Transfers
+
+### Uploads
 
 The nodes and uploads adapters include full methods to upload data to DRACOON and includes chunking and encryption support.
 Implementing the upload with respective calls is not recommended - please use the main wrapper (see example below) instead.
 
-Here is an example of uploading a file to an encrypted room with only a few lines of code:
+Here is an example of uploading a file to an encrypted room:
 
 ```Python
 
@@ -329,54 +353,137 @@ Here is an example of uploading a file to an encrypted room with only a few line
 ```
 
 The default chunk size is 32 MB but can be passed as an option (chunksize, in bytes).
-If needed, the progress bar can be displayed (see example - by setting to true) - default (or when ommitted) is false, so no progress is displayed.
+
+If you have the node id of the target room / folder, you can also pass this and ommit the target_path like this:
+
+```Python
+
+    await dracoon.upload(file_path=source, display_progress=True, target_parent_id=999)
+    
+```
+
 
 The main API wrapper includes a method that includes upload for encrypted and unencrypted files.
 Full example: [File upload](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/upload.py)
 
-## Downloads
+### Downloads
 
 The downloads adapter includes full methods to download data from DRACOON including chunking and encryption support.
 
-In order to download a file, generate a download url and use the relevant method:
-
-```Python
-res = await self.nodes.get_download_url(node_id=node_id)
-download_url = res.downloadUrl
-
-await.self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info)
-    
-```
-
-To get the node information based on a path, you can use the following method:
-
-```Python
-node_info = await self.nodes.get_node_from_path(file_path)
-```
-
-In order to download encrypted files, you will need to unlock your keypair and retrieve your file key:
-
-```Python
-plain_keypair = dracoon.get_keypair(secret)
-# get node id via node info (see above)
-file_key = await self.nodes.get_user_file_key(node_id)
-plain_file_key = decrypt_file_key(file_key, plain_keypair)
-```
-
-As with uploads, the main wrapper has a method which handles encryption, keypair and file key – above steps do not need to be performed if not needed.
-Instead, use the main wrapper:
-
+As with uploads, the main wrapper has a method which handles encryption, keypair and file key.
+Usage:
 
 ```Python
 
 target = '/Example/Target'
 source = '/DEMO/testfile.bin'
-await dracoon.download(file_path=file, target_path=target)
+await dracoon.download(file_path=source, target_path=target)
 
 ```
 
 Full example: [Download files](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/download.py)
 
+
+### Callbacks
+
+In order to keep track of a transfer progress, both up- and download accept a callback function which accepts a value of the changed bytes and the total size of the binary once (when initializing).
+
+A function should therefore adhere to the following signature:
+
+```Python
+
+class Callback(Protocol):
+    def __call__(self, val: int, total: int = ...) -> Any:
+        ...
+
+```
+The function should accept the bytes as first value and accept the total as an optional parameter. 
+
+A base class to build own jobs is also provided and called TransferJob - usage with inheritance (demo with tqdm as progress bar):
+
+```Python
+class TransferJob(BaseTransferJob):
+    """ object representing a single transfer (up- / download) """
+    progress_bar = None
+    
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def update_progress(self, val: int, total: int = None) -> None:
+        self.transferred += val
+        if total is not None and self.total == 0:
+            self.total = total
+            self.progress_bar = tqdm(unit='iMB',unit_divisor=1024, total=self.total, unit_scale=True)
+        
+        if self.progress_bar:
+            self.progress_bar.update(val)
+    
+    def __del__(self):
+        if self.progress_bar:
+            self.progress_bar.close()
+            
+        
+    @property
+    def progress(self):
+        if self.total > 0:
+            return self.transferred / self.total
+        else:
+            return 0
+```
+
+A full example can be found here: 
+
+[Use transfer callbacks](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/transfer_callbacks.py)
+
+## Error handling 
+
+In order to perform error handling, you can import needed errors from the errors module:
+
+```Python
+from dracoon.errors import DRACOONBaseError, DRACOONHttpError, HTTPNotFoundError
+
+```
+
+The error hirarchy is like this: 
+
+* DRACOONBaseError - main error class
+  * DRACOONCryptoError - error related to crypto operations
+    * individual crypto errors
+  * DRACOONHttpError - error with response status code > 3xx (4xx and above)
+    * HTTPNotFoundError - individual error named after response, e.g. 404 Not Found
+    ...
+  * DRACOONClientError - error with the client (not connected etc.)
+     * individual crypto errors
+
+In order to raise exceptions based on HTTP status codes you MUST provide the raise_on_err flag for the method like this:
+
+```Python
+
+await dracoon.users.get_users(raise_on_err=True)
+
+```
+
+Alternatively you can set raise_on_err globally when creating the DRACOON object:
+
+```Python
+
+dracoon = DRACOON(base_url=base_url, client_id=client_id, client_secret=client_secret, log_level=logging.INFO, raise_on_err=True)
+
+```
+
+Example of catching errors:
+
+```Python
+try:
+   await dracoon.users.get_user(user_id=999)
+except HTTPNotFoundError:
+  print("User not found")
+except HTTPForbiddenError:
+  print("User is not a user manager - operation not allowed")
+except DRACOONHttpError:
+  print("Oops, an unknown error ocurred")
+
+```
 
 ## Examples
 

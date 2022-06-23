@@ -1,6 +1,58 @@
 from httpx import HTTPStatusError
 
-class FileKeyEncryptionError(Exception):
+
+class DRACOONBaseError(Exception):
+    """
+    Base exception for all errors
+
+    """
+
+    def __init__(self, message: str):
+
+        self.message = message
+
+        super().__init__(self.message)
+
+class DRACOONCryptoError(DRACOONBaseError):
+    """
+    Base exception for crypto related errors
+
+    """
+
+    def __init__(self, message: str):
+
+        self.message = message
+
+        super().__init__(self.message)
+        
+
+class DRACOONClientError(DRACOONBaseError):
+    """
+    Base exception for client related errors
+
+    """
+
+    def __init__(self, message: str ):
+
+        self.message = message
+
+        super().__init__(self.message)
+
+        
+class DRACOONValidationError(DRACOONBaseError):
+    """
+    Base exception for validation related errors
+
+    """
+
+    def __init__(self, message: str):
+
+        self.message = message
+
+        super().__init__(self.message)
+
+
+class FileKeyEncryptionError(DRACOONCryptoError):
     """
     Exception raised in dracoon.crypto
     File key could not be encrypted
@@ -14,7 +66,7 @@ class FileKeyEncryptionError(Exception):
         super().__init__(self.message)
 
 
-class InvalidKeypairVersionError(Exception):
+class InvalidKeypairVersionError(DRACOONCryptoError):
     """
     Exception raised in dracoon.crypto
     Invalid keypair version
@@ -28,7 +80,7 @@ class InvalidKeypairVersionError(Exception):
 
         super().__init__(self.message)
 
-class InvalidFileKeyError(Exception):
+class InvalidFileKeyError(DRACOONCryptoError):
     """
     Exception raised in dracoon.crypto
     Invalid file key
@@ -42,7 +94,7 @@ class InvalidFileKeyError(Exception):
 
         super().__init__(self.message)
 
-class CryptoMissingDataError(Exception):
+class CryptoMissingDataError(DRACOONCryptoError):
     """
     Exception raised in dracoon.crypto
     Missing data to process
@@ -55,7 +107,7 @@ class CryptoMissingDataError(Exception):
 
         super().__init__(self.message)
 
-class CryptoMissingKeypairError(Exception):
+class CryptoMissingKeypairError(DRACOONCryptoError):
     """
     Exception raised in dracoon
     Missing keypair unlock
@@ -68,7 +120,7 @@ class CryptoMissingKeypairError(Exception):
 
         super().__init__(self.message)
         
-class CryptoMissingFileKeyrError(Exception):
+class CryptoMissingFileKeyrError(DRACOONCryptoError):
     """
     Exception raised in dracoon
     Missing file key for user and node
@@ -81,7 +133,7 @@ class CryptoMissingFileKeyrError(Exception):
         super().__init__(self.message)
 
 
-class MissingCredentialsError(Exception):
+class MissingCredentialsError(DRACOONClientError):
     """
     Exception raised in dracoon.client
     Missing credentials for flow
@@ -96,7 +148,7 @@ class MissingCredentialsError(Exception):
 
         super().__init__(self.message)
 
-class ClientDisconnectedError(Exception):
+class ClientDisconnectedError(DRACOONClientError):
     """
     Exception raised in dracoon modules
     Client is not connected (client.connect())
@@ -108,7 +160,7 @@ class ClientDisconnectedError(Exception):
 
         super().__init__(self.message)
 
-class InvalidClientError(Exception):
+class InvalidClientError(DRACOONClientError):
     """
     Exception raised in dracoon modules
     Client does not adhere to format (DRACOONClient)
@@ -121,7 +173,7 @@ class InvalidClientError(Exception):
         super().__init__(self.message)
 
 
-class InvalidArgumentError(Exception):
+class InvalidArgumentError(DRACOONValidationError):
     """
     Exception raised in dracoon modules
     Value provided not valid 
@@ -134,7 +186,7 @@ class InvalidArgumentError(Exception):
 
         super().__init__(self.message)
 
-class InvalidFileError(Exception):
+class InvalidFileError(DRACOONValidationError):
     """
     Exception raised in dracoon.uploads
     File with given path not found.
@@ -147,7 +199,7 @@ class InvalidFileError(Exception):
         super().__init__(self.message)
 
 
-class FileConflictError(Exception):
+class FileConflictError(DRACOONValidationError):
     """
     Exception raised in dracoon.nodes
     File to download exists on target path (name)
@@ -159,7 +211,7 @@ class FileConflictError(Exception):
 
         super().__init__(self.message)
 
-class InvalidPathError(Exception):
+class InvalidPathError(DRACOONValidationError):
     """
     Exception raised in dracoon.nodes
     Path provided is not a folder.
@@ -172,7 +224,7 @@ class InvalidPathError(Exception):
         super().__init__(self.message)
 
 
-class DRACOONClientError(Exception):
+class DRACOONHttpError(DRACOONBaseError):
     """
     Exception raised for errors returned by DRACOON API 
     (status code >= 400)
@@ -186,15 +238,9 @@ class DRACOONClientError(Exception):
         self.message = message
 
         super().__init__(self.message)
+        
 
-    def __str__(self):
-        if not self.is_xml:
-            return f"{self.error.response.text}"
-        else:
-            return f"{self.error.response.content}"
-
-
-class HTTPBadRequestError(Exception):
+class HTTPBadRequestError(DRACOONHttpError):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 400)
@@ -210,7 +256,7 @@ class HTTPBadRequestError(Exception):
         super().__init__(self.error, self.is_xml, self.message)
 
 
-class HTTPUnauthorizedError(Exception):
+class HTTPUnauthorizedError(DRACOONHttpError):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 401)
@@ -225,17 +271,7 @@ class HTTPUnauthorizedError(Exception):
 
         super().__init__(self.message)
 
-    def __str__(self):
-
-        return f"{self.error.response.text}"
-
-        # if not is_xml:
-        #     return f"{self.error.response.text}"
-        # else:
-        #     return f"{self.error.response.content}"
-
-
-class HTTPPaymentRequiredError(Exception):
+class HTTPPaymentRequiredError(DRACOONHttpError):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 402)
@@ -251,7 +287,7 @@ class HTTPPaymentRequiredError(Exception):
         super().__init__(self.error, self.is_xml, self.message)
 
 
-class HTTPForbiddenError(Exception):
+class HTTPForbiddenError(DRACOONHttpError):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 403)
@@ -267,7 +303,7 @@ class HTTPForbiddenError(Exception):
         super().__init__(self.error, self.is_xml, self.message)
 
 
-class HTTPNotFoundError(Exception):
+class HTTPNotFoundError(DRACOONHttpError):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 404)
@@ -283,7 +319,7 @@ class HTTPNotFoundError(Exception):
         super().__init__(self.error, self.is_xml, self.message)
 
 
-class HTTPConflictError(Exception):
+class HTTPConflictError(DRACOONHttpError):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 409)
@@ -299,7 +335,7 @@ class HTTPConflictError(Exception):
         super().__init__(self.error, self.is_xml, self.message)
 
 
-class HTTPPreconditionsFailedError(Exception):
+class HTTPPreconditionsFailedError(DRACOONHttpError):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 412)
@@ -316,7 +352,7 @@ class HTTPPreconditionsFailedError(Exception):
         super().__init__(self.error, self.is_xml, self.message)
 
 
-class HTTPUnknownError(Exception):
+class HTTPUnknownError(DRACOONHttpError):
     """
     Exception raised for errors returned by DRACOON API 
     (status code 500 or not covered by other errors above)

@@ -18,19 +18,21 @@ All requests with bodies use generic params variable to pass JSON body
 
 import logging
 import asyncio
-from typing import Any, Generator, Union
+from pathlib import Path
+from typing import Any, Generator, List
 from datetime import datetime
+from dracoon.client.models import ProxyConfig
+from dracoon.nodes.models import Callback
 
-from dracoon.nodes.models import Node
 
 from dracoon.nodes.responses import S3FileUploadStatus
 
 from .crypto.models import PlainUserKeyPairContainer
 from .downloads import DRACOONDownloads
 from .public import DRACOONPublic
-from .client import DRACOONClient, OAuth2ConnectionType
+from .client import DRACOONClient, DRACOONConnection, OAuth2ConnectionType
 from .eventlog import DRACOONEvents
-from .nodes import DRACOONNodes
+from .nodes import CHUNK_SIZE, DRACOONNodes
 from .shares import DRACOONShares
 from .user import DRACOONUser
 from .users import DRACOONUsers
@@ -39,7 +41,8 @@ from .settings import DRACOONSettings
 from .reports import DRACOONReports
 from .crypto import decrypt_private_key
 from .logger import create_logger
-from .errors import CryptoMissingFileKeyrError, CryptoMissingKeypairError, HTTPNotFoundError, InvalidFileError, InvalidPathError, ClientDisconnectedError
+from .errors import (CryptoMissingFileKeyrError, CryptoMissingKeypairError,
+                     HTTPNotFoundError, InvalidArgumentError, InvalidFileError, InvalidPathError, ClientDisconnectedError)
 
 
 
@@ -47,11 +50,12 @@ class DRACOON:
     """ DRACOON main API wrapper with all adapters to specific endpoints """ 
 
     def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', log_file: str = 'dracoon.log', 
-                 log_level = logging.INFO, log_stream: bool = False, raise_on_err: bool = False):
+                 log_level = logging.INFO, log_stream: bool = False, raise_on_err: bool = False, proxy_config: ProxyConfig = None,
+                 log_file_out: bool = False):
         """ intialize with instance information: base DRACOON url and OAuth app client credentials """
-        self.client = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=raise_on_err)
-
-        self.logger = create_logger(log_file=log_file, log_level=log_level, log_stream=log_stream)
+        self.client = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=raise_on_err, 
+                                    proxy_config=proxy_config)
+        self.logger = create_logger(log_file=log_file, log_level=log_level, log_stream=log_stream, log_file_out=log_file_out)
         self.logger.info("Created DRACOON client.")
         self.plain_keypair = None
         self.user_info =  None
@@ -97,9 +101,11 @@ class DRACOON:
        return DRACOONDownloads(self.client) 
    
    
-    async def connect(self, connection_type: OAuth2ConnectionType = OAuth2ConnectionType.auth_code, username: str = None, password: str = None, auth_code = None):
+    async def connect(self, connection_type: OAuth2ConnectionType = OAuth2ConnectionType.auth_code, username: str = None, 
+                      password: str = None, auth_code: str = None, refresh_token: str = None, redirect_uri: str = None) -> DRACOONConnection:
         """ establishes a connection required for all adapters """
-        connection = await self.client.connect(connection_type=connection_type, username=username, password=password, auth_code=auth_code)
+        self.connection = await self.client.connect(connection_type=connection_type, username=username, password=password, 
+                                               auth_code=auth_code, refresh_token=refresh_token, redirect_uri=redirect_uri)
 
         self.logger.info("Initialized DRACOON adapters.") 
 
@@ -120,6 +126,8 @@ class DRACOON:
         self.logger.info("Retrieved instance and account information.")
         self.logger.debug("Logged in as user id %s.", self.user_info.id)
         self.logger.debug("Using S3: %s.", self.system_info.useS3Storage)
+        
+        return self.connection
         
     async def logout(self, revoke_refresh_token: bool = False) -> None:
         """ closes the httpx client and revokes tokens """
@@ -167,10 +175,13 @@ class DRACOON:
 
         return plain_keypair
 
-    async def upload(self, file_path: str, target_path: str, resolution_strategy: str = 'autorename', 
-                     display_progress: bool = False, modification_date: str = datetime.utcnow().isoformat(), 
-                     creation_date: str = datetime.utcnow().isoformat(), 
-                     raise_on_err: bool = False) -> Union[S3FileUploadStatus, Node]:
+    async def upload(self, file_path: str, target_path: str = None, resolution_strategy: str = 'autorename', 
+                     display_progress: bool = False, modification_date: str = None, 
+                     creation_date: str = None, 
+                     raise_on_err: bool = False, callback_fn: Callback  = None,
+                     target_parent_id: int = None,
+                     chunksize: int = CHUNK_SIZE
+                     ) -> S3FileUploadStatus:
         """ upload a file to a target """
         if not self.client.connection:
             self.logger.error("DRACOON client not connected: Upload failed.")
@@ -179,8 +190,19 @@ class DRACOON:
             
         if self.client.raise_on_err:
             raise_on_err = True
-
-        node_info = await self.nodes.get_node_from_path(path=target_path, raise_on_err=raise_on_err)
+            
+        if target_parent_id is None and target_path is None:
+            self.logger.critical('Upload failed: Missing target info - id or path must be provided.')
+            err = InvalidPathError(message='Missing mandatory arguments: target path or target parent id')
+            await self.client.handle_generic_error(err=err)
+            
+            
+        if target_parent_id is not None:
+            node_info = await self.nodes.get_node(node_id=target_parent_id, raise_on_err=raise_on_err)
+        elif target_path is not None:
+            node_info = await self.nodes.get_node_from_path(path=target_path, raise_on_err=raise_on_err)
+        else:
+            raise InvalidArgumentError("Missing node info: Provide target path or node id.")
         
         if not node_info:
             self.logger.critical('Upload failed: Invalid target path.')
@@ -189,8 +211,17 @@ class DRACOON:
             err = InvalidPathError(message=msg)
             await self.client.handle_generic_error(err=err)
         
-        file_name = file_path.split('/')[-1]
+        file_name = Path(file_path).name
+        file_modified = Path(file_path).stat().st_mtime
+        file_created = Path(file_path).stat().st_ctime
         
+        if modification_date is None:
+            modification_date = datetime.fromtimestamp(file_modified).strftime('%Y-%m-%dT%H:%M:%S')
+            
+        if creation_date is None:
+            creation_date = datetime.fromtimestamp(file_created).strftime('%Y-%m-%dT%H:%M:%S')
+
+           
         self.logger.info("Uploading file.")
         self.logger.debug("File: %s", file_path)
         self.logger.debug("Destination: %s", target_path)
@@ -218,37 +249,48 @@ class DRACOON:
         # crypto upload 
         if is_encrypted and self.check_keypair() and not use_s3_storage:       
             upload = await self.nodes.upload_encrypted(file_path=file_path, upload_channel=upload_channel, display_progress=display_progress,
-                                                         plain_keypair=self.plain_keypair, resolution_strategy=resolution_strategy, raise_on_err=raise_on_err)
+                                                         plain_keypair=self.plain_keypair, resolution_strategy=resolution_strategy, 
+                                                         raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
         elif is_encrypted and self.check_keypair() and use_s3_storage:
             upload = await self.nodes.upload_s3_encrypted(file_path=file_path, upload_channel=upload_channel, plain_keypair=self.plain_keypair, 
-                                                          display_progress=display_progress, resolution_strategy=resolution_strategy, raise_on_err=raise_on_err)
+                                                          display_progress=display_progress, resolution_strategy=resolution_strategy, 
+                                                          raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
         elif is_encrypted and not self.check_keypair():
             self.logger.critical("Upload failed: Keypair not unlocked.")
             raise CryptoMissingKeypairError('DRACOON crypto upload requires unlocked keypair. Please unlock keypair first.')
         # unencrypted upload
         elif not is_encrypted and not use_s3_storage:
-            upload = await self.nodes.upload_unencrypted(file_path=file_path, upload_channel=upload_channel, resolution_strategy=resolution_strategy, 
-                                                         display_progress=display_progress, raise_on_err=raise_on_err)
+            upload = await self.nodes.upload_unencrypted(file_path=file_path, upload_channel=upload_channel, 
+                                                         resolution_strategy=resolution_strategy, display_progress=display_progress, 
+                                                         raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
         elif not is_encrypted and use_s3_storage:
             upload = await self.nodes.upload_s3_unencrypted(file_path=file_path, upload_channel=upload_channel, 
-                                                            display_progress=display_progress, resolution_strategy=resolution_strategy,raise_on_err=raise_on_err)
+                                                            display_progress=display_progress, resolution_strategy=resolution_strategy,
+                                                            raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
 
         self.logger.info("Upload completed.")
         
         return upload
 
-    async def download(self, file_path: str, target_path: str, display_progress: bool = False, raise_on_err: bool = False):
+    async def download(self, target_path: str, file_path: str = None, display_progress: bool = False, raise_on_err: bool = False, 
+                       callback_fn: Callback  = None, file_name: str = None, source_node_id: int = None, chunksize: int = CHUNK_SIZE):
         """ download a file to a target """
 
         if not self.client.connection:
-            await self.client.http.aclose()
+            await self.logout()
             self.logger.error("DRACOON client not connected: Download failed.")
             raise ClientDisconnectedError(message='DRACOON client not connected.')
 
         if self.client.raise_on_err:
             raise_on_err = True
-
-        node_info = await self.nodes.get_node_from_path(path=file_path, raise_on_err=raise_on_err)
+            
+        if source_node_id is not None:
+            node_id = source_node_id
+            node_info = await self.nodes.get_node(node_id=node_id)   
+        elif file_path is not None:
+            node_info = await self.nodes.get_node_from_path(path=file_path, raise_on_err=raise_on_err)
+        else:
+            raise InvalidArgumentError("Missing node info: provide either id or file path")
         
         if not node_info:
             self.logger.error("Download failed: file does not exist.")
@@ -273,12 +315,14 @@ class DRACOON:
 
         if not is_encrypted:
             await self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info, 
-                                                      display_progress=display_progress, raise_on_err=raise_on_err)
+                                                      display_progress=display_progress, raise_on_err=raise_on_err, 
+                                                      callback_fn=callback_fn, file_name=file_name, chunksize=chunksize)
         elif is_encrypted and self.check_keypair():
             try:
                 file_key = await self.nodes.get_user_file_key(node_id, raise_on_err=True)
                 await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, 
-                                                    plain_keypair=self.plain_keypair, file_key=file_key, display_progress=display_progress, raise_on_err=raise_on_err)
+                                                    plain_keypair=self.plain_keypair, file_key=file_key, display_progress=display_progress, 
+                                                    raise_on_err=raise_on_err, callback_fn=callback_fn, file_name=file_name, chunksize=chunksize)
             except HTTPNotFoundError:
                 raise CryptoMissingFileKeyrError(message=f'No file key for node {node_id}')
                 
@@ -291,7 +335,7 @@ class DRACOON:
         self.logger.info("Getting authorization URL.")
         return self.client.get_code_url()
 
-    def batch_process(self, coro_list, batch_size: int = 5) -> Generator[Any, None, None]:
+    def batch_process(self, coro_list: List[Any], batch_size: int = 5) -> Generator[Any, None, None]:
         """ 
         helper method which returns a generator for a list 
         of couroutines 

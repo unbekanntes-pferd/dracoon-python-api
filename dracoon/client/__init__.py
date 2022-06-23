@@ -15,14 +15,17 @@ import base64
 import asyncio
 from datetime import datetime
 import logging
+import re
 
 import httpx
+from dracoon.client.models import ProxyConfig
 
-from dracoon.errors import (MissingCredentialsError, DRACOONClientError, HTTPBadRequestError, HTTPUnauthorizedError, 
+from dracoon.errors import (MissingCredentialsError, HTTPBadRequestError, HTTPUnauthorizedError, 
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
                             HTTPUnknownError)
 
-USER_AGENT = 'dracoon-python-1.4.1'
+USER_AGENT = 'dracoon-python-1.5.0'
+DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=20, read=20)
 
 class OAuth2ConnectionType(Enum):
     """ enum as connection type for DRACOONClient """
@@ -38,7 +41,7 @@ class DRACOONConnection:
     access_token: str
     access_token_validity: int
     refresh_token: str
-    refresh_token_validity: int
+
 
 
 class DRACOONClient:
@@ -52,12 +55,15 @@ class DRACOONClient:
 
     }
 
-    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', raise_on_err: bool = False):
+    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', raise_on_err: bool = False,
+                 proxy_config: ProxyConfig = None):
         """ client is initialized with DRACOON instance details (url and OAuth client credentials) """
         self.base_url = base_url
         self.client_id = client_id
         self.client_secret = client_secret
-        self.http = httpx.AsyncClient(headers=self.headers, timeout=30)
+        self.http = httpx.AsyncClient(headers=self.headers, timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
+        self.uploader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
+        self.downloader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
         self.connected = False
         self.connection: DRACOONConnection = None
         self.raise_on_err = raise_on_err
@@ -78,12 +84,17 @@ class DRACOONClient:
         # close httpx client 
         if loop and loop.is_running():
             loop.create_task(self.http.aclose())
+            loop.create_task(self.uploader.aclose())
+            loop.create_task(self.downloader.aclose())
         elif loop and not loop.is_running():
             loop.run_until_complete(self.http.aclose())
+            loop.run_until_complete(self.downloader.aclose())
+            loop.run_until_complete(self.uploader.aclose())
+            
 
    
     async def connect(self, connection_type: OAuth2ConnectionType, username: str = None, password: str = None, 
-                      auth_code: str = None, refresh_token: str = None) -> DRACOONConnection:
+                      auth_code: str = None, refresh_token: str = None, redirect_uri: str = None) -> DRACOONConnection:
         """ connects based on given OAuth2ConnectionType """
         token_url = self.base_url + '/oauth/token'
         now = datetime.now()
@@ -125,13 +136,19 @@ class DRACOONClient:
                 await self.handle_http_error(e, True)
 
 
-            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
-                                         res.json()["refresh_token"], res.json()["expires_in"])
+            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in"],
+                                         res.json()["refresh_token"])
 
 
         if connection_type == OAuth2ConnectionType.auth_code:
+            
+            
+            if redirect_uri:
+                _redirect_uri = redirect_uri
+            else:
+                _redirect_uri = self.base_url + '/oauth/callback'
 
-            data = {'grant_type': 'authorization_code', 'code': auth_code, 'client_id': self.client_id, 'client_secret': self.client_secret, 'redirect_uri': self.base_url + '/oauth/callback'}
+            data = {'grant_type': 'authorization_code', 'code': auth_code, 'client_id': self.client_id, 'client_secret': self.client_secret, 'redirect_uri': _redirect_uri}
 
             try:
                 res = await self.http.post(url=token_url, data=data)
@@ -144,12 +161,12 @@ class DRACOONClient:
                 self.logger.error("Authorization code authentication failed.")
                 await self.handle_http_error(e, True)
 
-            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
-                                         res.json()["refresh_token"], res.json()["expires_in"])
+            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in"],
+                                         res.json()["refresh_token"])
 
             self.logger.info("Established connection.")
             self.logger.debug("Access token valid: %s", self.connection.access_token_validity)
-            self.logger.debug("Refresh token valid: %s", self.connection.refresh_token_validity)
+
 
 
         if connection_type == OAuth2ConnectionType.refresh_token:
@@ -174,8 +191,8 @@ class DRACOONClient:
                 await self.handle_http_error(e, True)
 
 
-            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in_inactive"],
-                                         res.json()["refresh_token"], res.json()["expires_in"])
+            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in"],
+                                         res.json()["refresh_token"])
 
         self.connected = True
         self.http.headers["Authorization"] = "Bearer " + self.connection.access_token
@@ -215,6 +232,8 @@ class DRACOONClient:
         self.connected = False
         self.connection = None
         await self.http.aclose()
+        await self.downloader.aclose()
+        await self.uploader.aclose()
 
     
     async def check_access_token(self, test: bool = False):
@@ -229,17 +248,6 @@ class DRACOONClient:
             return await self.test_connection()
         else:
             self.logger.error("Access token no longer valid.")
-            return False
-
-    def check_refresh_token(self):
-        """ check refresh token validity (based on connection time and token validity) """
-        self.logger.info("Testing refresh token validity.")
-
-        if self.connection:
-            now = datetime.now()
-            return (now - self.connection.connected_at).seconds < self.connection.refresh_token_validity
-        else:
-            self.logger.error("Refresh token no longer valid.")
             return False
 
     async def test_connection(self, test: bool = False) -> bool:
@@ -295,10 +303,11 @@ class DRACOONClient:
         await self.http.aclose()
         raise err
     
-    async def handle_generic_error(self, err: Exception):
+    async def handle_generic_error(self, err: Exception, close_client: bool = False):
         self.logger.critical("An error ocurred.")
         self.logger.debug("%s", err)
-        await self.http.aclose()
+        if close_client:
+            await self.http.aclose()
         raise err
 
     def raise_http_error(self, err: httpx.HTTPStatusError):

@@ -1,7 +1,8 @@
 
 from enum import Enum
+from typing_extensions import Protocol
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Any, List, Optional
 from datetime import datetime
 
 
@@ -55,7 +56,7 @@ class CreateUploadChannel(BaseModel):
     notes: Optional[str]
     directS3Upload: Optional[bool]
     timestampCreation: Optional[str]
-    timestampModificiation: Optional[str]
+    timestampModification: Optional[str]
 
 
 class S3Part(BaseModel):
@@ -205,6 +206,7 @@ class NodeType(Enum):
 class Node(BaseModel):
     id: int
     type: NodeType
+    referenceId: Optional[int]
     name: str
     timestampCreation: Optional[datetime]
     timestampModification: Optional[datetime]
@@ -237,7 +239,7 @@ class Node(BaseModel):
     mediaToken: Optional[str]
     isBrowsable: Optional[bool]
     cntRooms: Optional[int]
-    contFolders: Optional[int]
+    cntFolders: Optional[int]
     cntFiles: Optional[int]
     authParentId: Optional[int]
     
@@ -286,6 +288,42 @@ class MissingKeysResponse(BaseModel):
     items: List[UserIdFileIdItem]
     users: List[UserUserPublicKey]
     files: List[FileFileKeys]
+    
+class FileVersion(BaseModel):
+    id: int
+    referenceId: int
+    name: str
+    parentId: Optional[int]
+    deleted: Optional[bool]
+    
+class FileVersionList(BaseModel):
+    range: Range
+    items: List[FileVersion]
+    
+
+class Callback(Protocol):
+    """ callback function signature - example see TransferJob.update_progress() """
+    def __call__(self, val: int, total: int = ...) -> Any:
+        ...
+        
+class TransferJob:
+    """ object representing a single transfer (up- / download) """
+    progress = 0
+    transferred = 0
+    total = 0
+    
+    def update_progress(self, val: int, total: int = None) -> None:
+        self.transferred += val
+        if total is not None and self.total == 0:
+            # only set total if present and not set
+            self.total = total
+        
+    @property
+    def progress(self):
+        if self.total > 0:
+            return self.transferred / self.total
+        else:
+            return 0
 
 
 
