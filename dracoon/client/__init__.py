@@ -24,7 +24,7 @@ from dracoon.errors import (MissingCredentialsError, HTTPBadRequestError, HTTPUn
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
                             HTTPUnknownError)
 
-USER_AGENT = 'dracoon-python-1.5.0'
+USER_AGENT = 'dracoon-python-1.5.1'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=20, read=20)
 
 class OAuth2ConnectionType(Enum):
