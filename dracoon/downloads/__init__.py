@@ -98,7 +98,7 @@ class DRACOONDownloads:
         size = node_info.size
         
         # init callback size
-        callback_fn(0, size)
+        if callback_fn: callback_fn(0, size)
 
         self.logger.debug("File download for size: %s", size)
         self.logger.debug("Using chunksize: %s", chunksize)
@@ -172,7 +172,7 @@ class DRACOONDownloads:
         self.logger.debug("Using chunksize: %s", chunksize)
         
         # init callback size
-        callback_fn(0, size)
+        if callback_fn: callback_fn(0, size)
 
         try:         
             file_out = open(file_path, 'wb')  
