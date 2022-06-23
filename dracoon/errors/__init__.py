@@ -21,9 +21,7 @@ class DRACOONCryptoError(DRACOONBaseError):
     def __init__(self, message: str):
 
         super().__init__(message)
-        self.message = message
-        
-
+  
 class DRACOONClientError(DRACOONBaseError):
     """
     Base exception for client related errors
@@ -33,9 +31,8 @@ class DRACOONClientError(DRACOONBaseError):
     def __init__(self, message: str):
 
         super().__init__(message)
-        self.message = message
 
-        
+       
 class DRACOONValidationError(DRACOONBaseError):
     """
     Base exception for validation related errors
@@ -45,7 +42,6 @@ class DRACOONValidationError(DRACOONBaseError):
     def __init__(self, message: str):
 
         super().__init__(message)
-        self.message = message
 
 
 class FileKeyEncryptionError(DRACOONCryptoError):
@@ -58,7 +54,7 @@ class FileKeyEncryptionError(DRACOONCryptoError):
     def __init__(self, message: str = "File key could not be encrypted"):
 
         super().__init__(message)
-        self.message = message
+
 
 
 class InvalidKeypairVersionError(DRACOONCryptoError):
