@@ -72,6 +72,15 @@ async def test_transfers_e2e():
     
     print('Downloading small file (no chunking) test passed (/)')
     
+    await dracoon.download(file_path=download_path_small, target_path=tmp_dir, file_name='test.test')
+    
+    small_file = Path(os.path.join(tmp_dir, f'test.test'))
+    assert small_file.exists() and small_file.is_file() 
+    assert small_file.name == 'test.test'
+    assert os.stat(os.path.join(tmp_dir, file_small.node.name)).st_size == file_small.node.size
+    
+    print('Downloading small file (no chunking) with custom file name test passed (/)')
+    
     await dracoon.download(file_path=download_path_large, target_path=tmp_dir, display_progress=True)
     
     large_file = Path(os.path.join(tmp_dir, file_large.node.name))
