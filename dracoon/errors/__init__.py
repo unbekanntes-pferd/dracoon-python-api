@@ -9,9 +9,8 @@ class DRACOONBaseError(Exception):
 
     def __init__(self, message: str):
 
+        super().__init__(message)
         self.message = message
-
-        super().__init__(self.message)
 
 class DRACOONCryptoError(DRACOONBaseError):
     """
@@ -21,9 +20,8 @@ class DRACOONCryptoError(DRACOONBaseError):
 
     def __init__(self, message: str):
 
+        super().__init__(message)
         self.message = message
-
-        super().__init__(self.message)
         
 
 class DRACOONClientError(DRACOONBaseError):
@@ -32,11 +30,10 @@ class DRACOONClientError(DRACOONBaseError):
 
     """
 
-    def __init__(self, message: str ):
+    def __init__(self, message: str):
 
+        super().__init__(message)
         self.message = message
-
-        super().__init__(self.message)
 
         
 class DRACOONValidationError(DRACOONBaseError):
@@ -47,9 +44,8 @@ class DRACOONValidationError(DRACOONBaseError):
 
     def __init__(self, message: str):
 
+        super().__init__(message)
         self.message = message
-
-        super().__init__(self.message)
 
 
 class FileKeyEncryptionError(DRACOONCryptoError):
@@ -61,9 +57,8 @@ class FileKeyEncryptionError(DRACOONCryptoError):
 
     def __init__(self, message: str = "File key could not be encrypted"):
 
+        super().__init__(message)
         self.message = message
-
-        super().__init__(self.message)
 
 
 class InvalidKeypairVersionError(DRACOONCryptoError):
@@ -76,9 +71,7 @@ class InvalidKeypairVersionError(DRACOONCryptoError):
 
     def __init__(self, message: str = "Invalid keypair version"):
 
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(message)
 
 class InvalidFileKeyError(DRACOONCryptoError):
     """
@@ -90,9 +83,7 @@ class InvalidFileKeyError(DRACOONCryptoError):
 
     def __init__(self, message: str = "Invalid file key"):
 
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(message)
 
 class CryptoMissingDataError(DRACOONCryptoError):
     """
@@ -103,9 +94,7 @@ class CryptoMissingDataError(DRACOONCryptoError):
 
     def __init__(self, message: str = "No data to process."):
 
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(message)
 
 class CryptoMissingKeypairError(DRACOONCryptoError):
     """
@@ -116,9 +105,7 @@ class CryptoMissingKeypairError(DRACOONCryptoError):
 
     def __init__(self, message: str = "Missing keypair."):
 
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(message)
         
 class CryptoMissingFileKeyrError(DRACOONCryptoError):
     """
@@ -128,9 +115,7 @@ class CryptoMissingFileKeyrError(DRACOONCryptoError):
 
     def __init__(self, message: str = "Missing file key."):
 
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(message)
 
 
 class MissingCredentialsError(DRACOONClientError):
@@ -144,9 +129,7 @@ class MissingCredentialsError(DRACOONClientError):
 
     def __init__(self, message: str = "Missing credentials for OAuth2 flow."):
 
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(message)
 
 class ClientDisconnectedError(DRACOONClientError):
     """
@@ -156,9 +139,7 @@ class ClientDisconnectedError(DRACOONClientError):
 
     def __init__(self, message: str = "Client must be connected (client.connect())."):
 
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(message)
 
 class InvalidClientError(DRACOONClientError):
     """
@@ -168,9 +149,7 @@ class InvalidClientError(DRACOONClientError):
 
     def __init__(self, message: str = "Invalid client."):
 
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(message)
 
 
 class InvalidArgumentError(DRACOONValidationError):
@@ -182,9 +161,7 @@ class InvalidArgumentError(DRACOONValidationError):
 
     def __init__(self, message: str = "Invalid argument."):
 
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(message)
 
 class InvalidFileError(DRACOONValidationError):
     """
@@ -194,9 +171,7 @@ class InvalidFileError(DRACOONValidationError):
 
     def __init__(self, message: str = "File not found."):
 
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(message)
 
 
 class FileConflictError(DRACOONValidationError):
@@ -207,9 +182,7 @@ class FileConflictError(DRACOONValidationError):
 
     def __init__(self, message: str = "File already exists."):
 
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(message)
 
 class InvalidPathError(DRACOONValidationError):
     """
@@ -219,9 +192,7 @@ class InvalidPathError(DRACOONValidationError):
 
     def __init__(self, message: str = "Path is not a folder."):
 
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(message)
 
 
 class DRACOONHttpError(DRACOONBaseError):
@@ -232,12 +203,10 @@ class DRACOONHttpError(DRACOONBaseError):
     """
     def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON API error"):
         
+        super().__init__(message)
         # required for AWS S3 XML responses
         self.is_xml = is_xml
         self.error = error
-        self.message = message
-
-        super().__init__(self.message)
         
 
 class HTTPBadRequestError(DRACOONHttpError):
@@ -248,12 +217,7 @@ class HTTPBadRequestError(DRACOONHttpError):
     """
     def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON Bad Request Error"):
         
-        # required for AWS S3 XML responses
-        self.is_xml = is_xml
-        self.error = error
-        self.message = message
-
-        super().__init__(self.error, self.is_xml, self.message)
+        super().__init__(error, is_xml, message)
 
 
 class HTTPUnauthorizedError(DRACOONHttpError):
@@ -264,12 +228,7 @@ class HTTPUnauthorizedError(DRACOONHttpError):
     """
     def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON Unauthorized Error"):
         
-        # required for AWS S3 XML responses
-        self.is_xml = is_xml
-        self.error = error
-        self.message = message
-
-        super().__init__(self.message)
+        super().__init__(error, is_xml, message)
 
 class HTTPPaymentRequiredError(DRACOONHttpError):
     """
@@ -279,12 +238,7 @@ class HTTPPaymentRequiredError(DRACOONHttpError):
     """
     def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON Payment Required Error"):
         
-        # required for AWS S3 XML responses
-        self.is_xml = is_xml
-        self.error = error
-        self.message = message
-
-        super().__init__(self.error, self.is_xml, self.message)
+        super().__init__(error, is_xml, message)
 
 
 class HTTPForbiddenError(DRACOONHttpError):
@@ -295,12 +249,8 @@ class HTTPForbiddenError(DRACOONHttpError):
     """
     def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON Forbidden Error"):
         
-        # required for AWS S3 XML responses
-        self.is_xml = is_xml
-        self.error = error
-        self.message = message
-
-        super().__init__(self.error, self.is_xml, self.message)
+        
+        super().__init__(error, is_xml, message)
 
 
 class HTTPNotFoundError(DRACOONHttpError):
@@ -311,12 +261,8 @@ class HTTPNotFoundError(DRACOONHttpError):
     """
     def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON Not Found Error"):
         
-        # required for AWS S3 XML responses
-        self.is_xml = is_xml
-        self.error = error
-        self.message = message
-
-        super().__init__(self.error, self.is_xml, self.message)
+        
+        super().__init__(error, is_xml, message)
 
 
 class HTTPConflictError(DRACOONHttpError):
@@ -327,12 +273,8 @@ class HTTPConflictError(DRACOONHttpError):
     """
     def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON Conflict Error"):
         
-        # required for AWS S3 XML responses
-        self.is_xml = is_xml
-        self.error = error
-        self.message = message
-
-        super().__init__(self.error, self.is_xml, self.message)
+        
+        super().__init__(error, is_xml, message)
 
 
 class HTTPPreconditionsFailedError(DRACOONHttpError):
@@ -344,12 +286,8 @@ class HTTPPreconditionsFailedError(DRACOONHttpError):
 
     def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON Precondition Failed Error"):
         
-        # required for AWS S3 XML responses
-        self.is_xml = is_xml
-        self.error = error
-        self.message = message
-
-        super().__init__(self.error, self.is_xml, self.message)
+        
+        super().__init__(error, is_xml, message)
 
 
 class HTTPUnknownError(DRACOONHttpError):
@@ -361,12 +299,8 @@ class HTTPUnknownError(DRACOONHttpError):
 
     def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON unknown error"):
         
-        # required for AWS S3 XML responses
-        self.is_xml = is_xml
-        self.error = error
-        self.message = message
-
-        super().__init__(self.error, self.is_xml, self.message)
+        
+        super().__init__(error, is_xml, message)
 
 
 
