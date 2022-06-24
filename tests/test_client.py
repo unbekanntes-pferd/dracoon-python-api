@@ -1,4 +1,4 @@
-from dracoon.core import DRACOONClient, DRACOONConnection, OAuth2ConnectionType
+from dracoon.client import DRACOONClient, DRACOONConnection, OAuth2ConnectionType
 import unittest
 import dotenv
 import os
@@ -93,18 +93,5 @@ class TestAsyncDRACOONClient(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(access_token_valid_test)
 
         await dracoon.logout()
-
-    async def test_refresh_token_validity(self):
-        dracoon = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret)
-
-        await dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)
-
-        refresh_token_valid = dracoon.check_refresh_token()
-
-        self.assertTrue(refresh_token_valid)
-
-        await dracoon.logout()
-
-
 if __name__ == '__main__':
     unittest.main()

@@ -81,7 +81,7 @@ class DRACOONDownloads:
         if file_name is None:
             file_path = os.path.join(target_path, node_info.name)
         elif file_name is not None:
-            file_path = os.path.join(target_path, node_info.name)
+            file_path = os.path.join(target_path, file_name)
             
         if self.check_file_exists(file_path):
             self.logger.critical("File already exists: %s", file_path)
@@ -98,7 +98,7 @@ class DRACOONDownloads:
         size = node_info.size
         
         # init callback size
-        callback_fn(0, size)
+        if callback_fn: callback_fn(0, size)
 
         self.logger.debug("File download for size: %s", size)
         self.logger.debug("Using chunksize: %s", chunksize)
@@ -147,7 +147,7 @@ class DRACOONDownloads:
         if file_name is None:
             file_path = os.path.join(target_path, node_info.name)
         elif file_name is not None:
-            file_path = os.path.join(target_path, node_info.name)
+            file_path = os.path.join(target_path, file_name)
 
         if self.check_file_exists(file_path):
             await self.dracoon.logout()
@@ -172,7 +172,7 @@ class DRACOONDownloads:
         self.logger.debug("Using chunksize: %s", chunksize)
         
         # init callback size
-        callback_fn(0, size)
+        if callback_fn: callback_fn(0, size)
 
         try:         
             file_out = open(file_path, 'wb')  

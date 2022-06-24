@@ -46,6 +46,8 @@ from .responses import (Comment, CommentList, CreateFileUploadResponse, DeletedN
 
 # constants for uploads 
 CHUNK_SIZE = 33554432
+#min chunk size S3
+MIN_CHUNK_SIZE = 5242880
 MAX_CHUNKS = 9999
 POLL_WAIT = 0.1
 

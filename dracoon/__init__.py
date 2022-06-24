@@ -32,7 +32,7 @@ from .downloads import DRACOONDownloads
 from .public import DRACOONPublic
 from .client import DRACOONClient, DRACOONConnection, OAuth2ConnectionType
 from .eventlog import DRACOONEvents
-from .nodes import CHUNK_SIZE, DRACOONNodes
+from .nodes import CHUNK_SIZE, MIN_CHUNK_SIZE, DRACOONNodes
 from .shares import DRACOONShares
 from .user import DRACOONUser
 from .users import DRACOONUsers
@@ -181,7 +181,7 @@ class DRACOON:
                      raise_on_err: bool = False, callback_fn: Callback  = None,
                      target_parent_id: int = None,
                      chunksize: int = CHUNK_SIZE
-                     ) -> S3FileUploadStatus:
+                     ) -> S3FileUploadStatus:  
         """ upload a file to a target """
         if not self.client.connection:
             self.logger.error("DRACOON client not connected: Upload failed.")
@@ -234,8 +234,9 @@ class DRACOON:
         use_s3_storage = False
         
         if self.system_info.useS3Storage:
-            use_s3_storage = True
-    
+            use_s3_storage = True    
+            if chunksize < MIN_CHUNK_SIZE: chunksize = MIN_CHUNK_SIZE
+
         self.logger.debug("Using S3 storage: %s", use_s3_storage)
             
         upload_channel_payload = self.nodes.make_upload_channel(parent_id=target_id, name=file_name, direct_s3_upload=use_s3_storage, 
