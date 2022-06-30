@@ -24,6 +24,7 @@ base_url = "https://staging.dracoon.com"
 
 # get all rooms
 async def get_rooms(room_id: int, dracoon: DRACOON) -> List[AuditNodeInfo]:
+  
   subroom_list = await dracoon.eventlog.get_rooms(parent_id=room_id, offset=0)
   
   if subroom_list.range.total > 500:
@@ -34,23 +35,18 @@ async def get_rooms(room_id: int, dracoon: DRACOON) -> List[AuditNodeInfo]:
       for response in responses:
         if "items" in response:
             subroom_list.items.extend(response.items)
-  
-  # collect all sub rooms (requests) for given node id
-  sub_reqs = [get_rooms(room_id=subroom.nodeId,dracoon=dracoon) for subroom in subroom_list.items]
-  
-  # batches of 10 / get parallel
-  for batch in dracoon.batch_process(coro_list=sub_reqs, batch_size=10):
-    responses = await asyncio.gather(*batch)
-    for response in responses:
-      if "items" in response:
-          subroom_list.items.extend(response.items)
-  
+            
+  for subroom in list(subroom_list.items):
+    subrooms = await get_rooms(room_id=subroom.nodeId, dracoon=dracoon)
+    subroom_list.items.extend(subrooms)
+    
   return subroom_list.items
-
+            
+  
 # get room permissions
 async def get_room_permissions(room_id: int, dracoon: DRACOON) -> List[AuditNodeResponse]:
-  permissions = await dracoon.eventlog.get_permissions(filter=f'nodeParentId:eq:{str(room_id)}')
-  
+  permissions = await dracoon.eventlog.get_permissions(filter=f'nodeParentId:eq:{str(room_id)}', raise_on_err=True)
+
   return permissions
 
 
@@ -75,8 +71,8 @@ def create_csv(permissions: List[AuditNodeResponse], path: str):
                           'manageShares', 'manageFileRequests', 'readRecycleBin', 'restoreRecycleBin', 'deleteRecycleBin'])
       
     for permission in permissions[0].auditUserPermissionList:
-      csv_writer.writerow([permissions[0].nodeId, permissions[0].nodeName, permissions[0].nodeParentPath, permission.userId, permission.userFirstName, 
-                           permission.userLastName, permission.userLogin, 
+      csv_writer.writerow([permissions[0].nodeId, permissions[0].nodeName, permissions[0].nodeParentPath, permission.userId,
+                           permission.userFirstName, permission.userLastName, permission.userLogin, 
                            permission.permissions.manage, permission.permissions.read, permission.permissions.create,
                            permission.permissions.change, permission.permissions.delete, permission.permissions.manageDownloadShare, permission.permissions.manageUploadShare, 
                            permission.permissions.readRecycleBin, permission.permissions.restoreRecycleBin, permission.permissions.deleteRecycleBin]) 
@@ -107,7 +103,7 @@ def parse_arguments() -> str:
 async def main():
   
   path = parse_arguments()
-  dracoon = DRACOON(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=True)
+  dracoon = DRACOON(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=True, log_stream=True)
   print(dracoon.get_code_url())
   auth_code = input("Enter auth code: ")
   await dracoon.connect(connection_type=OAuth2ConnectionType.auth_code, auth_code=auth_code)
@@ -115,10 +111,10 @@ async def main():
   
   for room in room_list:
     permissions = await get_room_permissions(room_id=room.nodeId, dracoon=dracoon)
-    
     try:
       create_csv(permissions=permissions, path=path)
     except ValueError:
+      print(f"failed here: {room.nodeName}")
       continue
   
 if __name__ == '__main__':
