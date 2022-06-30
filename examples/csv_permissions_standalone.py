@@ -45,7 +45,7 @@ async def get_rooms(room_id: int, dracoon: DRACOON) -> List[AuditNodeInfo]:
   
 # get room permissions
 async def get_room_permissions(room_id: int, dracoon: DRACOON) -> List[AuditNodeResponse]:
-  permissions = await dracoon.eventlog.get_permissions(filter=f'nodeParentId:eq:{str(room_id)}', raise_on_err=True)
+  permissions = await dracoon.eventlog.get_permissions(filter=f'nodeId:eq:{str(room_id)}', raise_on_err=True)
 
   return permissions
 
