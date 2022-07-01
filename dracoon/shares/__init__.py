@@ -10,6 +10,7 @@ Documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spe
 from typing import List
 import httpx
 import logging
+import urllib.parse
 from pydantic import validate_arguments
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
@@ -52,6 +53,8 @@ class DRACOONShares:
 
         if self.raise_on_err:
             raise_on_err = True
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + f'/downloads?offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
@@ -334,6 +337,8 @@ class DRACOONShares:
 
         if self.raise_on_err:
             raise_on_err = True
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + f'/uploads?offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
