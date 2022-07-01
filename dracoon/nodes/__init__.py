@@ -186,9 +186,8 @@ class DRACOONNodes:
             parent_path = '/'.join(path.split('/')[:-1])
             depth = len(path.split('/')[:-1])
 
-        filter_str = f'&filter=parentPath:eq:{parent_path}/'
+        filter_str = f'parentPath:eq:{parent_path}/'
 
-        
         if filter: filter_str += f'|{filter}'
         
         filter_str = urllib.parse.quote(filter_str)
@@ -200,7 +199,7 @@ class DRACOONNodes:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/search?search_string={last_node}{filter_str}&depth_level={str(depth)}'
+        api_url = self.api_url + f'/search?search_string={last_node}&filter={filter_str}&depth_level={str(depth)}'
 
         try:
             res = await self.dracoon.http.get(url=api_url)
