@@ -18,6 +18,7 @@ from typing import List
 import httpx
 import logging
 from pydantic import validate_arguments
+import urllib.parse
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
@@ -61,6 +62,8 @@ class DRACOONEvents:
 
         if self.raise_on_err:
             raise_on_err = True
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + f'/audits/nodes/?offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
@@ -90,6 +93,8 @@ class DRACOONEvents:
 
         if self.raise_on_err:
             raise_on_err = True
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + f'/audits/node_info/?parent_id={str(parent_id)}&offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
@@ -117,6 +122,8 @@ class DRACOONEvents:
         
         if self.raise_on_err:
             raise_on_err = True
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + f'/events/?offset={offset}'
         if date_start != None: api_url += f'&date_start={date_start}'

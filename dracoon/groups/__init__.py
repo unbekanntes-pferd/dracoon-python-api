@@ -16,6 +16,7 @@ Please note: maximum 500 items are returned in GET requests
 
 import logging
 from typing import List
+import urllib.parse
 
 import httpx
 from pydantic import validate_arguments
@@ -97,6 +98,8 @@ class DRACOONGroups:
         
         if self.raise_on_err:
             raise_on_err = True
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + f'/?offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
@@ -124,7 +127,7 @@ class DRACOONGroups:
 
         if self.raise_on_err:
             raise_on_err = True
-
+        
         api_url = self.api_url + f'/{str(group_id)}'
 
         try:
@@ -206,6 +209,8 @@ class DRACOONGroups:
 
         if self.raise_on_err:
             raise_on_err = True
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + f'/{group_id}/users/?offset={str(offset)}'
         if filter != None: api_url += f'&filter={filter}' 
