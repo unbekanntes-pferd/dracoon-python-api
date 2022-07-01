@@ -16,6 +16,7 @@ Please note: maximum 500 items are returned in GET requests
 
 from typing import List
 import logging
+import urllib.parse
 
 import httpx
 from pydantic import validate_arguments
@@ -184,6 +185,8 @@ class DRACOONUsers:
         """ list (all) users """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + f'/?offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
@@ -275,6 +278,8 @@ class DRACOONUsers:
         """ list all groups for a specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + f'/{user_id}/groups/?offset={str(offset)}'
         if filter != None: api_url += f'&filter={filter}' 
@@ -344,6 +349,8 @@ class DRACOONUsers:
         """ get custom user attributes for a specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + f'/{user_id}/userAttributes/?offset={str(offset)}'
         if filter != None: api_url += f'&filter={filter}' 

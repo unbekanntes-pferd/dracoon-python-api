@@ -191,6 +191,7 @@ class DRACOONNodes:
         
         if filter: filter_str += f'|{filter}'
         
+        filter_str = urllib.parse.quote(filter_str)
         last_node = urllib.parse.quote(last_node)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -908,6 +909,8 @@ class DRACOONNodes:
 
         if self.raise_on_err:
             raise_on_err = True
+            
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + \
             f'/?offset={offset}&parent_id={str(parent_id)}&room_manager={str(room_manager).lower()}'
@@ -1115,6 +1118,8 @@ class DRACOONNodes:
 
         if self.raise_on_err:
             raise_on_err = True
+            
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + \
             f'/{str(parent_id)}/deleted_nodes/?offset={offset}'
@@ -1839,6 +1844,8 @@ class DRACOONNodes:
 
         api_url = self.api_url + \
             f'/rooms/{str(room_id)}/groups/?offset={str(offset)}'
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         if filter != None:
             api_url += f'&filter={filter}'
@@ -1925,6 +1932,8 @@ class DRACOONNodes:
 
         if self.raise_on_err:
             raise_on_err = True
+            
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + \
             f'/rooms/{str(room_id)}/users/?offset={str(offset)}'
@@ -2015,6 +2024,8 @@ class DRACOONNodes:
 
         if self.raise_on_err:
             raise_on_err = True
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + \
             f'/rooms/{str(node_id)}/webhooks/?offset={str(offset)}'
@@ -2076,6 +2087,8 @@ class DRACOONNodes:
 
         if self.raise_on_err:
             raise_on_err = True
+            
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + f'/rooms/{room_id}/events/?offset={str(offset)}'
 
@@ -2111,6 +2124,8 @@ class DRACOONNodes:
             raise_on_err = True
 
         api_url = self.api_url + f'/rooms/pending/?offset={str(offset)}'
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         if filter != None:
             api_url += f'&filter={filter}'
@@ -2171,6 +2186,7 @@ class DRACOONNodes:
             raise_on_err = True
             
         search = urllib.parse.quote(search)
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + \
             f'/search/?search_string={search}&offset={str(offset)}&parent_id={str(parent_id)}&depth_level={depth_level}'

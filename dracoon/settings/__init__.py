@@ -15,6 +15,7 @@ Please note: maximum 500 items are returned in GET requests
 from typing import List
 import httpx
 import logging
+import urllib.parse
 from pydantic import validate_arguments
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
@@ -114,6 +115,8 @@ class DRACOONSettings:
 
         if self.raise_on_err:
             raise_on_err = True
+        
+        if filter: filter = urllib.parse.quote(filter)
 
         api_url = self.api_url + f'/webhooks/?offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
