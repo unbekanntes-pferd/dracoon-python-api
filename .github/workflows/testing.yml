@@ -4,21 +4,19 @@
 name: Python package
 
 on: [workflow_dispatch]
-environment:
-  testing
-
-env:
-  CLIENT_ID: ${{ secrets.CLIENT_ID }}
-  CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-  E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
-  E2E_SERVER_BASE_URL: ${{ secrets.E2E_SERVER_BASE_URL }}
-  E2E_USER_NAME: ${{ secrets.E2E_USER_NAME }}
-  E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
-  E2E_ENCRYPTION_PASSWORD: ${{ secrets.E2E_ENCRYPTION_PASSWORD }}
 
 jobs:
   build:
-
+    environment:
+      testing
+    env:
+      CLIENT_ID: ${{ secrets.CLIENT_ID }}
+      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      E2E_SERVER_BASE_URL: ${{ secrets.E2E_SERVER_BASE_URL }}
+      E2E_USER_NAME: ${{ secrets.E2E_USER_NAME }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      E2E_ENCRYPTION_PASSWORD: ${{ secrets.E2E_ENCRYPTION_PASSWORD }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
