@@ -27,7 +27,13 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
+        python -m pip install --upgrade pip setuptools wheel
+        python -m pip install build
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Build version and install package
+      run: |
+        python -m build
+        python -m pip install dist/dracoon-${{ secrets.VERSION }}.tar.gz
     - name: Test client
       run: |
         python tests/test_client.py
