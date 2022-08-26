@@ -1,4 +1,6 @@
-
+[![dracoon tests](https://github.com/unbekanntes-pferd/dracoon-python-api/actions/workflows/testing.yml/badge.svg)](https://github.com/unbekanntes-pferd/dracoon-python-api/actions/workflows/testing.yml)
+  
+  
   <h3 align="center">DRACOON-PYTHON-API</h3>
 
   <p align="center">
@@ -225,10 +227,10 @@ This helps finding the right parameters and building objects that are compliant 
 
 #### Aynchronous requests
 
-With httpx this package support full async request handling. This means all methods are coroutines which can be awaited.
+With httpx this package supports full async request handling. This means all methods are coroutines which can be awaited.
 You can use any runtime supported by httpx, e.g. asyncio (which comes with Python3).
 
-In order to send requests asynchronously, you can use ayncio.gather() – example:
+In order to send requests asynchronously, you can use `asyncio.gather()` – example:
 
 ```Python
 user1_res = dracoon.users.create_user(user1)
@@ -243,7 +245,7 @@ users = await asyncio.gather(user1_res, user2_res, user3_res, ...)
 The result is completely typed and returns a tuple with the responses in the order you sent the request:
 For users[0] you receive user_1_res and so on.
 
-Caution: It is not recommended to use massive async requests for creating objects (e.g. creating rooms) or permissions based operations, as this might cause unexpected behaviour / errors.
+**Caution:** It is not recommended to use massive async requests for creating objects (e.g. creating rooms) or permissions based operations, as this might cause unexpected behaviour / errors.
 
 For these cases, use small batches (e.g. 2 - 3 requests) to process requests faster without compromising the DRACOON API.
 
