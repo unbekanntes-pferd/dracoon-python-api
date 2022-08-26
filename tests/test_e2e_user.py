@@ -1,12 +1,13 @@
 
-from dracoon.crypto.models import UserKeyPairContainer, UserKeyPairVersion
-from dracoon.user import DRACOONUser
-from dracoon import DRACOONClient, OAuth2ConnectionType
 import dotenv
 import os
 import asyncio
 
+from dracoon import DRACOONClient, OAuth2ConnectionType
+from dracoon.errors import HTTPNotFoundError
+from dracoon.user import DRACOONUser
 from dracoon.user.models import UpdateAccount, UserAccount
+from dracoon.crypto.models import UserKeyPairContainer, UserKeyPairVersion
 
 
 dotenv.load_dotenv()
@@ -20,11 +21,16 @@ base_url_server = os.environ.get('E2E_SERVER_BASE_URL')
 
 async def test_user_e2e():
 
-    dracoon = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret)
+    dracoon = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=True)
     await dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)
     user = DRACOONUser(dracoon_client=dracoon)
     assert isinstance(user, DRACOONUser)
     print('Connection test complete (/)')
+    
+    try:
+       await user.delete_user_keypair()
+    except HTTPNotFoundError:
+        pass
         
     user_info = await user.get_account_information(more_info=True)
     assert isinstance(user_info, UserAccount)
@@ -46,7 +52,7 @@ async def test_user_e2e():
 
     print('Setting keypair RSA 2048 passed (/)')
 
-    keypair_2048 = await user.get_user_keypair()
+    keypair_2048 = await user.get_user_keypair(version=UserKeyPairVersion.RSA2048)
 
     assert isinstance(keypair_2048, UserKeyPairContainer)
     assert keypair_2048.privateKeyContainer.version == UserKeyPairVersion.RSA2048.value
@@ -84,6 +90,11 @@ async def test_user_e2e_server():
     user = DRACOONUser(dracoon_client=dracoon)
     assert isinstance(user, DRACOONUser)
     print('Connection test complete (/)')
+    
+    try:
+       await user.delete_user_keypair()
+    except HTTPNotFoundError:
+        pass
         
     user_info = await user.get_account_information(more_info=True)
     assert isinstance(user_info, UserAccount)
@@ -141,8 +152,5 @@ if __name__ == '__main__':
     asyncio.run(test_user_e2e())
     asyncio.run(test_user_e2e_server())
 
-    
-
-   
 
 
