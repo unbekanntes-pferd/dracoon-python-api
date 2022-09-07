@@ -77,7 +77,7 @@ class DRACOONUsers:
 
     def make_local_user(self, first_name: str, last_name: str, email: str, login: str = None,
                         language: str = None, notify: bool = None, expiration: Expiration = None, 
-                        phone: str = None, user_name:str = None) -> CreateUser:
+                        phone: str = None, username:str = None) -> CreateUser:
         """ makes a new local (basic) user required for create_user() """
         auth = self.make_auth_data(method='basic')
 
@@ -94,7 +94,7 @@ class DRACOONUsers:
         if notify is not None: user["notifyUser"] = notify
         if expiration: user["expiration"] = expiration
         if phone: user["phone"] = phone
-        if user_name: user["userName"] = user_name
+        if username: user["userName"] = username
          
         return CreateUser(**user)
 
