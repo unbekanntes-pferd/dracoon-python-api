@@ -32,10 +32,13 @@ class DRACOONPublic:
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
             raise InvalidClientError(message='Invalid client.')
+        
+        self.logger = logging.getLogger('dracoon.public')
+        
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/public/system/info'
-            self.logger = logging.getLogger('dracoon.public')
+
             if self.dracoon.raise_on_err:
                 self.raise_on_err = True
             else:
