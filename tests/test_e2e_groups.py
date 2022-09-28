@@ -1,11 +1,10 @@
 
-from dracoon.groups import DRACOONGroups
-from dracoon import DRACOONClient, OAuth2ConnectionType
-import dotenv
 import os
 import asyncio
+import dotenv
+from dracoon import DRACOONClient, OAuth2ConnectionType
+from dracoon.groups import DRACOONGroups
 from dracoon.groups.models import CreateGroup, UpdateGroup
-
 from dracoon.groups.responses import Group, GroupList, GroupUserList, LastAdminGroupRoomList
 from dracoon.user.responses import RoleList
 

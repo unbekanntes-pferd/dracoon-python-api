@@ -1,7 +1,7 @@
-from dracoon.client import DRACOONClient, DRACOONConnection, OAuth2ConnectionType
 import unittest
-import dotenv
 import os
+import dotenv
+from dracoon.client import DRACOONClient, DRACOONConnection, OAuth2ConnectionType
 
 
 dotenv.load_dotenv()
