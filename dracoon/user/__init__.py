@@ -36,12 +36,16 @@ class DRACOONUser:
 
     def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
+         
         if not isinstance(dracoon_client, DRACOONClient):
             raise InvalidClientError(message='Invalid DRACOON client format.')
+        
+        self.logger = logging.getLogger('dracoon.user')
+        
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/user'
-            self.logger = logging.getLogger('dracoon.user')
+            
             if self.dracoon.raise_on_err:
                 self.raise_on_err = True
             else:
