@@ -62,11 +62,13 @@ class DRACOONNodes:
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
             raise InvalidClientError(message='Invalid client')
+        
+        self.logger = logging.getLogger('dracoon.nodes')
 
         if dracoon_client.connection:
             self.dracoon = dracoon_client
             self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/nodes'
-            self.logger = logging.getLogger('dracoon.nodes')
+            
             if self.dracoon.raise_on_err:
                 self.raise_on_err = True
             else:
@@ -1717,16 +1719,16 @@ class DRACOONNodes:
         self.logger.info("Updated room.")
         return Node(**res.json())
 
-    def make_room(self, name: str, parent_id: int = 0, notes: str = None, creation_date: str = None, modified_date: str = None,
+    def make_room(self, name: str, parent_id: int = None, notes: str = None, creation_date: str = None, modified_date: str = None,
                   quota: int = None, recycle_bin_period: int = None, inherit_perms: bool = None, classification: int = None, 
                   admin_ids: List[int] = None, admin_group_ids: List[int] = None, activities_log: bool = None,
                   new_group_member_acceptance: str = None) -> CreateRoom:
         """ make a room payload required for create_room() """
         room = {
-            "parentId": parent_id,
             "name": name
         }
         
+        if parent_id: room["parentId"] = parent_id
         if new_group_member_acceptance: room["newGroupMemberAcceptance"] = new_group_member_acceptance
         if quota: room["quota"] = quota
         if recycle_bin_period: room["recycleBinRetentionPeriod"] = recycle_bin_period
