@@ -16,6 +16,7 @@ client_secret = os.environ.get('CLIENT_SECRET')
 username = os.environ.get('E2E_USER_NAME')
 password = os.environ.get('E2E_PASSWORD')
 base_url = os.environ.get('E2E_BASE_URL')
+base_url_server = os.environ.get('E2E_SERVER_BASE_URL')
 
 class TestAsyncDRACOONGroups(unittest.IsolatedAsyncioTestCase):
     
