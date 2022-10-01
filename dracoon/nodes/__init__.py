@@ -834,7 +834,7 @@ class DRACOONNodes:
                 
                     try:        
                         self.dracoon.uploader.headers["Content-Length"] = str(len(enc_chunk)) 
-                        res = await self.dracoon.uploader.put(url=upload_url, data=enc_chunk)
+                        res = await self.dracoon.uploader.put(url=upload_url, content=enc_chunk)
                         res.raise_for_status()
                         e_tag = res.headers["ETag"].replace('"', '')
                         part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })
