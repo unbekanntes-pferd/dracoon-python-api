@@ -8,7 +8,7 @@ from dracoon.nodes import DRACOONNodes
 from dracoon.public import DRACOONPublic
 from dracoon.user import DRACOONUser
 from dracoon.users import DRACOONUsers
-from dracoon.user.responses import AttributesResponse, LastAdminUserRoomList, UserData, UserGroupList, UserList, RoleList
+from dracoon.user.responses import AttributesResponse, LastAdminUserRoomList, UserData, UserList, RoleList
 from dracoon.users.models import AttributeEntry, CreateUser, UpdateUser, UpdateUserAttributes, UserAuthData
 
 
@@ -43,7 +43,22 @@ class TestAsyncDRACOONUsers(unittest.IsolatedAsyncioTestCase):
     async def test_get_users(self):
         user_list = await self.users.get_users()
         assert isinstance(user_list, UserList)
-    
+        
+    async def test_get_user(self):
+        local_user = self.users.make_local_user(first_name='test', last_name='test', email='test@unbekanntespferd.com', login='local.user') 
+        user = await self.users.create_user(local_user)
+        
+        new_user = await self.users.get_user(user_id=user.id)
+        
+        assert new_user.id == user.id
+        assert new_user.firstName == local_user.firstName
+        assert new_user.lastName == local_user.lastName
+        assert new_user.email == local_user.email
+        assert new_user.userName == local_user.userName
+        assert isinstance(new_user, UserData)
+        
+        await self.users.delete_user(user_id=user.id)
+        
     async def test_create_local_user(self):
         local_user = self.users.make_local_user(first_name='test', last_name='test', email='test@unbekanntespferd.com', login='local.user')
         assert isinstance(local_user, CreateUser)
@@ -203,6 +218,21 @@ class TestAsyncDRACOONServerUsers(unittest.IsolatedAsyncioTestCase):
     async def test_get_users(self):
         user_list = await self.users.get_users()
         assert isinstance(user_list, UserList)
+
+    async def test_get_user(self):
+        local_user = self.users.make_local_user(first_name='test', last_name='test', email='test@unbekanntespferd.com', login='local.user') 
+        user = await self.users.create_user(local_user)
+        
+        new_user = await self.users.get_user(user_id=user.id)
+        
+        assert new_user.id == user.id
+        assert new_user.firstName == local_user.firstName
+        assert new_user.lastName == local_user.lastName
+        assert new_user.email == local_user.email
+        assert new_user.userName == local_user.userName
+        assert isinstance(new_user, UserData)
+        
+        await self.users.delete_user(user_id=user.id)
     
     async def test_create_local_user(self):
         local_user = self.users.make_local_user(first_name='test', last_name='test', email='test@unbekanntespferd.com', login='local.user')

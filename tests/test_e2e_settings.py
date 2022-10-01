@@ -44,6 +44,20 @@ class TestAsyncDRACOONPublic(unittest.IsolatedAsyncioTestCase):
     async def test_get_webhooks(self):
         customer_webhooks = await self.settings.get_webhooks()
         assert isinstance(customer_webhooks, WebhookList)
+
+    async def test_get_webhook(self):
+        webhook_payload = self.settings.make_webhook(name='CREATE TEST', event_types=["file.created"], url="https://hooks.unbekanntespferd.com/test", trigger_example=False)
+        webhook = await self.settings.create_webhook(hook=webhook_payload)
+        
+        new_webhook = await self.settings.get_webhook(hook_id=webhook.id)
+        
+        assert new_webhook.name == webhook_payload.name
+        assert new_webhook.eventTypeNames == webhook_payload.eventTypeNames
+        assert new_webhook.url == webhook_payload.url
+        assert new_webhook.id == webhook.id
+        assert isinstance(new_webhook, Webhook)
+        
+        await self.settings.delete_webhook(hook_id=webhook.id)
     
     async def test_create_webhook(self):
         webhook_payload = self.settings.make_webhook(name='CREATE TEST', event_types=["file.created"], url="https://hooks.unbekanntespferd.com/test", trigger_example=False)
@@ -109,7 +123,21 @@ class TestAsyncDRACOONServerPublic(unittest.IsolatedAsyncioTestCase):
     async def test_get_webhooks(self):
         customer_webhooks = await self.settings.get_webhooks()
         assert isinstance(customer_webhooks, WebhookList)
-    
+        
+    async def test_get_webhook(self):
+        webhook_payload = self.settings.make_webhook(name='CREATE TEST', event_types=["file.created"], url="https://hooks.unbekanntespferd.com/test", trigger_example=False)
+        webhook = await self.settings.create_webhook(hook=webhook_payload)
+        
+        new_webhook = await self.settings.get_webhook(hook_id=webhook.id)
+        
+        assert new_webhook.name == webhook_payload.name
+        assert new_webhook.eventTypeNames == webhook_payload.eventTypeNames
+        assert new_webhook.url == webhook_payload.url
+        assert new_webhook.id == webhook.id
+        assert isinstance(new_webhook, Webhook)
+        
+        await self.settings.delete_webhook(hook_id=webhook.id)
+        
     async def test_create_webhook(self):
         webhook_payload = self.settings.make_webhook(name='CREATE TEST', event_types=["file.created"], url="https://hooks.unbekanntespferd.com/test", trigger_example=False)
         assert isinstance(webhook_payload, CreateWebhook)
