@@ -1,14 +1,15 @@
 
-from dracoon.nodes.models import Node
-from dracoon.nodes.responses import S3FileUploadStatus
-from dracoon import DRACOON, OAuth2ConnectionType
-import dotenv
 import os
-import shutil
 import asyncio
 from pathlib import Path
-
-
+import random
+import unittest
+import dotenv
+from dracoon import DRACOON, OAuth2ConnectionType
+from dracoon.errors import HTTPNotFoundError
+from dracoon.nodes import DRACOONNodes, CHUNK_SIZE
+from dracoon.nodes.models import Node, TransferJob
+from dracoon.nodes.responses import S3FileUploadStatus, S3Status
 
 dotenv.load_dotenv()
 
@@ -18,187 +19,180 @@ username = os.environ.get('E2E_USER_NAME')
 password = os.environ.get('E2E_PASSWORD')
 base_url = os.environ.get('E2E_BASE_URL')
 base_url_server = os.environ.get('E2E_SERVER_BASE_URL')
-upload_target = os.environ.get('E2E_UPLOAD_TARGET')
-upload_crypto_target = os.environ.get('E2E_CRYPTO_UPLOAD_TARGET')
-upload_file_small = os.environ.get('E2E_UPLOAD_SOURCE_SMALL')
-upload_file_large = os.environ.get('E2E_UPLOAD_SOURCE_LARGE')
 
-download_target = os.environ.get('E2E_DOWNLOAD_TARGET')
+chunksize = 1024 * 1024 * 10 # 10 MB to test chunking / S3
 
-async def test_transfers_e2e():
-    dracoon = DRACOON(base_url=base_url, client_id=client_id, client_secret=client_secret)
-    await dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)
-    
-    await dracoon.user.set_user_keypair('VerySecret123!')
-    
-    await dracoon.get_keypair('VerySecret123!')
-    
-    file_small = await dracoon.upload(target_path=upload_target, file_path=upload_file_small)
-    assert isinstance(file_small, S3FileUploadStatus)
-    print('Uploading small file (no chunking) test passed (/)')
-    
-    
-    file_large = await dracoon.upload(target_path=upload_target, file_path=upload_file_large, display_progress=True)
-    assert isinstance(file_large, S3FileUploadStatus)
-    print('Uploading large file (chunking) test passed (/)')
-    
 
-    crypto_file_small = await dracoon.upload(target_path=upload_crypto_target, file_path=upload_file_small)
-    assert isinstance(crypto_file_small, S3FileUploadStatus)
-    print('Uploading small file (no chunking, encrypted) test passed (/)')
+class DRACOONTransferTestsHelper():
+    def __init__(self, chunksize: int = CHUNK_SIZE, chunks: int = 5):
+        self.chunksize = chunksize
+        self.chunks = chunks
+        self.cwd = Path.cwd()
     
-    
-    crypto_file_large = await dracoon.upload(target_path=upload_crypto_target, file_path=upload_file_large, display_progress=True)
-    assert isinstance(crypto_file_large, S3FileUploadStatus)
-    print('Uploading large file (chunking, encrypted) test passed (/)')
-    
-    tmp_dir = os.path.join(download_target, 'e2etest')
-    crypto_tmp_dir = os.path.join(download_target, 'e2etest_crypto')
-    
-    os.mkdir(path=tmp_dir)
-    os.mkdir(path=crypto_tmp_dir)
-    
-    download_path_small = file_small.node.parentPath + f'{file_small.node.name}'
-    download_path_large = file_large.node.parentPath + f'{file_large.node.name}'
-    
-    crypto_download_path_small = crypto_file_small.node.parentPath + f'{crypto_file_small.node.name}'
-    crypto_download_path_large = crypto_file_large.node.parentPath + f'{crypto_file_large.node.name}'
-    
-    await dracoon.download(file_path=download_path_small, target_path=tmp_dir)
-    
-    small_file = Path(os.path.join(tmp_dir, file_small.node.name))
-    assert small_file.exists() and small_file.is_file() 
-    assert os.stat(os.path.join(tmp_dir, file_small.node.name)).st_size == file_small.node.size
-    
-    print('Downloading small file (no chunking) test passed (/)')
-    
-    await dracoon.download(file_path=download_path_small, target_path=tmp_dir, file_name='test.test')
-    
-    small_file = Path(os.path.join(tmp_dir, f'test.test'))
-    assert small_file.exists() and small_file.is_file() 
-    assert small_file.name == 'test.test'
-    assert os.stat(os.path.join(tmp_dir, file_small.node.name)).st_size == file_small.node.size
-    
-    print('Downloading small file (no chunking) with custom file name test passed (/)')
-    
-    await dracoon.download(file_path=download_path_large, target_path=tmp_dir, display_progress=True)
-    
-    large_file = Path(os.path.join(tmp_dir, file_large.node.name))
-    assert large_file.exists() and large_file.is_file() 
-    assert os.stat(os.path.join(tmp_dir, file_large.node.name)).st_size == file_large.node.size
-    
-    print('Downloading large file (no chunking, stream) test passed (/)')
-    
-    await dracoon.download(file_path=crypto_download_path_small, target_path=crypto_tmp_dir)
-    
-    small_crypto_file = Path(os.path.join(crypto_tmp_dir, crypto_file_small.node.name))
-    assert small_crypto_file.exists() and small_crypto_file.is_file() 
-    assert os.stat(os.path.join(crypto_tmp_dir, crypto_file_small.node.name)).st_size == crypto_file_small.node.size
-    
-    print('Downloading small file (no chunking, encrypted) test passed (/)')
-    
-    await dracoon.download(file_path=crypto_download_path_large, target_path=crypto_tmp_dir, display_progress=True)
-    
-    large_crypto_file = Path(os.path.join(crypto_tmp_dir, crypto_file_large.node.name))
-    assert large_crypto_file.exists() and large_crypto_file.is_file() 
-    assert os.stat(os.path.join(crypto_tmp_dir, crypto_file_large.node.name)).st_size == crypto_file_large.node.size
-    
-    print('Downloading large file (chunking, encrypted) test passed (/)')
-    
-    try:
-        shutil.rmtree(tmp_dir)
-        shutil.rmtree(crypto_tmp_dir)
-    except OSError as e:
-        print("Could not delete test folder.")
+    def generate_small_file(self):
         
-    await dracoon.user.delete_user_keypair()
-    await dracoon.logout()
+        random_int = random.randrange(1000, 10000)
+        file_path = Path.joinpath(self.cwd, f'test_small_{random_int}')
         
-    print('Down- and upload (transfers) tests passed (/)')
+        with open(file_path, 'wb') as out_file:
+            out_file.write(os.urandom(self.chunksize))
+            
+        return file_path
+    
+    def generate_large_file(self):
+        random_int = random.randrange(1000, 10000)
+        file_path = Path.joinpath(self.cwd, f'test_large_{random_int}')
+        
+        with open(file_path, 'wb') as out_file:
+            out_file.write(os.urandom(self.chunksize * self.chunks))
+            
+        return file_path
+        
+class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
+    
+    async def asyncSetUp(self) -> None:
+        asyncio.get_running_loop().set_debug(False)
+        
+        self.dracoon = DRACOON(base_url=base_url, client_id=client_id, client_secret=client_secret)
+        await self.dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)
+        
+        try:
+            await self.dracoon.user.get_user_keypair(raise_on_err=True) 
+            await self.dracoon.user.delete_user_keypair()
+        except HTTPNotFoundError:
+            pass
+        
+        await self.dracoon.user.set_user_keypair('VerySecret123!')
+        await self.dracoon.get_keypair('VerySecret123!')
+        
+        self.test_helper = DRACOONTransferTestsHelper(chunksize=chunksize)
+        
+        assert isinstance(self.dracoon.nodes, DRACOONNodes)
+        assert isinstance(self.dracoon, DRACOON)
+        assert self.dracoon.connection is not None
 
-async def test_transfers_e2e_server():
-    dracoon = DRACOON(base_url=base_url_server, client_id=client_id, client_secret=client_secret)
-    await dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)
-    
-    await dracoon.user.set_user_keypair('VerySecret123!')
-    
-    await dracoon.get_keypair('VerySecret123!')
-    
-    file_small = await dracoon.upload(target_path=upload_target, file_path=upload_file_small)
-    assert isinstance(file_small, Node)
-    print('Uploading small file (no chunking) test passed (/)')
-    
-    
-    file_large = await dracoon.upload(target_path=upload_target, file_path=upload_file_large, display_progress=True)
-    assert isinstance(file_large, Node)
-    print('Uploading large file (chunking) test passed (/)')
-    
+    async def asyncTearDown(self) -> None:
+        await self.dracoon.user.delete_user_keypair()
+        await self.dracoon.logout()
+        
+    async def test_upload_download_small(self):
+        test_file = self.test_helper.generate_small_file()
+        
+        room = self.dracoon.nodes.make_room(name='UPLOAD_TEST_SMALL')
+        target_node = await self.dracoon.nodes.create_room(room=room)
+        
+        upload_job = TransferJob()
+        file_small = await self.dracoon.upload(target_parent_id=target_node.id, file_path=test_file, callback_fn=upload_job.update_progress)
+        assert isinstance(file_small, S3FileUploadStatus)
+        assert upload_job.progress == 1
+        assert upload_job.transferred == file_small.node.size
+        assert file_small.status == S3Status.done.value
+        
+        download_job = TransferJob()
+        download_name = f'{file_small.node.name}_download'
+        await self.dracoon.download(target_path=self.test_helper.cwd, callback_fn=download_job.update_progress, 
+                                    source_node_id=file_small.node.id, file_name=download_name)
+        
+        small_file = Path.joinpath(self.test_helper.cwd, download_name)
+        assert small_file.exists() and small_file.is_file() 
+        assert small_file.stat().st_size == file_small.node.size
+        assert download_job.transferred == file_small.node.size
+        assert download_job.progress == 1
+        
+        await self.dracoon.nodes.delete_node(node_id=target_node.id)
+        
+        os.remove(small_file)
+        os.remove(test_file)
+        
+    async def test_upload_download_large(self):
+        test_file = self.test_helper.generate_large_file()
+        
+        room = self.dracoon.nodes.make_room(name='UPLOAD_TEST_LARGE')
+        target_node = await self.dracoon.nodes.create_room(room=room)
+        
+        upload_job = TransferJob()
+        file_small = await self.dracoon.upload(target_parent_id=target_node.id, file_path=test_file, callback_fn=upload_job.update_progress)
+        assert isinstance(file_small, S3FileUploadStatus)
+        assert upload_job.progress == 1
+        assert upload_job.transferred == file_small.node.size
+        assert file_small.status == S3Status.done.value
+        
+        download_job = TransferJob()
+        download_name = f'{file_small.node.name}_download'
+        await self.dracoon.download(target_path=self.test_helper.cwd, callback_fn=download_job.update_progress, 
+                                    source_node_id=file_small.node.id, file_name=download_name)
+        
+        small_file = Path.joinpath(self.test_helper.cwd, download_name)
+        assert small_file.exists() and small_file.is_file() 
+        assert small_file.stat().st_size == file_small.node.size
+        assert download_job.transferred == file_small.node.size
+        assert download_job.progress == 1
+        
+        await self.dracoon.nodes.delete_node(node_id=target_node.id)
+        
+        os.remove(small_file)
+        os.remove(test_file)
 
-    crypto_file_small = await dracoon.upload(target_path=upload_crypto_target, file_path=upload_file_small)
-    assert isinstance(crypto_file_small, Node)
-    print('Uploading small file (no chunking, encrypted) test passed (/)')
-    
-    
-    crypto_file_large = await dracoon.upload(target_path=upload_crypto_target, file_path=upload_file_large, display_progress=True)
-    assert isinstance(crypto_file_large, Node)
-    print('Uploading large file (chunking, encrypted) test passed (/)')
-    
-    tmp_dir = os.path.join(download_target, 'e2etest_server')
-    crypto_tmp_dir = os.path.join(download_target, 'e2etest_crypto_server')
-    
-    os.mkdir(path=tmp_dir)
-    os.mkdir(path=crypto_tmp_dir)
-    
-    download_path_small = file_small.parentPath + f'{file_small.name}'
-    download_path_large = file_large.parentPath + f'{file_large.name}'
-    
-    crypto_download_path_small = crypto_file_small.parentPath + f'{crypto_file_small.name}'
-    crypto_download_path_large = crypto_file_large.parentPath + f'{crypto_file_large.name}'
-    
-    await dracoon.download(file_path=download_path_small, target_path=tmp_dir)
-    
-    small_file = Path(os.path.join(tmp_dir, file_small.name))
-    assert small_file.exists() and small_file.is_file() 
-    assert os.stat(os.path.join(tmp_dir, file_small.name)).st_size == file_small.size
-    
-    print('Downloading small file (no chunking) test passed (/)')
-    
-    await dracoon.download(file_path=download_path_large, target_path=tmp_dir, display_progress=True)
-    
-    large_file = Path(os.path.join(tmp_dir, file_large.name))
-    assert large_file.exists() and large_file.is_file() 
-    assert os.stat(os.path.join(tmp_dir, file_large.name)).st_size == file_large.size
-    
-    print('Downloading large file (no chunking, stream) test passed (/)')
-    
-    await dracoon.download(file_path=crypto_download_path_small, target_path=crypto_tmp_dir)
-    
-    small_crypto_file = Path(os.path.join(crypto_tmp_dir, crypto_file_small.name))
-    assert small_crypto_file.exists() and small_crypto_file.is_file() 
-    assert os.stat(os.path.join(crypto_tmp_dir, crypto_file_small.name)).st_size == crypto_file_small.size
-    
-    print('Downloading small file (no chunking, encrypted) test passed (/)')
-    
-    await dracoon.download(file_path=crypto_download_path_large, target_path=crypto_tmp_dir, display_progress=True)
-    
-    large_crypto_file = Path(os.path.join(crypto_tmp_dir, crypto_file_large.name))
-    assert large_crypto_file.exists() and large_crypto_file.is_file() 
-    assert os.stat(os.path.join(crypto_tmp_dir, crypto_file_large.name)).st_size == crypto_file_large.size
-    
-    print('Downloading large file (chunking, encrypted) test passed (/)')
-    
-    try:
-        shutil.rmtree(tmp_dir)
-        shutil.rmtree(crypto_tmp_dir)
-    except OSError as e:
-        print("Could not delete test folder.")
+    async def test_upload_download_small_encrypted(self):
+        test_file = self.test_helper.generate_small_file()
         
-    await dracoon.user.delete_user_keypair()
-    await dracoon.logout()
+        room = self.dracoon.nodes.make_room(name='UPLOAD_TEST_SMALL_ENCRYPTED')
+        target_node = await self.dracoon.nodes.create_room(room=room)
+        encrypt_room = self.dracoon.nodes.make_encrypt_room(is_encrypted=True)
+        await self.dracoon.nodes.encrypt_room(room_id=target_node.id, encrypt_room=encrypt_room)
         
-    print('Down- and upload (transfers) tests passed (/)')
+        upload_job = TransferJob()
+        file_small = await self.dracoon.upload(target_parent_id=target_node.id, file_path=test_file, callback_fn=upload_job.update_progress)
+        assert isinstance(file_small, S3FileUploadStatus)
+        assert upload_job.progress == 1
+        assert upload_job.transferred == file_small.node.size
+        assert file_small.status == S3Status.done.value
+        
+        download_job = TransferJob()
+        download_name = f'{file_small.node.name}_download'
+        await self.dracoon.download(target_path=self.test_helper.cwd, callback_fn=download_job.update_progress, 
+                                    source_node_id=file_small.node.id, file_name=download_name)
+        
+        small_file = Path.joinpath(self.test_helper.cwd, download_name)
+        assert small_file.exists() and small_file.is_file() 
+        assert small_file.stat().st_size == file_small.node.size
+        assert download_job.transferred == file_small.node.size
+        assert download_job.progress == 1
+        
+        await self.dracoon.nodes.delete_node(node_id=target_node.id)
+        
+        os.remove(small_file)
+        os.remove(test_file)
+    
+    async def test_upload_download_large_encrypted(self):
+        test_file = self.test_helper.generate_large_file()
+        
+        room = self.dracoon.nodes.make_room(name='UPLOAD_TEST_LARGE')
+        target_node = await self.dracoon.nodes.create_room(room=room)
+        
+        upload_job = TransferJob()
+        file_small = await self.dracoon.upload(target_parent_id=target_node.id, file_path=test_file, callback_fn=upload_job.update_progress)
+        assert isinstance(file_small, S3FileUploadStatus)
+        assert upload_job.progress == 1
+        assert upload_job.transferred == file_small.node.size
+        assert file_small.status == S3Status.done.value
+        
+        download_job = TransferJob()
+        download_name = f'{file_small.node.name}_download'
+        await self.dracoon.download(target_path=self.test_helper.cwd, callback_fn=download_job.update_progress, 
+                                    source_node_id=file_small.node.id, file_name=download_name)
+        
+        small_file = Path.joinpath(self.test_helper.cwd, download_name)
+        assert small_file.exists() and small_file.is_file() 
+        assert small_file.stat().st_size == file_small.node.size
+        assert download_job.transferred == file_small.node.size
+        assert download_job.progress == 1
+        
+        await self.dracoon.nodes.delete_node(node_id=target_node.id)
+        
+        os.remove(small_file)
+        os.remove(test_file)
 
         
 if __name__ == '__main__':
-    asyncio.run(test_transfers_e2e())
-    asyncio.run(test_transfers_e2e_server())
+    unittest.main()
