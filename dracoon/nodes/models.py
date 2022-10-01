@@ -7,7 +7,7 @@ from datetime import datetime
 
 
 from dracoon.user.models import UserInfo
-from dracoon.crypto.models import EncryptionInfo, FileKey, PublicKeyContainer
+from dracoon.crypto.models import EncryptionInfo, FileKey, PublicKeyContainer, UserKeyPairContainer
 from dracoon.client.models import Range
 
 # required payload for POST /nodes/{node_id}/comments
@@ -158,6 +158,11 @@ class Permissions(BaseModel):
     readRecycleBin: bool
     restoreRecycleBin: bool
     deleteRecycleBin: bool
+    
+class EncryptRoom(BaseModel):
+    isEncrypted: bool
+    useDataSpaceRescueKey: Optional[bool]
+    dataRoomRescueKey: Optional[UserKeyPairContainer]
 
 
 class UpdateRoomUserItem(BaseModel):
