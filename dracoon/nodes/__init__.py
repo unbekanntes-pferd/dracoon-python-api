@@ -29,12 +29,12 @@ from pydantic import validate_arguments
 from tqdm import tqdm
 
 from dracoon.crypto import FileEncryptionCipher, encrypt_bytes, encrypt_file_key, create_file_key, get_file_key_version
-from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer
+from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer, UserKeyPairContainer
 from dracoon.groups.models import Expiration
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.errors import (InvalidClientError, ClientDisconnectedError, InvalidFileError, InvalidArgumentError)
 from dracoon.uploads.models import UploadChannelResponse
-from .models import (Callback, CompleteS3Upload, CompleteUpload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, 
+from .models import (Callback, CompleteS3Upload, CompleteUpload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, EncryptRoom, 
                      GetS3Urls, LogEventList, MissingKeysResponse, Node, NodeItem, Permissions, ProcessRoomPendingUsers, S3Part, 
                      SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFile, UpdateFiles, 
                      UpdateFolder, UpdateRoom, UpdateRoomGroupItem, UpdateRoomGroups, UpdateRoomHooks, 
@@ -660,7 +660,7 @@ class DRACOONNodes:
                     try:        
                         self.dracoon.uploader.headers["Content-Length"] = str(len(chunk)) 
                             
-                        res = await self.dracoon.uploader.put(url=upload_url, data=chunk)
+                        res = await self.dracoon.uploader.put(url=upload_url, content=chunk)
                             
                         res.raise_for_status()
                         e_tag = res.headers["ETag"].replace('"', '')
@@ -780,7 +780,7 @@ class DRACOONNodes:
                 try:
 
                     self.dracoon.uploader.headers["Content-Length"] = str(len(enc_bytes))
-                    res = await self.dracoon.uploader.put(url=s3_urls.urls[0].url, data=enc_bytes)
+                    res = await self.dracoon.uploader.put(url=s3_urls.urls[0].url, content=enc_bytes)
                     res.raise_for_status()
                         
                     # remove double quotes from etag
@@ -833,14 +833,13 @@ class DRACOONNodes:
                     index = offset
                 
                     try:        
-                        async with httpx.AsyncClient(timeout=30) as uploader:
-                            uploader.headers["Content-Length"] = str(len(enc_chunk)) 
-                            res = await uploader.put(url=upload_url, data=enc_chunk)
-                            res.raise_for_status()
-                            e_tag = res.headers["ETag"].replace('"', '')
-                            part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })
-                            parts.append(part)
-                            self.logger.debug("Uploaded part %s", part_number)
+                        self.dracoon.uploader.headers["Content-Length"] = str(len(enc_chunk)) 
+                        res = await self.dracoon.uploader.put(url=upload_url, data=enc_chunk)
+                        res.raise_for_status()
+                        e_tag = res.headers["ETag"].replace('"', '')
+                        part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })
+                        parts.append(part)
+                        self.logger.debug("Uploaded part %s", part_number)
                     except httpx.RequestError as e:
                         res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                         if progress: progress.close()
@@ -1667,7 +1666,7 @@ class DRACOONNodes:
         self.logger.info("Retrieved missing file keys.")
         return MissingKeysResponse(**res.json())
 
-    # create folder
+    # create room
     @validate_arguments
     async def create_room(self, room: CreateRoom, raise_on_err: bool = False) -> Node:
         """ create a new room """
@@ -1692,6 +1691,7 @@ class DRACOONNodes:
 
         self.logger.info("Created room.")
         return Node(**res.json())
+    
 
     # update room mets data
     @validate_arguments
@@ -1832,6 +1832,44 @@ class DRACOONNodes:
             "permissions": permission
 
         }
+    
+    @validate_arguments
+    def make_encrypt_room(self, is_encrypted: bool, use_sytem_rescue_key: bool = None, room_rescue_key: UserKeyPairContainer = None) -> EncryptRoom:
+        """ make room encryption payload """
+        
+        encrypt_room = {
+            "isEncrypted": is_encrypted
+        }
+        
+        if use_sytem_rescue_key is not None: encrypt_room["useDataSpaceRescueKey"] = use_sytem_rescue_key
+        if room_rescue_key: encrypt_room["dataRoomRescueKey"] = room_rescue_key
+        
+        return encrypt_room
+    
+    @validate_arguments
+    async def encrypt_room(self, room_id: int, encrypt_room: EncryptRoom, raise_on_err: bool = False) -> Node:
+        
+        if not await self.dracoon.test_connection() and self.dracoon.connection:
+            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+        
+        if self.raise_on_err:
+            raise_on_err = True
+
+        api_url = self.api_url + f'/rooms/{str(room_id)}/encrypt'
+        
+        payload = encrypt_room.dict(exclude_unset=True)
+            
+        try:
+            res = await self.dracoon.http.put(url=api_url, json=payload)
+            res.raise_for_status()
+        except httpx.RequestError as e:
+            await self.dracoon.handle_connection_error(e)
+        except httpx.HTTPStatusError as e:
+            self.logger.error("Encrypting room failed.")
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+        
+        self.logger.info("Encrypted room.")
+        return Node(**res.json())
 
     # get node comfor given node id
     @validate_arguments
@@ -1857,7 +1895,6 @@ class DRACOONNodes:
 
         try:
             res = await self.dracoon.http.get(api_url)
-
             res.raise_for_status()
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
