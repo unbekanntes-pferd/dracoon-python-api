@@ -1,4 +1,3 @@
-
 import os
 import asyncio
 from pathlib import Path
@@ -167,8 +166,11 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
     async def test_upload_download_large_encrypted(self):
         test_file = self.test_helper.generate_large_file()
         
-        room = self.dracoon.nodes.make_room(name='UPLOAD_TEST_LARGE')
+        room = self.dracoon.nodes.make_room(name='UPLOAD_TEST_LARGE_ENCRYPTED')
         target_node = await self.dracoon.nodes.create_room(room=room)
+        
+        encrypt_room = self.dracoon.nodes.make_encrypt_room(is_encrypted=True)
+        await self.dracoon.nodes.encrypt_room(room_id=target_node.id, encrypt_room=encrypt_room)
         
         upload_job = TransferJob()
         file_small = await self.dracoon.upload(target_parent_id=target_node.id, file_path=test_file, callback_fn=upload_job.update_progress)
@@ -193,6 +195,6 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
         os.remove(small_file)
         os.remove(test_file)
 
-        
+       
 if __name__ == '__main__':
     unittest.main()
