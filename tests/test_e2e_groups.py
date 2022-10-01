@@ -39,7 +39,17 @@ class TestAsyncDRACOONGroups(unittest.IsolatedAsyncioTestCase):
         group_list = await self.groups.get_groups()
         assert isinstance(group_list, GroupList)
         
+    async def test_get_group(self):
+        group_payload = self.groups.make_group(name='GET GROUP TEST')
+        group = await self.groups.create_group(group_payload)
         
+        new_group = await self.groups.get_group(group_id=group.id)
+        assert isinstance(new_group, Group)
+        assert new_group.name == group_payload.name
+        assert new_group.id == group.id
+
+        await self.groups.delete_group(group_id=group.id)
+    
     async def test_create_group(self):
         new_group = self.groups.make_group(name='CREATE TEST')
         assert isinstance(new_group, CreateGroup)
@@ -165,7 +175,17 @@ class TestAsyncDRACOONServerGroups(unittest.IsolatedAsyncioTestCase):
     async def test_get_groups(self):
         group_list = await self.groups.get_groups()
         assert isinstance(group_list, GroupList)
+    
+    async def test_get_group(self):
+        group_payload = self.groups.make_group(name='GET GROUP TEST')
+        group = await self.groups.create_group(group_payload)
         
+        new_group = await self.groups.get_group(group_id=group.id)
+        assert isinstance(new_group, Group)
+        assert new_group.name == group_payload.name
+        assert new_group.id == group.id
+
+        await self.groups.delete_group(group_id=group.id)
         
     async def test_create_group(self):
         new_group = self.groups.make_group(name='CREATE TEST')
