@@ -902,7 +902,8 @@ class DRACOONNodes:
         
 
     @validate_arguments
-    async def get_nodes(self, room_manager: bool = False, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> NodeList:
+    async def get_nodes(self, room_manager: bool = False, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, 
+                        raise_on_err: bool = False) -> NodeList:
         """ list (all) visible nodes """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)

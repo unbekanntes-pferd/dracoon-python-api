@@ -29,89 +29,75 @@ class TestAsyncDRACOONUser(unittest.IsolatedAsyncioTestCase):
         await self.dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)
 
         self.user = DRACOONUser(dracoon_client=self.dracoon)
-        assert isinstance(self.user, DRACOONUser)
+        self.assertIsInstance(self.user, DRACOONUser)
         
-    
     async def asyncTearDown(self) -> None:
         await self.dracoon.logout()
         
     async def test_get_user_info(self):
         
         user_info = await self.user.get_account_information(more_info=True)
-        assert isinstance(user_info, UserAccount)
+        self.assertIsInstance(user_info, UserAccount)
         
     async def test_account_update(self):
 
         account_update = self.user.make_account_update(phone='999999999')
-        assert isinstance(account_update, UpdateAccount)
+        self.assertIsInstance(account_update, UpdateAccount)
         
         account_update_res = await self.user.update_account_information(account_update=account_update)
-        assert account_update_res.phone == '999999999'
+        self.assertEqual(account_update_res.phone, '999999999')
         
     
     async def test_set_get_2048_keypair(self):
     
-        try:
-            await self.user.delete_user_keypair()
-        except DRACOONHttpError:
-            pass
-        
         secret = 'VerySecret123!'
         keypair_2048 = await self.user.set_user_keypair(secret=secret, version=UserKeyPairVersion.RSA2048)
-        assert keypair_2048 == None
+        self.assertIsNone(keypair_2048)
         
         keypair_2048 = await self.user.get_user_keypair(version=UserKeyPairVersion.RSA2048)
 
-        assert isinstance(keypair_2048, UserKeyPairContainer)
-        assert keypair_2048.privateKeyContainer.version == UserKeyPairVersion.RSA2048.value
-        assert keypair_2048.publicKeyContainer.version == UserKeyPairVersion.RSA2048.value
+        self.assertIsInstance(keypair_2048, UserKeyPairContainer)
+        self.assertEqual(keypair_2048.privateKeyContainer.version, UserKeyPairVersion.RSA2048.value)
+        self.assertEqual(keypair_2048.publicKeyContainer.version, UserKeyPairVersion.RSA2048.value)
+        
+        await self.user.delete_user_keypair()
         
     
     async def test_delete_2048_keypair(self):
 
-        try:
-            await self.user.delete_user_keypair()
-        except DRACOONHttpError:
-            pass
-        
         secret = 'VerySecret123!'
         keypair_2048 = await self.user.set_user_keypair(secret=secret, version=UserKeyPairVersion.RSA2048)
-        assert keypair_2048 == None
+        self.assertIsNone(keypair_2048)
 
         del_keypair = await self.user.delete_user_keypair(version=UserKeyPairVersion.RSA2048)
-        assert del_keypair == None
+        self.assertIsNone(del_keypair)
         
     
     async def test_set_get_4096_keypair(self):
         
-        try:
-            await self.user.delete_user_keypair()
-        except DRACOONHttpError:
-            pass
-        
         secret = 'VerySecret123!'
         
         keypair_4096 = await self.user.set_user_keypair(secret=secret, version=UserKeyPairVersion.RSA4096)
-        assert keypair_4096 == None
+        self.assertIsNone(keypair_4096)
 
         keypair_4096 = await self.user.get_user_keypair()
 
-        assert isinstance(keypair_4096, UserKeyPairContainer)
-        assert keypair_4096.privateKeyContainer.version == UserKeyPairVersion.RSA4096.value
-        assert keypair_4096.publicKeyContainer.version == UserKeyPairVersion.RSA4096.value
+        self.assertIsInstance(keypair_4096, UserKeyPairContainer)
+        self.assertEqual(keypair_4096.privateKeyContainer.version, UserKeyPairVersion.RSA4096.value)
+        self.assertEqual(keypair_4096.publicKeyContainer.version, UserKeyPairVersion.RSA4096.value)
+        
+        await self.user.delete_user_keypair()
         
     
     async def test_delete_4096_keypair(self):
 
-        try:
-            await self.user.delete_user_keypair()
-        except DRACOONHttpError:
-            pass
-
         secret = 'VerySecret123!'
         
         keypair_4096 = await self.user.set_user_keypair(secret=secret, version=UserKeyPairVersion.RSA4096)
-        assert keypair_4096 == None
+        self.assertIsNone(keypair_4096)
+        
+        del_keypair = await self.user.delete_user_keypair()
+        self.assertIsNone(del_keypair)
         
 class TestAsyncDRACOONServerUser(unittest.IsolatedAsyncioTestCase):
     
@@ -122,96 +108,79 @@ class TestAsyncDRACOONServerUser(unittest.IsolatedAsyncioTestCase):
         await self.dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)
 
         self.user = DRACOONUser(dracoon_client=self.dracoon)
-        assert isinstance(self.user, DRACOONUser)
+        self.assertIsInstance(self.user, DRACOONUser)
         
-    
     async def asyncTearDown(self) -> None:
         await self.dracoon.logout()
         
     async def test_get_user_info(self):
         
         user_info = await self.user.get_account_information(more_info=True)
-        assert isinstance(user_info, UserAccount)
+        self.assertIsInstance(user_info, UserAccount)
         
     async def test_account_update(self):
 
         account_update = self.user.make_account_update(phone='999999999')
-        assert isinstance(account_update, UpdateAccount)
+        self.assertIsInstance(account_update, UpdateAccount)
         
         account_update_res = await self.user.update_account_information(account_update=account_update)
-        assert account_update_res.phone == '999999999'
+        self.assertEqual(account_update_res.phone, '999999999')
         
     
     async def test_set_get_2048_keypair(self):
     
-        try:
-            await self.user.delete_user_keypair()
-        except DRACOONHttpError:
-            pass
         
         secret = 'VerySecret123!'
         keypair_2048 = await self.user.set_user_keypair(secret=secret, version=UserKeyPairVersion.RSA2048)
-        assert keypair_2048 == None
+        self.assertIsNone(keypair_2048)
         
         keypair_2048 = await self.user.get_user_keypair(version=UserKeyPairVersion.RSA2048)
 
-        assert isinstance(keypair_2048, UserKeyPairContainer)
-        assert keypair_2048.privateKeyContainer.version == UserKeyPairVersion.RSA2048.value
-        assert keypair_2048.publicKeyContainer.version == UserKeyPairVersion.RSA2048.value
+        self.assertIsInstance(keypair_2048, UserKeyPairContainer)
+        self.assertEqual(keypair_2048.privateKeyContainer.version, UserKeyPairVersion.RSA2048.value)
+        self.assertEqual(keypair_2048.publicKeyContainer.version, UserKeyPairVersion.RSA2048.value)
+        
+        await self.user.delete_user_keypair()
         
     
     async def test_delete_2048_keypair(self):
 
-        try:
-            await self.user.delete_user_keypair()
-        except DRACOONHttpError:
-            pass
         
         secret = 'VerySecret123!'
         keypair_2048 = await self.user.set_user_keypair(secret=secret, version=UserKeyPairVersion.RSA2048)
-        assert keypair_2048 == None
+        self.assertIsNone(keypair_2048)
 
         del_keypair = await self.user.delete_user_keypair(version=UserKeyPairVersion.RSA2048)
-        assert del_keypair == None
+        self.assertIsNone(del_keypair)
         
     
     async def test_set_get_4096_keypair(self):
         
-        try:
-            await self.user.delete_user_keypair()
-        except DRACOONHttpError:
-            pass
         
         secret = 'VerySecret123!'
         
         keypair_4096 = await self.user.set_user_keypair(secret=secret, version=UserKeyPairVersion.RSA4096)
-        assert keypair_4096 == None
+        self.assertIsNone(keypair_4096)
 
         keypair_4096 = await self.user.get_user_keypair()
 
-        assert isinstance(keypair_4096, UserKeyPairContainer)
-        assert keypair_4096.privateKeyContainer.version == UserKeyPairVersion.RSA4096.value
-        assert keypair_4096.publicKeyContainer.version == UserKeyPairVersion.RSA4096.value
+        self.assertIsInstance(keypair_4096, UserKeyPairContainer)
+        self.assertEqual(keypair_4096.privateKeyContainer.version, UserKeyPairVersion.RSA4096.value)
+        self.assertEqual(keypair_4096.publicKeyContainer.version, UserKeyPairVersion.RSA4096.value)
+        
+        await self.user.delete_user_keypair()
         
     
     async def test_delete_4096_keypair(self):
 
-        try:
-            await self.user.delete_user_keypair()
-        except DRACOONHttpError:
-            pass
-
         secret = 'VerySecret123!'
         
         keypair_4096 = await self.user.set_user_keypair(secret=secret, version=UserKeyPairVersion.RSA4096)
-        assert keypair_4096 == None
+        self.assertIsNone(keypair_4096)
+        
+        del_keypair = await self.user.delete_user_keypair()
+        self.assertIsNone(del_keypair)
         
 
 if __name__ == '__main__':
     unittest.main()
-
-    
-
-   
-
-
