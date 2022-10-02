@@ -42,6 +42,7 @@ class DeletedNodeSummary(BaseModel):
     firstDeletedAt: datetime
     lastDeletedAt: datetime
     lastDeletedNodeId: int
+    referenceId: Optional[int]
     timestampCreation: Optional[datetime]
     timestampModification: Optional[datetime]
 
@@ -56,6 +57,7 @@ class DeletedNode(BaseModel):
     parentPath: str
     type: NodeType
     name: str
+    referenceId: Optional[int]
     expireAt: Optional[datetime]
     accessedAt: Optional[datetime]
     isEncrypted: Optional[bool]
