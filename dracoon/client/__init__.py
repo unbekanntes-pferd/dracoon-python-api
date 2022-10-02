@@ -15,7 +15,6 @@ import base64
 import asyncio
 from datetime import datetime
 import logging
-import re
 
 import httpx
 from dracoon.client.models import ProxyConfig
@@ -81,7 +80,7 @@ class DRACOONClient:
         except RuntimeError:
             loop = None
         
-        # close httpx client 
+        # close httpx clients
         if loop and loop.is_running():
             loop.create_task(self.http.aclose())
             loop.create_task(self.uploader.aclose())
@@ -202,6 +201,8 @@ class DRACOONClient:
 
     async def disconnect(self):
         await self.http.aclose()
+        await self.downloader.aclose()
+        await self.uploader.aclose()
 
     def get_code_url(self):
         """ builds OAuth authorization code url to visit – requires OAuth app to use redirect uri ($host/oauth/callback) """
@@ -231,11 +232,8 @@ class DRACOONClient:
 
         self.connected = False
         self.connection = None
-        await self.http.aclose()
-        await self.downloader.aclose()
-        await self.uploader.aclose()
+        await self.disconnect()
 
-    
     async def check_access_token(self, test: bool = False):
         """ check access token validity (based on connection time and token validity) """
         self.logger.debug("Testing access token validity.")
@@ -292,7 +290,7 @@ class DRACOONClient:
             self.logger.debug("%s", err.response.content)
 
         if close_client:
-            await self.http.aclose()
+            await self.disconnect()
         
         if raise_on_err:
             self.raise_http_error(err=err)
@@ -300,14 +298,14 @@ class DRACOONClient:
     async def handle_connection_error(self, err: httpx.RequestError):
         self.logger.critical("Connection error.")
         self.logger.critical(err.request.url)
-        await self.http.aclose()
+        await self.disconnect()
         raise err
     
     async def handle_generic_error(self, err: Exception, close_client: bool = False):
         self.logger.critical("An error ocurred.")
         self.logger.debug("%s", err)
         if close_client:
-            await self.http.aclose()
+            await self.disconnect()
         raise err
 
     def raise_http_error(self, err: httpx.HTTPStatusError):
