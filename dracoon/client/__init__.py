@@ -54,8 +54,8 @@ class DRACOONClient:
 
     }
 
-    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', raise_on_err: bool = False,
-                 proxy_config: ProxyConfig = None):
+    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', redirect_uri: str = None,
+                 raise_on_err: bool = False, proxy_config: ProxyConfig = None):
         """ client is initialized with DRACOON instance details (url and OAuth client credentials) """
         self.base_url = base_url
         self.client_id = client_id
@@ -64,11 +64,13 @@ class DRACOONClient:
         self.uploader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
         self.downloader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
         self.connected = False
-        self.redirect_uri = f"{self.base_url}/oauth/callback&scope=all"
+        if redirect_uri:
+            self.redirect_uri = redirect_uri
+        else:
+            self.redirect_uri = f"{self.base_url}/oauth/callback"
         self.connection: DRACOONConnection = None
         self.raise_on_err = raise_on_err
         self.logger = logging.getLogger('dracoon.client')
-
         self.logger.info("DRACOON client created.")
         self.logger.debug(f"DRACOON client config: {self.base_url} // {self.client_id}")
 
@@ -194,7 +196,6 @@ class DRACOONClient:
         self.connected = True
         self.http.headers["Authorization"] = "Bearer " + self.connection.access_token
   
-
         return self.connection
 
     async def disconnect(self):
@@ -205,7 +206,7 @@ class DRACOONClient:
     def get_code_url(self):
         """ builds OAuth authorization code url to visit – requires OAuth app to use redirect uri ($host/oauth/callback or custom uri) """
         # generate URL string for OAuth auth code flow
-        return self.base_url + f'/oauth/authorize?branding=full&response_type=code&client_id={self.client_id}&redirect_uri={self.base_url}/oauth/callback&scope=all'
+        return self.base_url + f'/oauth/authorize?branding=full&response_type=code&client_id={self.client_id}&redirect_uri={self.redirect_uri}&scope=all'
 
 
     async def logout(self, revoke_refresh_token: bool = False):
