@@ -302,7 +302,7 @@ class DRACOONNodes:
         return PresignedUrlList(**res.json())
     
     async def upload_unencrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, keep_shares: bool = False, 
-                                    resolution_strategy: str = 'autorename', chunksize: int = CHUNK_SIZE, 
+                                    file_name: str = None, resolution_strategy: str = 'autorename', chunksize: int = CHUNK_SIZE, 
                                     display_progress: bool = False, raise_on_err: bool = False, 
                                     callback_fn: Callback  = None
                                     ) -> Node:
@@ -316,7 +316,8 @@ class DRACOONNodes:
             await self.dracoon.handle_generic_error(err=err)
         
         filesize = file.stat().st_size
-        file_name = file.name
+        if file_name is None: 
+            file_name = file.name
         
         # init callback size
         if callback_fn: callback_fn(0, filesize)
@@ -396,7 +397,7 @@ class DRACOONNodes:
     
                                   
     async def upload_encrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, plain_keypair: PlainUserKeyPairContainer, 
-                                  keep_shares: bool = False, resolution_strategy: str = 'autorename', 
+                                  file_name: str = None, keep_shares: bool = False, resolution_strategy: str = 'autorename', 
                                   chunksize: int = CHUNK_SIZE, display_progress: bool = False, raise_on_err: bool = False,
                                   callback_fn: Callback  = None
                                   ) -> Node:
@@ -410,7 +411,8 @@ class DRACOONNodes:
             await self.dracoon.handle_generic_error(err=err)
         
         filesize = file.stat().st_size
-        file_name = file.name
+        if file_name is None: 
+            file_name = file.name
         
         # init callback size
         if callback_fn: callback_fn(0, filesize)
@@ -554,7 +556,8 @@ class DRACOONNodes:
           
         return Node(**res.json())
     
-    async def upload_s3_unencrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, keep_shares: bool = False, 
+    async def upload_s3_unencrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, keep_shares: bool = False,
+                                    file_name: str = None,
                                     resolution_strategy: str = 'autorename', chunksize: int = CHUNK_SIZE, 
                                     display_progress: bool = False, raise_on_err: bool = False, 
                                     callback_fn: Callback  = None) -> S3FileUploadStatus:
@@ -570,7 +573,8 @@ class DRACOONNodes:
             await self.dracoon.handle_generic_error(err)
         
         filesize = file.stat().st_size
-        file_name = file.name
+        if file_name is None: 
+            file_name = file.name
         
         # init callback size
         if callback_fn: callback_fn(0, filesize)
@@ -705,6 +709,7 @@ class DRACOONNodes:
         return upload_status
         
     async def upload_s3_encrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, plain_keypair: PlainUserKeyPairContainer, 
+                                  file_name: str = None,
                                   keep_shares: bool = False, resolution_strategy: str = 'autorename', 
                                   chunksize: int = CHUNK_SIZE, display_progress: bool = False, raise_on_err: bool = False,
                                   callback_fn: Callback  = None
@@ -726,7 +731,9 @@ class DRACOONNodes:
         #init callback size
         
         filesize = file.stat().st_size
-        file_name = file.name
+        if file_name is None: 
+            file_name = file.name
+            
         if callback_fn: callback_fn(0, filesize)
         self.logger.debug("File name: %s", file_name)
         self.logger.debug("File size: %s", filesize)

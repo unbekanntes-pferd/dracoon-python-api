@@ -175,7 +175,7 @@ class DRACOON:
 
         return plain_keypair
 
-    async def upload(self, file_path: str, target_path: str = None, resolution_strategy: str = 'autorename', 
+    async def upload(self, file_path: str, target_path: str = None, file_name: str = None, resolution_strategy: str = 'autorename', 
                      display_progress: bool = False, modification_date: str = None, 
                      creation_date: str = None, 
                      raise_on_err: bool = False, callback_fn: Callback  = None,
@@ -210,8 +210,12 @@ class DRACOON:
             self.logger.debug(msg)
             err = InvalidPathError(message=msg)
             await self.client.handle_generic_error(err=err)
+            
         
-        file_name = Path(file_path).name
+        
+        if file_name is None: 
+            file_name = Path(file_path).name
+            
         file_modified = Path(file_path).stat().st_mtime
         file_created = Path(file_path).stat().st_ctime
         
@@ -250,22 +254,22 @@ class DRACOON:
         # crypto upload 
         if is_encrypted and self.check_keypair() and not use_s3_storage:       
             upload = await self.nodes.upload_encrypted(file_path=file_path, upload_channel=upload_channel, display_progress=display_progress,
-                                                         plain_keypair=self.plain_keypair, resolution_strategy=resolution_strategy, 
+                                                         plain_keypair=self.plain_keypair, resolution_strategy=resolution_strategy, file_name=file_name,
                                                          raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
         elif is_encrypted and self.check_keypair() and use_s3_storage:
             upload = await self.nodes.upload_s3_encrypted(file_path=file_path, upload_channel=upload_channel, plain_keypair=self.plain_keypair, 
-                                                          display_progress=display_progress, resolution_strategy=resolution_strategy, 
+                                                          display_progress=display_progress, resolution_strategy=resolution_strategy, file_name=file_name,
                                                           raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
         elif is_encrypted and not self.check_keypair():
             self.logger.critical("Upload failed: Keypair not unlocked.")
             raise CryptoMissingKeypairError('DRACOON crypto upload requires unlocked keypair. Please unlock keypair first.')
         # unencrypted upload
         elif not is_encrypted and not use_s3_storage:
-            upload = await self.nodes.upload_unencrypted(file_path=file_path, upload_channel=upload_channel, 
+            upload = await self.nodes.upload_unencrypted(file_path=file_path, upload_channel=upload_channel, file_name=file_name,
                                                          resolution_strategy=resolution_strategy, display_progress=display_progress, 
                                                          raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
         elif not is_encrypted and use_s3_storage:
-            upload = await self.nodes.upload_s3_unencrypted(file_path=file_path, upload_channel=upload_channel, 
+            upload = await self.nodes.upload_s3_unencrypted(file_path=file_path, upload_channel=upload_channel, file_name=file_name,
                                                             display_progress=display_progress, resolution_strategy=resolution_strategy,
                                                             raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
 
