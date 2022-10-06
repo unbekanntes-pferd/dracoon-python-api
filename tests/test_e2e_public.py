@@ -25,7 +25,7 @@ class TestAsyncDRACOONPublic(unittest.IsolatedAsyncioTestCase):
         await self.dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)
 
         self.public = DRACOONPublic(dracoon_client=self.dracoon)
-        assert isinstance(self.public, DRACOONPublic)
+        self.assertIsInstance(self.public, DRACOONPublic)
         
     
     async def asyncTearDown(self) -> None:
@@ -33,17 +33,17 @@ class TestAsyncDRACOONPublic(unittest.IsolatedAsyncioTestCase):
         
     async def test_get_system_info(self):
         system_info = await self.public.get_system_info()
-        assert isinstance(system_info, SystemInfo)
+        self.assertIsInstance(system_info, SystemInfo)
  
 
     async def test_get_ad_info(self):
         auth_ad_info = await self.public.get_auth_ad_info()
-        assert isinstance(auth_ad_info, AuthADInfoList)
+        self.assertIsInstance(auth_ad_info, AuthADInfoList)
 
 
     async def test_get_oidc_info(self):
         auth_oidc_info = await self.public.get_auth_openid_info()
-        assert isinstance(auth_oidc_info, AuthOIDCInfoList)
+        self.assertIsInstance(auth_oidc_info, AuthOIDCInfoList)
         
 class TestAsyncDRACOONServerPublic(unittest.IsolatedAsyncioTestCase):
     
@@ -54,7 +54,7 @@ class TestAsyncDRACOONServerPublic(unittest.IsolatedAsyncioTestCase):
         await self.dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)
 
         self.public = DRACOONPublic(dracoon_client=self.dracoon)
-        assert isinstance(self.public, DRACOONPublic)
+        self.assertIsInstance(self.public, DRACOONPublic)
         
     
     async def asyncTearDown(self) -> None:
@@ -62,17 +62,17 @@ class TestAsyncDRACOONServerPublic(unittest.IsolatedAsyncioTestCase):
         
     async def test_get_system_info(self):
         system_info = await self.public.get_system_info()
-        assert isinstance(system_info, SystemInfo)
+        self.assertIsInstance(system_info, SystemInfo)
  
 
     async def test_get_ad_info(self):
         auth_ad_info = await self.public.get_auth_ad_info()
-        assert isinstance(auth_ad_info, AuthADInfoList)
+        self.assertIsInstance(auth_ad_info, AuthADInfoList)
 
 
     async def test_get_oidc_info(self):
         auth_oidc_info = await self.public.get_auth_openid_info()
-        assert isinstance(auth_oidc_info, AuthOIDCInfoList)
+        self.assertIsInstance(auth_oidc_info, AuthOIDCInfoList)
     
 
 if __name__ == '__main__':

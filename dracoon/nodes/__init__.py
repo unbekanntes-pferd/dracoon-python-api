@@ -834,7 +834,7 @@ class DRACOONNodes:
                 
                     try:        
                         self.dracoon.uploader.headers["Content-Length"] = str(len(enc_chunk)) 
-                        res = await self.dracoon.uploader.put(url=upload_url, data=enc_chunk)
+                        res = await self.dracoon.uploader.put(url=upload_url, content=enc_chunk)
                         res.raise_for_status()
                         e_tag = res.headers["ETag"].replace('"', '')
                         part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })
@@ -902,7 +902,8 @@ class DRACOONNodes:
         
 
     @validate_arguments
-    async def get_nodes(self, room_manager: bool = False, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> NodeList:
+    async def get_nodes(self, room_manager: bool = False, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, 
+                        raise_on_err: bool = False) -> NodeList:
         """ list (all) visible nodes """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -1107,7 +1108,18 @@ class DRACOONNodes:
         if parent_id is not None: node_transfer["parentId"] = parent_id
         
         return TransferNode(**node_transfer)
-
+    
+    def make_node_item(self, node_id: int, name: str = None, modified_date: str = None, created_date: str = None) -> NodeItem:
+        
+        node_item = {
+            "id": node_id
+        }
+        
+        if name: node_item["name"] = name
+        if modified_date: node_item["timestampModification"] = modified_date
+        if created_date: node_item["timestampCreation"] = created_date
+        
+        return NodeItem(**node_item)
 
     # get node comfor given node id
     @validate_arguments
@@ -1171,21 +1183,17 @@ class DRACOONNodes:
 
     # get node versions in a given parent id (requires name, specification of type)
     @validate_arguments
-    async def get_node_versions(self, parent_id: int, name: str = None, type: str = None, offset: int = 0, raise_on_err: bool = False) -> DeletedNodeVersionsList:
+    async def get_node_versions(self, parent_id: int, name: str, type: str, offset: int = 0, raise_on_err: bool = False) -> DeletedNodeVersionsList:
         """ get (all) versions of a node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         if self.raise_on_err:
             raise_on_err = True
-
-        api_url = self.api_url + \
-            f'/{str(parent_id)}/deleted_nodes/versions?offset={offset}'
-
-        if type != None:
-            api_url += f'&type={type}'
-        if name != None:
-            api_url += f'&name={name}'
+        
+        name = urllib.parse.quote(name)
+        
+        api_url = self.api_url + f'/{str(parent_id)}/deleted_nodes/versions?name={name}&type={type}&offset={offset}'
 
         try:
             res = await self.dracoon.http.get(api_url)
@@ -1312,9 +1320,11 @@ class DRACOONNodes:
         payload = {
             "deletedNodeIds": node_list
         }
+        
+        api_url = self.api_url + '/deleted_nodes'
 
         try:
-            res = await self.dracoon.http.request(method='DELETE', url=self.api_url, json=payload, headers=self.dracoon.http.headers)
+            res = await self.dracoon.http.request(method='DELETE', url=api_url, json=payload, headers=self.dracoon.http.headers)
 
             res.raise_for_status()
         except httpx.RequestError as e:
@@ -1377,10 +1387,10 @@ class DRACOONNodes:
         return None
 
     def make_node_restore(self, deleted_node_list: List[int], resolution_strategy: str = None, keep_share_links: bool = None, 
-                        parent_id: int = None, raise_on_err: bool = False) -> RestoreNode:
+                        parent_id: int = None) -> RestoreNode:
         """ make payload required for restore_nodes() """
         node_restore = {
-            "items": deleted_node_list
+            "deletedNodeIds": deleted_node_list
         }
 
         if resolution_strategy: node_restore["resolutionStrategy"] = resolution_strategy

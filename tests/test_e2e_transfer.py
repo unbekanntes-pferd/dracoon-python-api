@@ -1,4 +1,3 @@
-
 import os
 import asyncio
 from pathlib import Path
@@ -67,9 +66,9 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
         
         self.test_helper = DRACOONTransferTestsHelper(chunksize=chunksize)
         
-        assert isinstance(self.dracoon.nodes, DRACOONNodes)
-        assert isinstance(self.dracoon, DRACOON)
-        assert self.dracoon.connection is not None
+        self.assertIsInstance(self.dracoon.nodes, DRACOONNodes)
+        self.assertIsInstance(self.dracoon, DRACOON)
+        self.assertIsNotNone(self.dracoon.connection)
 
     async def asyncTearDown(self) -> None:
         await self.dracoon.user.delete_user_keypair()
@@ -83,10 +82,10 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
         
         upload_job = TransferJob()
         file_small = await self.dracoon.upload(target_parent_id=target_node.id, file_path=test_file, callback_fn=upload_job.update_progress)
-        assert isinstance(file_small, S3FileUploadStatus)
-        assert upload_job.progress == 1
-        assert upload_job.transferred == file_small.node.size
-        assert file_small.status == S3Status.done.value
+        self.assertIsInstance(file_small, S3FileUploadStatus)
+        self.assertEqual(upload_job.progress, 1)
+        self.assertEqual(upload_job.transferred, file_small.node.size)
+        self.assertEqual(file_small.status, S3Status.done.value)
         
         download_job = TransferJob()
         download_name = f'{file_small.node.name}_download'
@@ -94,10 +93,10 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
                                     source_node_id=file_small.node.id, file_name=download_name)
         
         small_file = Path.joinpath(self.test_helper.cwd, download_name)
-        assert small_file.exists() and small_file.is_file() 
-        assert small_file.stat().st_size == file_small.node.size
-        assert download_job.transferred == file_small.node.size
-        assert download_job.progress == 1
+        self.assertTrue(small_file.exists() and small_file.is_file())
+        self.assertEqual(small_file.stat().st_size, file_small.node.size)
+        self.assertEqual(download_job.transferred, file_small.node.size)
+        self.assertEqual(download_job.progress, 1)
         
         await self.dracoon.nodes.delete_node(node_id=target_node.id)
         
@@ -112,10 +111,10 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
         
         upload_job = TransferJob()
         file_small = await self.dracoon.upload(target_parent_id=target_node.id, file_path=test_file, callback_fn=upload_job.update_progress)
-        assert isinstance(file_small, S3FileUploadStatus)
-        assert upload_job.progress == 1
-        assert upload_job.transferred == file_small.node.size
-        assert file_small.status == S3Status.done.value
+        self.assertIsInstance(file_small, S3FileUploadStatus)
+        self.assertEqual(upload_job.progress, 1)
+        self.assertEqual(upload_job.transferred, file_small.node.size)
+        self.assertEqual(file_small.status, S3Status.done.value)
         
         download_job = TransferJob()
         download_name = f'{file_small.node.name}_download'
@@ -123,10 +122,10 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
                                     source_node_id=file_small.node.id, file_name=download_name)
         
         small_file = Path.joinpath(self.test_helper.cwd, download_name)
-        assert small_file.exists() and small_file.is_file() 
-        assert small_file.stat().st_size == file_small.node.size
-        assert download_job.transferred == file_small.node.size
-        assert download_job.progress == 1
+        self.assertTrue(small_file.exists() and small_file.is_file())
+        self.assertEqual(small_file.stat().st_size, file_small.node.size)
+        self.assertEqual(download_job.transferred, file_small.node.size)
+        self.assertEqual(download_job.progress, 1)
         
         await self.dracoon.nodes.delete_node(node_id=target_node.id)
         
@@ -143,10 +142,10 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
         
         upload_job = TransferJob()
         file_small = await self.dracoon.upload(target_parent_id=target_node.id, file_path=test_file, callback_fn=upload_job.update_progress)
-        assert isinstance(file_small, S3FileUploadStatus)
-        assert upload_job.progress == 1
-        assert upload_job.transferred == file_small.node.size
-        assert file_small.status == S3Status.done.value
+        self.assertIsInstance(file_small, S3FileUploadStatus)
+        self.assertEqual(upload_job.progress, 1)
+        self.assertEqual(upload_job.transferred, file_small.node.size)
+        self.assertEqual(file_small.status, S3Status.done.value)
         
         download_job = TransferJob()
         download_name = f'{file_small.node.name}_download'
@@ -154,10 +153,10 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
                                     source_node_id=file_small.node.id, file_name=download_name)
         
         small_file = Path.joinpath(self.test_helper.cwd, download_name)
-        assert small_file.exists() and small_file.is_file() 
-        assert small_file.stat().st_size == file_small.node.size
-        assert download_job.transferred == file_small.node.size
-        assert download_job.progress == 1
+        self.assertTrue(small_file.exists() and small_file.is_file())
+        self.assertEqual(small_file.stat().st_size, file_small.node.size)
+        self.assertEqual(download_job.transferred, file_small.node.size)
+        self.assertEqual(download_job.progress, 1)
         
         await self.dracoon.nodes.delete_node(node_id=target_node.id)
         
@@ -167,15 +166,18 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
     async def test_upload_download_large_encrypted(self):
         test_file = self.test_helper.generate_large_file()
         
-        room = self.dracoon.nodes.make_room(name='UPLOAD_TEST_LARGE')
+        room = self.dracoon.nodes.make_room(name='UPLOAD_TEST_LARGE_ENCRYPTED')
         target_node = await self.dracoon.nodes.create_room(room=room)
+        
+        encrypt_room = self.dracoon.nodes.make_encrypt_room(is_encrypted=True)
+        await self.dracoon.nodes.encrypt_room(room_id=target_node.id, encrypt_room=encrypt_room)
         
         upload_job = TransferJob()
         file_small = await self.dracoon.upload(target_parent_id=target_node.id, file_path=test_file, callback_fn=upload_job.update_progress)
-        assert isinstance(file_small, S3FileUploadStatus)
-        assert upload_job.progress == 1
-        assert upload_job.transferred == file_small.node.size
-        assert file_small.status == S3Status.done.value
+        self.assertIsInstance(file_small, S3FileUploadStatus)
+        self.assertEqual(upload_job.progress, 1)
+        self.assertEqual(upload_job.transferred, file_small.node.size)
+        self.assertEqual(file_small.status, S3Status.done.value)
         
         download_job = TransferJob()
         download_name = f'{file_small.node.name}_download'
@@ -183,16 +185,16 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
                                     source_node_id=file_small.node.id, file_name=download_name)
         
         small_file = Path.joinpath(self.test_helper.cwd, download_name)
-        assert small_file.exists() and small_file.is_file() 
-        assert small_file.stat().st_size == file_small.node.size
-        assert download_job.transferred == file_small.node.size
-        assert download_job.progress == 1
+        self.assertTrue(small_file.exists() and small_file.is_file())
+        self.assertEqual(small_file.stat().st_size, file_small.node.size)
+        self.assertEqual(download_job.transferred, file_small.node.size)
+        self.assertEqual(download_job.progress, 1)
         
         await self.dracoon.nodes.delete_node(node_id=target_node.id)
         
         os.remove(small_file)
         os.remove(test_file)
 
-        
+       
 if __name__ == '__main__':
     unittest.main()
