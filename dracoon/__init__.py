@@ -49,9 +49,9 @@ from .errors import (CryptoMissingFileKeyrError, CryptoMissingKeypairError,
 class DRACOON:
     """ DRACOON main API wrapper with all adapters to specific endpoints """ 
 
-    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', log_file: str = 'dracoon.log', 
-                 log_level = logging.INFO, log_stream: bool = False, raise_on_err: bool = False, proxy_config: ProxyConfig = None,
-                 log_file_out: bool = False):
+    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', redirect_uri: str = None,
+                 log_file: str = 'dracoon.log', log_level = logging.INFO, log_stream: bool = False, raise_on_err: bool = False, 
+                 proxy_config: ProxyConfig = None, log_file_out: bool = False):
         """ intialize with instance information: base DRACOON url and OAuth app client credentials """
         self.client = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=raise_on_err, 
                                     proxy_config=proxy_config)
@@ -282,7 +282,7 @@ class DRACOON:
         """ download a file to a target """
 
         if not self.client.connection:
-            await self.logout()
+            await self.client.disconnect()
             self.logger.error("DRACOON client not connected: Download failed.")
             raise ClientDisconnectedError(message='DRACOON client not connected.')
 
