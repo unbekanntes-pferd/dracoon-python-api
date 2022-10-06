@@ -64,6 +64,7 @@ class DRACOONClient:
         self.uploader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
         self.downloader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
         self.connected = False
+        self.redirect_uri = f"{self.base_url}/oauth/callback&scope=all"
         self.connection: DRACOONConnection = None
         self.raise_on_err = raise_on_err
         self.logger = logging.getLogger('dracoon.client')
@@ -141,13 +142,10 @@ class DRACOONClient:
 
         if connection_type == OAuth2ConnectionType.auth_code:
             
-            
             if redirect_uri:
-                _redirect_uri = redirect_uri
-            else:
-                _redirect_uri = self.base_url + '/oauth/callback'
+                self.redirect_uri = redirect_uri
 
-            data = {'grant_type': 'authorization_code', 'code': auth_code, 'client_id': self.client_id, 'client_secret': self.client_secret, 'redirect_uri': _redirect_uri}
+            data = {'grant_type': 'authorization_code', 'code': auth_code, 'client_id': self.client_id, 'client_secret': self.client_secret, 'redirect_uri': self.redirect_uri}
 
             try:
                 res = await self.http.post(url=token_url, data=data)
@@ -205,7 +203,7 @@ class DRACOONClient:
         await self.uploader.aclose()
 
     def get_code_url(self):
-        """ builds OAuth authorization code url to visit – requires OAuth app to use redirect uri ($host/oauth/callback) """
+        """ builds OAuth authorization code url to visit – requires OAuth app to use redirect uri ($host/oauth/callback or custom uri) """
         # generate URL string for OAuth auth code flow
         return self.base_url + f'/oauth/authorize?branding=full&response_type=code&client_id={self.client_id}&redirect_uri={self.base_url}/oauth/callback&scope=all'
 
