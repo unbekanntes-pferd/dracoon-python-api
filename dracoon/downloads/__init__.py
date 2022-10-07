@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import logging
 
+from cryptography.exceptions import InvalidTag
 from tqdm import tqdm
 import httpx
 
@@ -21,7 +22,7 @@ from dracoon.nodes.models import Callback, Node, NodeType
 from dracoon.client import DRACOONClient
 from dracoon.crypto import FileDecryptionCipher, decrypt_file_key
 from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer
-from dracoon.errors import (InvalidClientError, ClientDisconnectedError, InvalidFileError, 
+from dracoon.errors import (DRACOONCryptoError, InvalidClientError, ClientDisconnectedError, InvalidFileError, 
                             FileConflictError, InvalidPathError)
 
 
@@ -197,12 +198,19 @@ class DRACOONDownloads:
                         file_out.write(last_data)
                                      
                     self.logger.info("Download completed.")
+        except InvalidTag:
+            # remove unverified decrypted bytes
+            os.remove(file_path)
+            raise DRACOONCryptoError("Invalid file key")
         except httpx.RequestError as e:
+            if file_out: file_out.close()
+            os.remove(file_path)
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
+            if file_out: file_out.close()
+            os.remove(file_path)
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         finally:
-            if file_out: file_out.close()
             if display_progress and progress: progress.close()
 
 
