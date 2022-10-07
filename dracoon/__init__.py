@@ -16,7 +16,6 @@ All requests with bodies use generic params variable to pass JSON body
 """
 
 
-from cmath import inf
 import logging
 import asyncio
 from pathlib import Path
@@ -25,8 +24,6 @@ from datetime import datetime
 from dracoon.client.models import ProxyConfig
 from dracoon.config import DRACOONConfig
 from dracoon.nodes.models import Callback
-
-
 from dracoon.nodes.responses import S3FileUploadStatus
 
 from .crypto.models import PlainUserKeyPairContainer
@@ -43,7 +40,7 @@ from .settings import DRACOONSettings
 from .reports import DRACOONReports
 from .crypto import decrypt_private_key
 from .logger import create_logger
-from .errors import (CryptoMissingFileKeyrError, CryptoMissingKeypairError,
+from .errors import (CryptoMissingFileKeyError, CryptoMissingKeypairError, DRACOONCryptoError,
                      HTTPNotFoundError, InvalidArgumentError, InvalidFileError, InvalidPathError, ClientDisconnectedError)
 
 
@@ -56,7 +53,7 @@ class DRACOON:
                  proxy_config: ProxyConfig = None, log_file_out: bool = False):
         """ intialize with instance information: base DRACOON url and OAuth app client credentials """
         self.client = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=raise_on_err, 
-                                    proxy_config=proxy_config)
+                                    proxy_config=proxy_config, redirect_uri=redirect_uri)
         self.logger = create_logger(log_file=log_file, log_level=log_level, log_stream=log_stream, log_file_out=log_file_out)
         self.logger.info("Created DRACOON client.")
         self.plain_keypair = None
@@ -178,8 +175,10 @@ class DRACOON:
             raise ClientDisconnectedError()
 
         enc_keypair = await self.user.get_user_keypair()
-      
-        plain_keypair = decrypt_private_key(secret, enc_keypair)
+        try:
+            plain_keypair = decrypt_private_key(secret, enc_keypair)
+        except ValueError:
+            raise DRACOONCryptoError(message="Wrong decryption password")
 
         self.plain_keypair = plain_keypair
 
@@ -224,8 +223,6 @@ class DRACOON:
             err = InvalidPathError(message=msg)
             await self.client.handle_generic_error(err=err)
             
-        
-        
         if file_name is None: 
             file_name = Path(file_path).name
             
@@ -342,7 +339,7 @@ class DRACOON:
                                                     plain_keypair=self.plain_keypair, file_key=file_key, display_progress=display_progress, 
                                                     raise_on_err=raise_on_err, callback_fn=callback_fn, file_name=file_name, chunksize=chunksize)
             except HTTPNotFoundError:
-                raise CryptoMissingFileKeyrError(message=f'No file key for node {node_id}')
+                raise CryptoMissingFileKeyError(message=f'No file key for node {node_id}')
                 
         elif is_encrypted and not self.check_keypair():
             raise CryptoMissingKeypairError(message='Keypair must be entered for encrypted nodes.')
