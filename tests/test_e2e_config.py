@@ -68,3 +68,5 @@ class TestAsyncDRACOONConfig(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(s3_tags, S3TagList)
     
 
+if __name__ == "__main__":
+    unittest.main()
