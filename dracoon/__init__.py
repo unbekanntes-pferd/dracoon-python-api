@@ -16,12 +16,14 @@ All requests with bodies use generic params variable to pass JSON body
 """
 
 
+from cmath import inf
 import logging
 import asyncio
 from pathlib import Path
 from typing import Any, Generator, List
 from datetime import datetime
 from dracoon.client.models import ProxyConfig
+from dracoon.config import DRACOONConfig
 from dracoon.nodes.models import Callback
 
 
@@ -59,6 +61,10 @@ class DRACOON:
         self.logger.info("Created DRACOON client.")
         self.plain_keypair = None
         self.user_info =  None
+        
+    @property
+    def config(self) -> DRACOONConfig:
+        return DRACOONConfig(self.client)
   
     @property 
     def nodes(self) -> DRACOONNodes:
@@ -113,15 +119,22 @@ class DRACOON:
         system_info_res = self.public.get_system_info()
         oidc_auth_info_res = self.public.get_auth_openid_info()
         ad_auth_info_res = self.public.get_auth_ad_info()
+        
+        system_defaults = self.config.get_system_defaults()
+        infrastructure_policies = self.config.get_infrastructure_properties()
+        general_settings = self.config.get_general_settings()
 
         self.logger.debug("Getting DRACOON instance information...")
 
-        list = await asyncio.gather(user_info_res, system_info_res, oidc_auth_info_res, ad_auth_info_res)
+        reqs = await asyncio.gather(user_info_res, system_info_res, oidc_auth_info_res, ad_auth_info_res, system_defaults, infrastructure_policies, general_settings)
         
-        self.user_info = list[0]
-        self.system_info = list[1]
-        self.auth_ad_info = list[3]
-        self.auth_oidc_info = list[2]
+        self.user_info = reqs[0]
+        self.system_info = reqs[1]
+        self.auth_ad_info = reqs[3]
+        self.auth_oidc_info = reqs[2]
+        self.general_settings = reqs[6]
+        self.system_defaults = reqs[4]
+        self.infrastructure_policies = reqs[5]
 
         self.logger.info("Retrieved instance and account information.")
         self.logger.debug("Logged in as user id %s.", self.user_info.id)
