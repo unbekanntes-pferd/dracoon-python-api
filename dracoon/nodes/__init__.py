@@ -1458,6 +1458,36 @@ class DRACOONNodes:
         self.logger.info("Updated file(s).")
         return None
     
+    def make_file_update(self, name: str = None, classification: int = None, notes: str = None, expiration: Expiration = None, 
+                               modified_date: str = None, created_date: str = None):
+        
+        update_file = {
+            "name": name,
+            "classification": classification,
+            "notes": notes,
+            "expiration": expiration,
+            "timestampModification": modified_date,
+            "timestampCreation": created_date
+        }
+        
+        if all(update_file[key] is None for key in update_file.keys()):
+            raise InvalidArgumentError(message="Payload is empty.")
+        
+        return UpdateFile(**update_file)
+    
+    def make_files_update(self, files: List[int], classification: int = None, expiration: Expiration = None):
+        
+        update_files = {
+            "objectIds": files,
+            "classification": classification,
+            "expiration": expiration,
+        }
+        
+        if all(update_files[key] is None for key in update_files.keys()):
+            raise InvalidArgumentError(message="Payload is empty.")
+        
+        return UpdateFiles(**update_files)
+    
 
     @validate_arguments
     async def get_download_url(self, node_id: int, raise_on_err: bool = False) -> DownloadTokenGenerateResponse:

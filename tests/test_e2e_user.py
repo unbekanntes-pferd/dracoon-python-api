@@ -4,7 +4,7 @@ import dotenv
 import os
 
 from dracoon import DRACOONClient, OAuth2ConnectionType
-from dracoon.errors import DRACOONHttpError
+from dracoon.errors import DRACOONHttpError, HTTPNotFoundError
 from dracoon.user import DRACOONUser
 from dracoon.user.models import UpdateAccount, UserAccount
 from dracoon.crypto.models import UserKeyPairContainer, UserKeyPairVersion
@@ -49,6 +49,12 @@ class TestAsyncDRACOONUser(unittest.IsolatedAsyncioTestCase):
         
     
     async def test_set_get_2048_keypair(self):
+
+        try:
+            await self.user.get_user_keypair(raise_on_err=True) 
+            await self.user.delete_user_keypair()
+        except HTTPNotFoundError:
+            pass
     
         secret = 'VerySecret123!'
         keypair_2048 = await self.user.set_user_keypair(secret=secret, version=UserKeyPairVersion.RSA2048)
@@ -65,6 +71,12 @@ class TestAsyncDRACOONUser(unittest.IsolatedAsyncioTestCase):
     
     async def test_delete_2048_keypair(self):
 
+        try:
+            await self.user.get_user_keypair(raise_on_err=True) 
+            await self.user.delete_user_keypair()
+        except HTTPNotFoundError:
+            pass
+
         secret = 'VerySecret123!'
         keypair_2048 = await self.user.set_user_keypair(secret=secret, version=UserKeyPairVersion.RSA2048)
         self.assertIsNone(keypair_2048)
@@ -74,6 +86,12 @@ class TestAsyncDRACOONUser(unittest.IsolatedAsyncioTestCase):
         
     
     async def test_set_get_4096_keypair(self):
+
+        try:
+            await self.user.get_user_keypair(raise_on_err=True) 
+            await self.user.delete_user_keypair()
+        except HTTPNotFoundError:
+            pass
         
         secret = 'VerySecret123!'
         
@@ -90,6 +108,12 @@ class TestAsyncDRACOONUser(unittest.IsolatedAsyncioTestCase):
         
     
     async def test_delete_4096_keypair(self):
+
+        try:
+            await self.user.get_user_keypair(raise_on_err=True) 
+            await self.user.delete_user_keypair()
+        except HTTPNotFoundError:
+            pass
 
         secret = 'VerySecret123!'
         
