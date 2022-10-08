@@ -19,6 +19,7 @@ username = os.environ.get('E2E_USER_NAME')
 password = os.environ.get('E2E_PASSWORD')
 base_url = os.environ.get('E2E_BASE_URL')
 base_url_server = os.environ.get('E2E_SERVER_BASE_URL')
+is_github_action = os.environ.get('IS_GITHUB_ACTION')
 
 chunksize = 1024 * 1024 * 10 # 10 MB to test chunking / S3
 
@@ -47,7 +48,8 @@ class DRACOONTransferTestsHelper():
             out_file.write(os.urandom(self.chunksize * self.chunks))
             
         return file_path
-        
+
+@unittest.skipIf(is_github_action is not None, reason="No transfer E2E tests in Github action")  
 class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
     
     async def asyncSetUp(self) -> None:
