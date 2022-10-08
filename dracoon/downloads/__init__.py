@@ -12,7 +12,10 @@ https://support.dracoon.com/hc/de/articles/115005512089
 import os
 from pathlib import Path
 import logging
+import random
+import string
 
+from cryptography.exceptions import InvalidTag
 from tqdm import tqdm
 import httpx
 
@@ -21,7 +24,7 @@ from dracoon.nodes.models import Callback, Node, NodeType
 from dracoon.client import DRACOONClient
 from dracoon.crypto import FileDecryptionCipher, decrypt_file_key
 from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer
-from dracoon.errors import (InvalidClientError, ClientDisconnectedError, InvalidFileError, 
+from dracoon.errors import (DRACOONCryptoError, InvalidClientError, ClientDisconnectedError, InvalidFileError, 
                             FileConflictError, InvalidPathError)
 
 
@@ -148,17 +151,19 @@ class DRACOONDownloads:
             await self.dracoon.handle_generic_error(err=err)
 
         if file_name is None:
-            file_path = os.path.join(target_path, node_info.name)
-        elif file_name is not None:
-            file_path = os.path.join(target_path, file_name)
-
+            file_name = node_info.name
+  
+        folder = Path(target_path)
+        
+        tmp_filename = self.generate_temporary_filename()
+            
+        file_path = folder.joinpath(tmp_filename)
+            
         if self.check_file_exists(file_path):
             await self.dracoon.logout()
             self.logger.critical("File already exists: %s", file_path)
             err = FileConflictError(message='File already exists.')
             await self.dracoon.handle_generic_error(err=err)
-
-        folder = Path(target_path)
 
         if not folder.is_dir():
             await self.dracoon.logout()
@@ -177,33 +182,48 @@ class DRACOONDownloads:
         # init callback size
         if callback_fn: callback_fn(0, size)
 
-        try:         
-            file_out = open(file_path, 'wb')  
-                
-            async with self.dracoon.downloader.stream(method='GET', url=download_url) as res:
-                res.raise_for_status()
-                if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)   
-                    
-                # decrypt file and then write to disk
-                async for chunk in res.aiter_bytes(chunksize):            
-                    plain_chunk = decryptor.decode_bytes(chunk)
-                    file_out.write(plain_chunk)
-                    if display_progress: progress.update(len(chunk))
-                    if callback_fn: callback_fn(len(chunk))
+        try:
+            with open(file_path, 'wb') as file_out:       
+                async with self.dracoon.downloader.stream(method='GET', url=download_url) as res:
+                    res.raise_for_status()
+                    if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)   
                         
-                        # finalize encryption after last chunk
-                    if not chunk:
-                        last_data = decryptor.finalize()
-                        file_out.write(last_data)
-                                     
-                    self.logger.info("Download completed.")
+                    # decrypt file and then write to disk
+                    async for chunk in res.aiter_bytes(chunksize):            
+                        plain_chunk = decryptor.decode_bytes(chunk)
+                        file_out.write(plain_chunk)
+                        if display_progress: progress.update(len(chunk))
+                        if callback_fn: callback_fn(len(chunk))
+                            
+                            # finalize encryption after last chunk
+                        if not chunk:
+                            last_data = decryptor.finalize()
+                            file_out.write(last_data)
+                                        
+                        self.logger.info("Download completed.")
+        except InvalidTag:
+            # remove unverified decrypted bytes
+            os.remove(file_path)
+            raise DRACOONCryptoError("Invalid file key")
         except httpx.RequestError as e:
+            os.remove(file_path)
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
+            os.remove(file_path)
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         finally:
-            if file_out: file_out.close()
             if display_progress and progress: progress.close()
+            
+        end_file = folder.joinpath(file_name)
+            
+        file_path.rename(end_file)
+            
+    def generate_temporary_filename(self) -> str:
+        
+        chars = string.ascii_uppercase
+        tmp_filename =  ''.join(random.choice(chars) for i in range(12))
+        return tmp_filename + '.TMP'
+        
 
 
 

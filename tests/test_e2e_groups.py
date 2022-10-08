@@ -208,7 +208,7 @@ class TestAsyncDRACOONServerGroups(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(update, UpdateGroup)
 
         updated_group = await self.groups.update_group(group_id=group.id, group_update=update)
-        self.assertEqualupdated_group.name, update_name
+        self.assertEqual(updated_group.name, update_name)
         
         await self.groups.delete_group(group_id=group.id)
 

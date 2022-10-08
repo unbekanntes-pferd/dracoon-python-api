@@ -22,9 +22,8 @@ from pathlib import Path
 from typing import Any, Generator, List
 from datetime import datetime
 from dracoon.client.models import ProxyConfig
+from dracoon.config import DRACOONConfig
 from dracoon.nodes.models import Callback
-
-
 from dracoon.nodes.responses import S3FileUploadStatus
 
 from .crypto.models import PlainUserKeyPairContainer
@@ -41,7 +40,7 @@ from .settings import DRACOONSettings
 from .reports import DRACOONReports
 from .crypto import decrypt_private_key
 from .logger import create_logger
-from .errors import (CryptoMissingFileKeyrError, CryptoMissingKeypairError,
+from .errors import (CryptoMissingFileKeyError, CryptoMissingKeypairError, DRACOONCryptoError,
                      HTTPNotFoundError, InvalidArgumentError, InvalidFileError, InvalidPathError, ClientDisconnectedError)
 
 
@@ -49,16 +48,20 @@ from .errors import (CryptoMissingFileKeyrError, CryptoMissingKeypairError,
 class DRACOON:
     """ DRACOON main API wrapper with all adapters to specific endpoints """ 
 
-    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', log_file: str = 'dracoon.log', 
-                 log_level = logging.INFO, log_stream: bool = False, raise_on_err: bool = False, proxy_config: ProxyConfig = None,
-                 log_file_out: bool = False):
+    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', redirect_uri: str = None,
+                 log_file: str = 'dracoon.log', log_level = logging.INFO, log_stream: bool = False, raise_on_err: bool = False, 
+                 proxy_config: ProxyConfig = None, log_file_out: bool = False):
         """ intialize with instance information: base DRACOON url and OAuth app client credentials """
         self.client = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=raise_on_err, 
-                                    proxy_config=proxy_config)
+                                    proxy_config=proxy_config, redirect_uri=redirect_uri)
         self.logger = create_logger(log_file=log_file, log_level=log_level, log_stream=log_stream, log_file_out=log_file_out)
         self.logger.info("Created DRACOON client.")
         self.plain_keypair = None
         self.user_info =  None
+        
+    @property
+    def config(self) -> DRACOONConfig:
+        return DRACOONConfig(self.client)
   
     @property 
     def nodes(self) -> DRACOONNodes:
@@ -113,15 +116,22 @@ class DRACOON:
         system_info_res = self.public.get_system_info()
         oidc_auth_info_res = self.public.get_auth_openid_info()
         ad_auth_info_res = self.public.get_auth_ad_info()
+        
+        system_defaults = self.config.get_system_defaults()
+        infrastructure_policies = self.config.get_infrastructure_properties()
+        general_settings = self.config.get_general_settings()
 
         self.logger.debug("Getting DRACOON instance information...")
 
-        list = await asyncio.gather(user_info_res, system_info_res, oidc_auth_info_res, ad_auth_info_res)
+        reqs = await asyncio.gather(user_info_res, system_info_res, oidc_auth_info_res, ad_auth_info_res, system_defaults, infrastructure_policies, general_settings)
         
-        self.user_info = list[0]
-        self.system_info = list[1]
-        self.auth_ad_info = list[3]
-        self.auth_oidc_info = list[2]
+        self.user_info = reqs[0]
+        self.system_info = reqs[1]
+        self.auth_ad_info = reqs[3]
+        self.auth_oidc_info = reqs[2]
+        self.general_settings = reqs[6]
+        self.system_defaults = reqs[4]
+        self.infrastructure_policies = reqs[5]
 
         self.logger.info("Retrieved instance and account information.")
         self.logger.debug("Logged in as user id %s.", self.user_info.id)
@@ -165,8 +175,10 @@ class DRACOON:
             raise ClientDisconnectedError()
 
         enc_keypair = await self.user.get_user_keypair()
-      
-        plain_keypair = decrypt_private_key(secret, enc_keypair)
+        try:
+            plain_keypair = decrypt_private_key(secret, enc_keypair)
+        except ValueError:
+            raise DRACOONCryptoError(message="Wrong decryption password")
 
         self.plain_keypair = plain_keypair
 
@@ -175,7 +187,7 @@ class DRACOON:
 
         return plain_keypair
 
-    async def upload(self, file_path: str, target_path: str = None, resolution_strategy: str = 'autorename', 
+    async def upload(self, file_path: str, target_path: str = None, file_name: str = None, resolution_strategy: str = 'autorename', 
                      display_progress: bool = False, modification_date: str = None, 
                      creation_date: str = None, 
                      raise_on_err: bool = False, callback_fn: Callback  = None,
@@ -210,8 +222,10 @@ class DRACOON:
             self.logger.debug(msg)
             err = InvalidPathError(message=msg)
             await self.client.handle_generic_error(err=err)
-        
-        file_name = Path(file_path).name
+            
+        if file_name is None: 
+            file_name = Path(file_path).name
+            
         file_modified = Path(file_path).stat().st_mtime
         file_created = Path(file_path).stat().st_ctime
         
@@ -250,22 +264,22 @@ class DRACOON:
         # crypto upload 
         if is_encrypted and self.check_keypair() and not use_s3_storage:       
             upload = await self.nodes.upload_encrypted(file_path=file_path, upload_channel=upload_channel, display_progress=display_progress,
-                                                         plain_keypair=self.plain_keypair, resolution_strategy=resolution_strategy, 
+                                                         plain_keypair=self.plain_keypair, resolution_strategy=resolution_strategy, file_name=file_name,
                                                          raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
         elif is_encrypted and self.check_keypair() and use_s3_storage:
             upload = await self.nodes.upload_s3_encrypted(file_path=file_path, upload_channel=upload_channel, plain_keypair=self.plain_keypair, 
-                                                          display_progress=display_progress, resolution_strategy=resolution_strategy, 
+                                                          display_progress=display_progress, resolution_strategy=resolution_strategy, file_name=file_name,
                                                           raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
         elif is_encrypted and not self.check_keypair():
             self.logger.critical("Upload failed: Keypair not unlocked.")
             raise CryptoMissingKeypairError('DRACOON crypto upload requires unlocked keypair. Please unlock keypair first.')
         # unencrypted upload
         elif not is_encrypted and not use_s3_storage:
-            upload = await self.nodes.upload_unencrypted(file_path=file_path, upload_channel=upload_channel, 
+            upload = await self.nodes.upload_unencrypted(file_path=file_path, upload_channel=upload_channel, file_name=file_name,
                                                          resolution_strategy=resolution_strategy, display_progress=display_progress, 
                                                          raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
         elif not is_encrypted and use_s3_storage:
-            upload = await self.nodes.upload_s3_unencrypted(file_path=file_path, upload_channel=upload_channel, 
+            upload = await self.nodes.upload_s3_unencrypted(file_path=file_path, upload_channel=upload_channel, file_name=file_name,
                                                             display_progress=display_progress, resolution_strategy=resolution_strategy,
                                                             raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
 
@@ -278,7 +292,7 @@ class DRACOON:
         """ download a file to a target """
 
         if not self.client.connection:
-            await self.logout()
+            await self.client.disconnect()
             self.logger.error("DRACOON client not connected: Download failed.")
             raise ClientDisconnectedError(message='DRACOON client not connected.')
 
@@ -325,7 +339,7 @@ class DRACOON:
                                                     plain_keypair=self.plain_keypair, file_key=file_key, display_progress=display_progress, 
                                                     raise_on_err=raise_on_err, callback_fn=callback_fn, file_name=file_name, chunksize=chunksize)
             except HTTPNotFoundError:
-                raise CryptoMissingFileKeyrError(message=f'No file key for node {node_id}')
+                raise CryptoMissingFileKeyError(message=f'No file key for node {node_id}')
                 
         elif is_encrypted and not self.check_keypair():
             raise CryptoMissingKeypairError(message='Keypair must be entered for encrypted nodes.')

@@ -1,3 +1,4 @@
+from doctest import testfile
 import os
 import asyncio
 from pathlib import Path
@@ -193,6 +194,25 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
         await self.dracoon.nodes.delete_node(node_id=target_node.id)
         
         os.remove(small_file)
+        os.remove(test_file)
+
+    async def test_upload_custom_filename(self):
+        test_file = self.test_helper.generate_small_file()
+        
+        room = self.dracoon.nodes.make_room(name='UPLOAD_TEST_SMALL_FILENAME')
+        target_node = await self.dracoon.nodes.create_room(room=room)
+        
+        upload_job = TransferJob()
+        file_small = await self.dracoon.upload(target_parent_id=target_node.id, file_path=test_file, callback_fn=upload_job.update_progress, file_name='othername.test')
+        self.assertIsInstance(file_small, S3FileUploadStatus)
+        self.assertEqual(upload_job.progress, 1)
+        self.assertEqual(upload_job.transferred, file_small.node.size)
+        self.assertEqual(file_small.status, S3Status.done.value)
+        self.assertNotEqual(file_small.node.name, test_file.name)
+        self.assertEqual(file_small.node.name, 'othername.test')
+        
+        await self.dracoon.nodes.delete_node(node_id=target_node.id)
+        
         os.remove(test_file)
 
        

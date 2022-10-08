@@ -23,7 +23,7 @@ from dracoon.errors import (MissingCredentialsError, HTTPBadRequestError, HTTPUn
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
                             HTTPUnknownError)
 
-USER_AGENT = 'dracoon-python-1.5.3'
+USER_AGENT = 'dracoon-python-1.6.0'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=20, read=20)
 
 class OAuth2ConnectionType(Enum):
@@ -54,8 +54,8 @@ class DRACOONClient:
 
     }
 
-    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', raise_on_err: bool = False,
-                 proxy_config: ProxyConfig = None):
+    def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', redirect_uri: str = None,
+                 raise_on_err: bool = False, proxy_config: ProxyConfig = None):
         """ client is initialized with DRACOON instance details (url and OAuth client credentials) """
         self.base_url = base_url
         self.client_id = client_id
@@ -64,10 +64,13 @@ class DRACOONClient:
         self.uploader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
         self.downloader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
         self.connected = False
+        if redirect_uri:
+            self.redirect_uri = redirect_uri
+        else:
+            self.redirect_uri = f"{self.base_url}/oauth/callback"
         self.connection: DRACOONConnection = None
         self.raise_on_err = raise_on_err
         self.logger = logging.getLogger('dracoon.client')
-
         self.logger.info("DRACOON client created.")
         self.logger.debug(f"DRACOON client config: {self.base_url} // {self.client_id}")
 
@@ -141,13 +144,10 @@ class DRACOONClient:
 
         if connection_type == OAuth2ConnectionType.auth_code:
             
-            
             if redirect_uri:
-                _redirect_uri = redirect_uri
-            else:
-                _redirect_uri = self.base_url + '/oauth/callback'
+                self.redirect_uri = redirect_uri
 
-            data = {'grant_type': 'authorization_code', 'code': auth_code, 'client_id': self.client_id, 'client_secret': self.client_secret, 'redirect_uri': _redirect_uri}
+            data = {'grant_type': 'authorization_code', 'code': auth_code, 'client_id': self.client_id, 'client_secret': self.client_secret, 'redirect_uri': self.redirect_uri}
 
             try:
                 res = await self.http.post(url=token_url, data=data)
@@ -196,7 +196,6 @@ class DRACOONClient:
         self.connected = True
         self.http.headers["Authorization"] = "Bearer " + self.connection.access_token
   
-
         return self.connection
 
     async def disconnect(self):
@@ -205,9 +204,9 @@ class DRACOONClient:
         await self.uploader.aclose()
 
     def get_code_url(self):
-        """ builds OAuth authorization code url to visit – requires OAuth app to use redirect uri ($host/oauth/callback) """
+        """ builds OAuth authorization code url to visit – requires OAuth app to use redirect uri ($host/oauth/callback or custom uri) """
         # generate URL string for OAuth auth code flow
-        return self.base_url + f'/oauth/authorize?branding=full&response_type=code&client_id={self.client_id}&redirect_uri={self.base_url}/oauth/callback&scope=all'
+        return self.base_url + f'/oauth/authorize?branding=full&response_type=code&client_id={self.client_id}&redirect_uri={self.redirect_uri}&scope=all'
 
 
     async def logout(self, revoke_refresh_token: bool = False):

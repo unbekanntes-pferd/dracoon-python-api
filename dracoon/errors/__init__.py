@@ -103,7 +103,7 @@ class CryptoMissingKeypairError(DRACOONCryptoError):
 
         super().__init__(message)
         
-class CryptoMissingFileKeyrError(DRACOONCryptoError):
+class CryptoMissingFileKeyError(DRACOONCryptoError):
     """
     Exception raised in dracoon
     Missing file key for user and node
