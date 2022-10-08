@@ -33,30 +33,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest python-dotenv
         python -m pip install --upgrade pip setuptools wheel
-        python -m pip install build
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Build version and install package
+    - name: Run all tests
       run: |
-        python -m build
-        python -m pip install dist/dracoon-${{ secrets.VERSION }}.tar.gz
-    - name: Test client
-      run: |
-        python tests/test_client.py
-    - name: Test crypto
-      run: |
-        python tests/test_crypto.py
-    - name: Test user
-      run: |
-        python tests/test_e2e_user.py
-    - name: Test users
-      run: |
-        python tests/test_e2e_users.py
-    - name: Test groups
-      run: |
-        python tests/test_e2e_groups.py
-    - name: Test public
-      run: |
-        python tests/test_e2e_public.py
-    - name: Test settings
-      run: |
-        python tests/test_e2e_settings.py
+        python run_tests.py
