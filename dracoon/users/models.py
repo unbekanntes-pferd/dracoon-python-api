@@ -23,6 +23,9 @@ class UserAuthMethod(BaseModel):
     isEnabled: bool
     options: Optional[List[UserAuthMethodOption]]
 
+class MfaConfig(BaseModel):
+    mfaEnforced: Optional[bool]
+
 # required payload for POST /users
 class CreateUser(BaseModel):
     firstName: str
@@ -35,6 +38,7 @@ class CreateUser(BaseModel):
     notifyUser: Optional[bool]
     authData: UserAuthData
     isNonmemberViewer: Optional[bool]
+    mfaConfig: Optional[MfaConfig]
 
 # required payload for PUT /users/{user_id}
 class UpdateUser(BaseModel):
@@ -49,11 +53,12 @@ class UpdateUser(BaseModel):
     authData: Optional[UserAuthData]
     authMethods: Optional[List[UserAuthMethod]]
     isNonmemberViewer: Optional[bool]
+    mfaConfig: Optional[MfaConfig]
 
 class AttributeEntry(BaseModel):
     key: str
     value: str
-
+    
 # required payload for POST /users/{user_id}/userAttributes (deprecated)
 class SetUserAttributes(BaseModel):
     items: List[AttributeEntry]
