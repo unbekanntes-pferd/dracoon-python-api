@@ -25,7 +25,7 @@ from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.user.responses import (AttributesResponse, LastAdminUserRoomList, RoleList, 
                                     UserData, UserGroupList, UserList)
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
-from .models import (AttributeEntry, CreateUser, Expiration, UpdateUser, UpdateUserAttributes, 
+from .models import (AttributeEntry, CreateUser, Expiration, MfaConfig, UpdateUser, UpdateUserAttributes, 
                      UserAuthData)
 
 
@@ -77,7 +77,7 @@ class DRACOONUsers:
 
     def make_local_user(self, first_name: str, last_name: str, email: str, login: str = None,
                         language: str = None, notify: bool = None, expiration: Expiration = None, 
-                        phone: str = None) -> CreateUser:
+                        phone: str = None, mfa_enforced: bool = None) -> CreateUser:
         """ makes a new local (basic) user required for create_user() """
         auth = self.make_auth_data(method='basic')
 
@@ -94,12 +94,15 @@ class DRACOONUsers:
         if notify is not None: user["notifyUser"] = notify
         if expiration: user["expiration"] = expiration
         if phone: user["phone"] = phone
+        if mfa_enforced is not None:
+            mfa_config = MfaConfig(mfaEnforced=mfa_enforced)
+            user["mfaConfig"] = mfa_config
 
         return CreateUser(**user)
 
     def make_oidc_user(self, first_name: str, last_name: str, email: str, login: str, oidc_id: int, 
                        language: str = None, notify: bool = None, expiration: Expiration = None, 
-                       phone: str = None, raise_on_err: bool = False) -> CreateUser:
+                       phone: str = None, mfa_enforced: bool = None) -> CreateUser:
         """ makes a new OpenID Connect (openid) user required for create_user() """
         auth = self.make_auth_data(method='openid', oidc_id=oidc_id, login=login)
            
@@ -114,12 +117,15 @@ class DRACOONUsers:
         if notify is not None: user["notifyUser"] = notify
         if expiration: user["expiration"] = expiration
         if phone: user["phone"] = phone
+        if mfa_enforced is not None:
+            mfa_config = MfaConfig(mfaEnforced=mfa_enforced)
+            user["mfaConfig"] = mfa_config
         
         return CreateUser(**user)
 
     def make_ad_user(self, first_name: str, last_name: str, email: str, login: str, ad_id: int,
                      language: str = None, notify: bool = None, expiration: Expiration = None, 
-                     phone: str = None) -> CreateUser:
+                     phone: str = None, mfa_enforced: bool = None) -> CreateUser:
         """ makes a new Active Directory (active_directory) user required for create_user() """
         auth = self.make_auth_data(method='active_directory', ad_id=ad_id, login=login)
         
@@ -134,7 +140,10 @@ class DRACOONUsers:
         if language: user["receiverLanguage"] = language
         if notify is not None: user["notifyUser"] = notify
         if expiration: user["expiration"] = expiration
-        if phone: user["phone"] = phone   
+        if phone: user["phone"] = phone
+        if mfa_enforced is not None:
+            mfa_config = MfaConfig(mfaEnforced=mfa_enforced)
+            user["mfaConfig"] = mfa_config
         
         return CreateUser(**user)
 
@@ -142,7 +151,8 @@ class DRACOONUsers:
                          user_name: str = None, locked: bool = None, phone: str = None, 
                          expiration: Expiration = None, language: str = None,
                          auth_data: UserAuthData = None, 
-                         non_member_viewer: bool = None) -> UpdateUser:
+                         non_member_viewer: bool = None, 
+                         mfa_enforced: bool = None) -> UpdateUser:
         """ makes an user update payload required for update_user() """
         user_update = {
 
@@ -158,6 +168,9 @@ class DRACOONUsers:
         if auth_data: user_update["authData"] = auth_data   
         if email: user_update["email"] = email 
         if user_name: user_update["userName"] = user_name
+        if mfa_enforced is not None:
+            mfa_config = MfaConfig(mfaEnforced=mfa_enforced)
+            user_update["mfaConfig"] = mfa_config
 
         return UpdateUser(**user_update)
 
