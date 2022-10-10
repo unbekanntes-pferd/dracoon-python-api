@@ -120,6 +120,22 @@ class TestAsyncDRACOONUsers(unittest.IsolatedAsyncioTestCase):
 
         await self.users.delete_user(user_id=user.id)
         
+    async def test_create_user_mfa_enforced(self):
+        
+        local_user = self.users.make_local_user(first_name='test', last_name='test', email='test@unbekanntespferd.com', login='local.update.user') 
+        user = await self.users.create_user(local_user)
+        self.assertIsInstance(user, UserData)
+        self.assertEqual(user.authData.method, 'basic')
+        
+        update = self.users.make_user_update(mfa_enforced=True)
+        
+        user_update = await self.users.update_user(user_id=user.id, user_update=update)
+        
+        self.assertTrue(user_update.isMfaEnforced)
+        self.assertFalse(user_update.isMfaEnabled)
+        
+        await self.users.delete_user(user_id=user.id)
+        
     async def test_delete_user(self):
         
         local_user = self.users.make_local_user(first_name='test', last_name='test', email='test@unbekanntespferd.com', login='local.delete.user') 
