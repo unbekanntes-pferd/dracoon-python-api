@@ -64,6 +64,8 @@ class UserData(BaseModel):
     homeRoomId: Optional[int]
     publicKeyContainer: Optional[PublicKeyContainer]
     userRoles: Optional[RoleList]
+    isMfaEnabled: Optional[bool]
+    isMfaEnforced: Optional[bool]
 
 
 class UserGroupList(BaseModel):

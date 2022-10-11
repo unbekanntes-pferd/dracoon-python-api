@@ -17,6 +17,7 @@ jobs:
       E2E_USER_NAME: ${{ secrets.E2E_USER_NAME }}
       E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
       E2E_ENCRYPTION_PASSWORD: ${{ secrets.E2E_ENCRYPTION_PASSWORD }}
+      IS_GITHUB_ACTION: §{{ secrets.IS_GITHUB_ACTION }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -35,45 +36,6 @@ jobs:
         python -m pip install flake8 pytest python-dotenv
         python -m pip install --upgrade pip setuptools wheel
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Run client tests
+    - name: Run all tests
       run: |
-        python -m unittest tests/test_client.py
-    - name: Run crypto tests
-      run: |
-        python -m unittest tests/test_crypto.py
-      - name: Run e2e client tests
-      run: |
-        python -m unittest tests/test_e2e_client.py
-    - name: Run e2e config tests
-      run: |
-        python -m unittest tests/test_e2e_config.py
-    - name: Run e2e dracoon tests
-      run: |
-        python -m unittest tests/test_e2e_dracoon.py
-    - name: Run e2e eventlog tests
-      run: |
-        python -m unittest tests/test_e2e_eventlog.py
-    - name: Run e2e eventlog tests
-      run: |
-        python -m unittest tests/test_e2e_eventlog.py
-    - name: Run e2e groups tests
-      run: |
-        python -m unittest tests/test_e2e_groups.py
-    - name: Run e2e nodes tests
-      run: |
-        python -m unittest tests/test_e2e_nodes.py
-    - name: Run e2e public tests
-      run: |
-        python -m unittest tests/test_e2e_public.py
-    - name: Run e2e settings tests
-      run: |
-        python -m unittest tests/test_e2e_settings.py
-    - name: Run e2e user tests
-      run: |
-        python -m unittest tests/test_e2e_user.py
-    - name: Run e2e users tests
-      run: |
-        python -m unittest tests/test_e2e_users.py
-    - name: Run error tests
-      run: |
-        python -m unittest tests/test_errors.py
+        python run_tests.py
