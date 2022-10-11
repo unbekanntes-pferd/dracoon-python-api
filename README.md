@@ -135,7 +135,11 @@ If you do not provide a connection type, the default will be auth code.
 You should prompt (or fetch) the auth code via the respective url.
 Full example: [Login via auth code](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/login_auth_code_flow.py)
 
-Please note: you can only authenticate if OAuth app is correctly configured. You will need a custom app with authorization code flow enabled and you will need to set your redirect uri to https://your.domain.com/oauth/callback 
+Please note: you can only authenticate if OAuth app is correctly configured. You will need a custom app with authorization code flow enabled and you will need to set your redirect uri to https://your.domain.com/oauth/callback for CLI usage (default). Otherwise, use a custom redirect uri by providing it as a parameter when creating a DRACOON instance:
+
+```Python
+DRACOON(base_url=base_url, client_id=client_id, client_secret=client_secret, redirect_uri='x-custom-handler://your.handler')
+```
 
 #### Test connection
 ```Python
@@ -364,6 +368,14 @@ If you have the node id of the target room / folder, you can also pass this and 
     
 ```
 
+You can also pass a custom file name, if required:
+
+```Python
+
+    await dracoon.upload(file_path=source, display_progress=True, target_parent_id=999, file_name='my_custom.pdf')
+    
+```
+
 
 The main API wrapper includes a method that includes upload for encrypted and unencrypted files.
 Full example: [File upload](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/upload.py)
@@ -382,6 +394,13 @@ source = '/DEMO/testfile.bin'
 await dracoon.download(file_path=source, target_path=target)
 
 ```
+
+You can also pass a custom file name, if required:
+
+```Python
+await dracoon.download(file_path=source, target_path=target, file_name='custom_file.pdf')
+```
+If a file already exists, a FileConflictError will be raised (file is not overwritten).
 
 Full example: [Download files](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/download.py)
 
@@ -404,7 +423,7 @@ The function should accept the bytes as first value and accept the total as an o
 A base class to build own jobs is also provided and called TransferJob - usage with inheritance (demo with tqdm as progress bar):
 
 ```Python
-class TransferJob(BaseTransferJob):
+class CustomTransferJob(TransferJob):
     """ object representing a single transfer (up- / download) """
     progress_bar = None
     
@@ -456,6 +475,8 @@ The error hirarchy is like this:
     ...
   * DRACOONClientError - error with the client (not connected etc.)
      * individual crypto errors
+  * DRACOONValidationError - errors validating input
+    * individual validation errors (e.g. FileConflictError)
 
 In order to raise exceptions based on HTTP status codes you MUST provide the raise_on_err flag for the method like this:
 
