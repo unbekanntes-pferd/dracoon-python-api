@@ -16,7 +16,7 @@ import httpx
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.config.responses import AlgorithmVersionInfoList, ClassificationPoliciesConfig, GeneralSettingsInfo, InfrastructureProperties, PasswordPoliciesConfig, ProductPackageResponseList, S3TagList, SystemDefaults
-from dracoon.errors import ClientDisconnectedError, DRACOONClientError, InvalidClientError
+from dracoon.errors import ClientDisconnectedError, InvalidClientError
 
 
 class DRACOONConfig:
@@ -26,7 +26,7 @@ class DRACOONConfig:
     Config endpoints returning policies, infrastructure, defaults 
     """
 
-    def __init__(self, dracoon_client: DRACOONClientError):
+    def __init__(self, dracoon_client: DRACOONClient):
         """ requires a DRACOONClient to perform any request """
         if not isinstance(dracoon_client, DRACOONClient):
             raise InvalidClientError(message='Invalid client.')
