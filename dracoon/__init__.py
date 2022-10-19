@@ -21,6 +21,7 @@ import asyncio
 from pathlib import Path
 from typing import Any, Generator, List
 from datetime import datetime
+from dracoon.branding import DRACOONBranding
 from dracoon.client.models import ProxyConfig
 from dracoon.config import DRACOONConfig
 from dracoon.nodes.models import Callback
@@ -101,8 +102,11 @@ class DRACOON:
    
     @property
     def downloads(self) -> DRACOONDownloads:
-       return DRACOONDownloads(self.client) 
-   
+       return DRACOONDownloads(self.client)
+
+    @property
+    def branding(self) -> DRACOONBranding:
+       return DRACOONBranding(self.client) 
    
     async def connect(self, connection_type: OAuth2ConnectionType = OAuth2ConnectionType.auth_code, username: str = None, 
                       password: str = None, auth_code: str = None, refresh_token: str = None, redirect_uri: str = None) -> DRACOONConnection:
@@ -150,16 +154,11 @@ class DRACOON:
         self.logger.debug("Testing authenticated connection.")
         return await self.client.test_connection()
     
-    def valid_access_token(self) -> bool:
+    async def valid_access_token(self) -> bool:
         """ check access token validity based on expiration """
         self.logger.debug("Checking access token validity.")
         return self.client.check_access_token()
     
-    def valid_refresh_token(self) -> bool:
-        """ check refresh token validity based on expiration """
-        self.logger.debug("Checking refresh token validity.")
-        return self.client.check_refresh_token()
-
     def check_keypair(self) -> bool:
         
         if not self.plain_keypair:
