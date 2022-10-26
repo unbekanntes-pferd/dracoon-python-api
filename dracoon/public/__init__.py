@@ -15,17 +15,18 @@ Please note: maximum 500 items are returned in GET requests
 """
 import logging
 import httpx
+from dracoon.branding import DRACOONPublicBranding
 
-from dracoon.client import DRACOONClient, OAuth2ConnectionType
-from dracoon.errors import ClientDisconnectedError, InvalidClientError
+from dracoon.client import DRACOONClient
+from dracoon.errors import InvalidClientError
 from .responses import AuthOIDCInfoList, AuthADInfoList, SystemInfo
 
 
 class DRACOONPublic:
 
     """
-    API wrapper for DRACOON nodes endpoint:
-    Node operations (rooms, files, folders), room webhooks, comments and file transfer (up- and download)
+    API wrapper for DRACOON public endpoint:
+    Get system info, auth info (AD, OIDC)
     """
 
     def __init__(self, dracoon_client: DRACOONClient):
@@ -35,23 +36,22 @@ class DRACOONPublic:
         
         self.logger = logging.getLogger('dracoon.public')
         
-        if dracoon_client.connection:
-            self.dracoon = dracoon_client
-            self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/public/system/info'
+        self.dracoon = dracoon_client
+        self.api_url = self.dracoon.base_url + self.dracoon.api_base_url + '/public/system/info'
 
-            if self.dracoon.raise_on_err:
-                self.raise_on_err = True
-            else:
-                self.raise_on_err = False
-            self.logger.debug("DRACOON public adapter created.")
+        if self.dracoon.raise_on_err:
+            self.raise_on_err = True
         else:
-            self.logger.error("DRACOON client error: no connection. ")
-            raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
+            self.raise_on_err = False
+        self.logger.debug("DRACOON public adapter created.")
+        
+    @property
+    def branding(self) -> DRACOONPublicBranding:
+        return DRACOONPublicBranding(dracoon_client=self.dracoon)
+
 
     async def get_system_info(self, raise_on_err: bool = False) -> SystemInfo:
         """ get sytem information (S3) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         if self.raise_on_err:
             raise_on_err = True
@@ -70,8 +70,6 @@ class DRACOONPublic:
 
     async def get_auth_ad_info(self, raise_on_err: bool = False) -> AuthADInfoList:
         """ get active directory information """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         if self.raise_on_err:
             raise_on_err = True
@@ -91,9 +89,7 @@ class DRACOONPublic:
 
     async def get_auth_openid_info(self, raise_on_err: bool = False) -> AuthOIDCInfoList:
         """ get openid information """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
+        
         if self.raise_on_err:
             raise_on_err = True
 
@@ -110,7 +106,3 @@ class DRACOONPublic:
         
         self.logger.info("Retrieved OIDC auth info.")
         return AuthOIDCInfoList(**res.json())
-
-
-
-

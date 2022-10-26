@@ -1,10 +1,9 @@
 import logging
 from pathlib import Path
-from tkinter import Image
 
 import httpx
 from dracoon.branding.models import SimpleImageRequest, UpdateBrandingRequest
-from dracoon.branding.responses import CacheableBrandingResponse, ColorDetailType, ImageSize, ImageType, Language, Text, TextType, UpdateBrandingResponse, Upload
+from dracoon.branding.responses import CacheableBrandingResponse, ColorDetailType, ImageSize, ImageType, UpdateBrandingResponse, Upload
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 
 from dracoon.errors import ClientDisconnectedError, InvalidArgumentError, InvalidClientError
@@ -13,7 +12,7 @@ class DRACOONBranding:
 
     """
     API wrapper for DRACOON branding endpoint:
-    Config endpoints returning policies, infrastructure, defaults 
+    Get, update branding, upload branding images
     """
 
     def __init__(self, dracoon_client: DRACOONClient):
@@ -56,6 +55,7 @@ class DRACOONBranding:
                                         emailContact=branding.emailContact, appearanceLoginBox=branding.appearanceLoginBox, 
                                         privacyUrl=branding.privacyUrl, supportUrl=branding.supportUrl, imprintUrl=branding.imprintUrl)
     
+
     def make_branding_meta_update(self, branding: UpdateBrandingRequest, product_name: str = None, colorize_header: bool = None, 
                                   position_login_box: int = None, appearence_login_box: str = None, imprint_url: str = None, 
                                   support_url: str = None, privacy_url: str = None, email_contact: str = None) -> UpdateBrandingRequest:
@@ -157,9 +157,31 @@ class DRACOONBranding:
         self.logger.info("Uploaded branding image.")
         return Upload(**res.json())
     
+class DRACOONPublicBranding:
+
+    """
+    API wrapper for DRACOON public branding endpoint:
+    Get public branding info and images
+    """
+
+    def __init__(self, dracoon_client: DRACOONClient):
+        """ requires a DRACOONClient to perform any request """
+        if not isinstance(dracoon_client, DRACOONClient):
+            raise InvalidClientError(message='Invalid client.')
+        
+        self.logger = logging.getLogger('dracoon.branding')
+    
+        self.dracoon = dracoon_client
+        self.api_url = self.dracoon.base_url + self.dracoon.branding_base_url
+    
+        if self.dracoon.raise_on_err:
+            self.raise_on_err = True
+        else:
+            self.raise_on_err = False
+
+            self.logger.debug("DRACOON public branding adapter created.")
+            
     async def get_public_branding(self) -> CacheableBrandingResponse:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         if self.raise_on_err:
             raise_on_err = True
@@ -179,8 +201,6 @@ class DRACOONBranding:
         return CacheableBrandingResponse(**res.json())
     
     async def get_public_branding_image(self, type: ImageType, size: ImageSize) -> bytes:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         if self.raise_on_err:
             raise_on_err = True
@@ -188,7 +208,7 @@ class DRACOONBranding:
         api_url = self.api_url + f'/v1/public/branding/files/{type.value}/{size.value}'
 
         try:
-            res = await self.dracoon.downloader.get(api_url)
+            res = await self.dracoon.http.get(api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
