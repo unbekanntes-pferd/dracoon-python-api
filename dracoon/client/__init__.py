@@ -23,7 +23,7 @@ from dracoon.errors import (MissingCredentialsError, HTTPBadRequestError, HTTPUn
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
                             HTTPUnknownError)
 
-USER_AGENT = 'dracoon-python-1.7.0'
+USER_AGENT = 'dracoon-python-1.8.0'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=20, read=20)
 DEFAULT_HTTPX_TRANSPORT = httpx.AsyncHTTPTransport(retries=5)
 
@@ -41,8 +41,6 @@ class DRACOONConnection:
     access_token: str
     access_token_validity: int
     refresh_token: str
-
-
 
 class DRACOONClient:
     """ DRACOON client with an httpx async client """
