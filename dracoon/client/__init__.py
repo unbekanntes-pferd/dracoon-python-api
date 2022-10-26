@@ -25,6 +25,7 @@ from dracoon.errors import (MissingCredentialsError, HTTPBadRequestError, HTTPUn
 
 USER_AGENT = 'dracoon-python-1.7.0'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=20, read=20)
+DEFAULT_HTTPX_TRANSPORT = httpx.AsyncHTTPTransport(retries=5)
 
 class OAuth2ConnectionType(Enum):
     """ enum as connection type for DRACOONClient """
@@ -60,9 +61,9 @@ class DRACOONClient:
         self.base_url = base_url
         self.client_id = client_id
         self.client_secret = client_secret
-        self.http = httpx.AsyncClient(headers=self.headers, timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
-        self.uploader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
-        self.downloader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config)
+        self.http = httpx.AsyncClient(headers=self.headers, timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config, transport=DEFAULT_HTTPX_TRANSPORT)
+        self.uploader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config, transport=DEFAULT_HTTPX_TRANSPORT)
+        self.downloader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config, transport=DEFAULT_HTTPX_TRANSPORT)
         self.connected = False
         if redirect_uri:
             self.redirect_uri = redirect_uri
@@ -75,7 +76,7 @@ class DRACOONClient:
         self.logger.debug(f"DRACOON client config: {self.base_url} // {self.client_id}")
 
     def __del__(self):
-        """ on client destroy terminate async client """
+        """ on client destroy terminate async clients """
 
         # handle asyncio runtime
         try:

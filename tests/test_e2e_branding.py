@@ -4,11 +4,10 @@ import asyncio
 from pathlib import Path
 import unittest
 import dotenv
-from dracoon.branding.models import SimpleImageRequest, UpdateBrandingRequest
-from dracoon.branding.responses import CacheableBrandingResponse, ColorDetailType, ImageSize, ImageType, UpdateBrandingResponse, Upload
+from dracoon.branding.responses import CacheableBrandingResponse, ImageSize, ImageType, UpdateBrandingResponse, Upload
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
-from dracoon.branding import DRACOONBranding
+from dracoon.branding import DRACOONBranding, DRACOONPublicBranding
 
 dotenv.load_dotenv()
 
@@ -26,12 +25,16 @@ class TestAsyncDRACOONBranding(unittest.IsolatedAsyncioTestCase):
         
         self.dracoon = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=True)
         await self.dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)
+        
+        self.public_dracoon = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=True)
 
         self.branding = DRACOONBranding(dracoon_client=self.dracoon)
+        self.public_branding = DRACOONPublicBranding(dracoon_client=self.public_dracoon)
         self.assertIsInstance(self.branding, DRACOONBranding)
         
     async def asyncTearDown(self) -> None:
         await self.dracoon.logout()
+        await self.public_dracoon.disconnect()
     
     async def test_get_branding(self):
         branding = await self.branding.get_branding()
@@ -52,7 +55,7 @@ class TestAsyncDRACOONBranding(unittest.IsolatedAsyncioTestCase):
         await self.branding.update_branding(branding_update=payload)
         
     async def test_upload_branding_image(self):
-        image_bytes = await self.branding.get_public_branding_image(type=ImageType.SQUARED_LOGO, size=ImageSize.LARGE)
+        image_bytes = await self.public_branding.get_public_branding_image(type=ImageType.SQUARED_LOGO, size=ImageSize.LARGE)
         
         with open('test_branding.png', 'wb') as f:
             f.write(image_bytes)
@@ -65,12 +68,12 @@ class TestAsyncDRACOONBranding(unittest.IsolatedAsyncioTestCase):
         os.remove(path)
 
     async def test_get_public_branding(self):
-        public_branding = await self.branding.get_public_branding()
+        public_branding = await self.public_branding.get_public_branding()
         self.assertIsInstance(public_branding, CacheableBrandingResponse)
 
     async def test_get_public_branding_image(self):
         
-        image_bytes = await self.branding.get_public_branding_image(type=ImageType.SQUARED_LOGO, size=ImageSize.LARGE)
+        image_bytes = await self.public_branding.get_public_branding_image(type=ImageType.SQUARED_LOGO, size=ImageSize.LARGE)
         
         with open('test_branding.png', 'wb') as f:
             f.write(image_bytes)
