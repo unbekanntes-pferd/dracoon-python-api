@@ -25,7 +25,6 @@ from dracoon.errors import (MissingCredentialsError, HTTPBadRequestError, HTTPUn
 
 USER_AGENT = 'dracoon-python-1.8.0'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=20, read=20)
-DEFAULT_HTTPX_TRANSPORT = httpx.AsyncHTTPTransport(retries=5)
 
 class OAuth2ConnectionType(Enum):
     """ enum as connection type for DRACOONClient """
@@ -56,6 +55,10 @@ class DRACOONClient:
     def __init__(self, base_url: str, client_id: str = 'dracoon_legacy_scripting', client_secret: str = '', redirect_uri: str = None,
                  raise_on_err: bool = False, proxy_config: ProxyConfig = None):
         """ client is initialized with DRACOON instance details (url and OAuth client credentials) """
+        
+        # custom transport for retries on connection errors
+        DEFAULT_HTTPX_TRANSPORT = httpx.AsyncHTTPTransport(retries=5)
+        
         self.base_url = base_url
         self.client_id = client_id
         self.client_secret = client_secret
