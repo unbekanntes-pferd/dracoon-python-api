@@ -9,12 +9,11 @@ The client implements all login and logout procedures and is part of every API a
 """
 
 import base64 
+import asyncio
+import logging
 from enum import Enum
 from dataclasses import dataclass
-import base64
-import asyncio
 from datetime import datetime
-import logging
 
 import httpx
 from dracoon.client.models import ProxyConfig
