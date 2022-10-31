@@ -241,8 +241,14 @@ def parse_arguments() -> Tuple[str, int]:
         
     path = args['path']
     depth_level = args['depth']
+
+    try:
+        depth_level = int(depth_level)
+    except ValueError:
+        print("Depth level must be a valid number.")
+        sys.exit(1)
     
-    if depth_level is None:
+    if depth_level is None or depth_level < -1:
         depth_level = -1
    
     return path, depth_level
