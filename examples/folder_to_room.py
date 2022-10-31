@@ -271,17 +271,19 @@ async def main():
     # start with top level
     await converter.convert_to_rooms(path=path)
     
-    # iterate over all sub levels
-    progress = tqdm(unit='folder level', total=len(path_list.levels), unit_scale=True)
-    for level in path_list.levels:
-        
-        for batch in path_list.get_batches(level=level):
-            for folder in batch:
-                await converter.convert_to_rooms(path=folder.path)
+    # only go into sub folders if explicitly specified
+    if depth_level > 0:
+        # iterate over all sub levels
+        progress = tqdm(unit='folder level', total=len(path_list.levels), unit_scale=True)
+        for level in path_list.levels:
+            
+            for batch in path_list.get_batches(level=level):
+                for folder in batch:
+                    await converter.convert_to_rooms(path=folder.path)
 
-        progress.update()
+            progress.update()
 
-    progress.close()
+        progress.close()
 
 if __name__ == '__main__':
     asyncio.run(main())
