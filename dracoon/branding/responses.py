@@ -91,5 +91,6 @@ class CacheableBrandingResponse(BaseModel):
     images: List[CacheableBrandingImageResponse]
     positionLoginBox: int
     appearanceLoginBox: str
+    texts: List[Text]
 
     
