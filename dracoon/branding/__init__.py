@@ -1,5 +1,7 @@
+
 import logging
 from pathlib import Path
+from typing import Tuple
 
 import httpx
 from dracoon.branding.models import SimpleImageRequest, UpdateBrandingRequest
@@ -200,7 +202,7 @@ class DRACOONPublicBranding:
         self.logger.info("Retrieved branding.")
         return CacheableBrandingResponse(**res.json())
     
-    async def get_public_branding_image(self, type: ImageType, size: ImageSize) -> bytes:
+    async def get_public_branding_image(self, type: ImageType, size: ImageSize) -> Tuple[bytes, str]:
 
         if self.raise_on_err:
             raise_on_err = True
@@ -210,6 +212,8 @@ class DRACOONPublicBranding:
         try:
             res = await self.dracoon.http.get(api_url)
             res.raise_for_status()
+            content_type = res.headers["content-type"]
+            image = res.content
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
@@ -217,4 +221,4 @@ class DRACOONPublicBranding:
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         
         self.logger.info("Retrieved public branding image.")
-        return res.content
+        return image, content_type

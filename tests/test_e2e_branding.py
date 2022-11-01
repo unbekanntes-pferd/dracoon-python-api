@@ -55,7 +55,7 @@ class TestAsyncDRACOONBranding(unittest.IsolatedAsyncioTestCase):
         await self.branding.update_branding(branding_update=payload)
         
     async def test_upload_branding_image(self):
-        image_bytes = await self.public_branding.get_public_branding_image(type=ImageType.SQUARED_LOGO, size=ImageSize.LARGE)
+        image_bytes, _ = await self.public_branding.get_public_branding_image(type=ImageType.SQUARED_LOGO, size=ImageSize.LARGE)
         
         with open('test_branding.png', 'wb') as f:
             f.write(image_bytes)
@@ -73,13 +73,13 @@ class TestAsyncDRACOONBranding(unittest.IsolatedAsyncioTestCase):
 
     async def test_get_public_branding_image(self):
         
-        image_bytes = await self.public_branding.get_public_branding_image(type=ImageType.SQUARED_LOGO, size=ImageSize.LARGE)
+        image_bytes, content_type = await self.public_branding.get_public_branding_image(type=ImageType.SQUARED_LOGO, size=ImageSize.LARGE)
         
         with open('test_branding.png', 'wb') as f:
             f.write(image_bytes)
             
         path = Path('test_branding.png')
-        
+        self.assertIsNotNone(content_type)
         self.assertTrue(path.exists())
         self.assertTrue(path.is_file())
         os.remove(path)
