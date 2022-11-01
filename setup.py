@@ -16,7 +16,7 @@ except FileNotFoundError:
 # This call to setup() does all the work
 setup(
     name="dracoon",
-    version="1.8.1",
+    version="1.8.2",
     description=DESCRIPTION,
     long_description=README,
     long_description_content_type="text/markdown",
