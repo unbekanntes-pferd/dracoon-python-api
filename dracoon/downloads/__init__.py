@@ -113,7 +113,7 @@ class DRACOONDownloads:
             file_out = open(file_path, 'wb')
                 
             async with self.dracoon.downloader.stream(method='GET', url=download_url) as res:
-                    
+                res.raise_for_status()
                 if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)
                 async for chunk in res.aiter_bytes(chunksize):
                     file_out.write(chunk)
@@ -121,9 +121,11 @@ class DRACOONDownloads:
                     if callback_fn: callback_fn(len(chunk))
                                         
         except httpx.RequestError as e:
+            os.remove(file_path)
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            os.remove(file_path)
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err, is_xml=True, debug_content=False)
         finally:
             if file_out: file_out.close()
             if display_progress and progress: progress.close()
@@ -210,7 +212,7 @@ class DRACOONDownloads:
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
             os.remove(file_path)
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err, is_xml=True, debug_content=False)
         finally:
             if display_progress and progress: progress.close()
             
