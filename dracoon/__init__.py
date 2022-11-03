@@ -24,8 +24,11 @@ from datetime import datetime
 from dracoon.branding import DRACOONBranding
 from dracoon.client.models import ProxyConfig
 from dracoon.config import DRACOONConfig
+from dracoon.config.responses import GeneralSettingsInfo, InfrastructureProperties, SystemDefaults
 from dracoon.nodes.models import Callback
 from dracoon.nodes.responses import S3FileUploadStatus
+from dracoon.public.responses import AuthADInfo, AuthOIDCInfo, SystemInfo
+from dracoon.user.models import UserAccount
 
 from .crypto.models import PlainUserKeyPairContainer
 from .downloads import DRACOONDownloads
@@ -129,13 +132,13 @@ class DRACOON:
 
         reqs = await asyncio.gather(user_info_res, system_info_res, oidc_auth_info_res, ad_auth_info_res, system_defaults, infrastructure_policies, general_settings)
         
-        self.user_info = reqs[0]
-        self.system_info = reqs[1]
-        self.auth_ad_info = reqs[3]
-        self.auth_oidc_info = reqs[2]
-        self.general_settings = reqs[6]
-        self.system_defaults = reqs[4]
-        self.infrastructure_policies = reqs[5]
+        self.user_info: UserAccount = reqs[0]
+        self.system_info: SystemInfo = reqs[1]
+        self.auth_ad_info: AuthADInfo = reqs[3]
+        self.auth_oidc_info: AuthOIDCInfo = reqs[2]
+        self.general_settings: GeneralSettingsInfo = reqs[6]
+        self.system_defaults: SystemDefaults = reqs[4]
+        self.infrastructure_policies: InfrastructureProperties = reqs[5]
 
         self.logger.info("Retrieved instance and account information.")
         self.logger.debug("Logged in as user id %s.", self.user_info.id)
@@ -172,12 +175,17 @@ class DRACOON:
         if not self.client.connection:
             self.logger.error("DRACOON client not connected: Keypair not retrieved.")
             raise ClientDisconnectedError()
+        
+        if not self.user_info.isEncryptionEnabled:
+            raise DRACOONCryptoError("Keypair not set (encryption enabled?)")
 
-        enc_keypair = await self.user.get_user_keypair()
+        enc_keypair = await self.user.get_user_keypair(raise_on_err=True)
         try:
             plain_keypair = decrypt_private_key(secret, enc_keypair)
         except ValueError:
-            raise DRACOONCryptoError(message="Wrong decryption password")
+            raise DRACOONCryptoError(message="Wrong encryption password")
+        except TypeError:
+            raise DRACOONCryptoError(message="Encryption password must not be empty")
 
         self.plain_keypair = plain_keypair
 
