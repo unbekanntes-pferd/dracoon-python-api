@@ -22,8 +22,8 @@ from dracoon.errors import (MissingCredentialsError, HTTPBadRequestError, HTTPUn
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
                             HTTPUnknownError)
 
-USER_AGENT = 'dracoon-python-1.8.2'
-DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=20, read=20)
+USER_AGENT = 'dracoon-python-1.8.3'
+DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=30, read=30)
 
 class OAuth2ConnectionType(Enum):
     """ enum as connection type for DRACOONClient """
@@ -277,16 +277,16 @@ class DRACOONClient:
         return await self.check_access_token()
 
 
-    async def handle_http_error(self, err: httpx.HTTPStatusError, raise_on_err: bool, is_xml: bool = False, close_client: bool = False):
+    async def handle_http_error(self, err: httpx.HTTPStatusError, raise_on_err: bool, is_xml: bool = False, close_client: bool = False, debug_content: bool = True):
         if self.raise_on_err:
             raise_on_err = self.raise_on_err
         
-        self.logger.error("HTTP request failed: %s", err.response.status_code)
+        self.logger.debug("HTTP request failed: %s", err.response.status_code)
         
         # handle AWS S3 XML responses
-        if not is_xml:
+        if debug_content and not is_xml:
             self.logger.debug("%s", err.response.text)
-        elif is_xml:
+        elif debug_content and is_xml:
             self.logger.debug("%s", err.response.content)
 
         if close_client:
