@@ -1,9 +1,10 @@
 import os
 import asyncio
-from pathlib import Path
 import random
 import unittest
 import dotenv
+import logging
+from pathlib import Path
 from dracoon import DRACOON, OAuth2ConnectionType
 from dracoon.crypto.models import FileKey
 from dracoon.errors import HTTPNotFoundError
@@ -49,6 +50,8 @@ class TestAsyncDRACOONNodes(unittest.IsolatedAsyncioTestCase):
         
         asyncio.get_running_loop().set_debug(False)
         
+        logging.disable(level=logging.CRITICAL)
+        
         self.dracoon = DRACOON(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=True)
         await self.dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)
         
@@ -60,6 +63,8 @@ class TestAsyncDRACOONNodes(unittest.IsolatedAsyncioTestCase):
         
         await self.dracoon.user.set_user_keypair('VerySecret123!')
         await self.dracoon.get_keypair('VerySecret123!')
+        
+        logging.disable(level=logging.DEBUG)
         
         self.assertIsInstance(self.dracoon.nodes, DRACOONNodes)
         self.assertIsInstance(self.dracoon, DRACOON)

@@ -3,10 +3,12 @@ import os
 import asyncio
 import unittest
 import dotenv
+import logging
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.config import DRACOONConfig
 from dracoon.config.responses import AlgorithmVersionInfoList, ClassificationPoliciesConfig, GeneralSettingsInfo, InfrastructureProperties, PasswordPoliciesConfig, ProductPackageResponseList, S3TagList, SystemDefaults
+from dracoon.errors import HTTPPreconditionsFailedError
 
 dotenv.load_dotenv()
 
@@ -64,8 +66,14 @@ class TestAsyncDRACOONConfig(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(product_package, ProductPackageResponseList)
     
     async def test_get_s3_tags(self):
-        s3_tags = await self.config.get_s3_tags()
-        self.assertIsInstance(s3_tags, S3TagList)
+        logging.disable(level=logging.CRITICAL)
+        try:
+            s3_tags = await self.config.get_s3_tags()
+            self.assertIsInstance(s3_tags, S3TagList)
+        except HTTPPreconditionsFailedError:
+            self.skipTest("S3 tags not configured")
+        finally:
+            logging.disable(level=logging.DEBUG)
     
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 import unittest
 import os
 import dotenv
+import logging
+
 from dracoon.client import DRACOONClient, DRACOONConnection, OAuth2ConnectionType
 
 dotenv.load_dotenv()
@@ -14,10 +16,12 @@ base_url = os.environ.get('E2E_BASE_URL')
 
 class TestAsyncDRACOONClient(unittest.IsolatedAsyncioTestCase):
     async def test_connection_offline(self):
-
+        
+        logging.disable(level=logging.CRITICAL)
         dracoon = DRACOONClient(base_url='https://just.a.test.com', client_id='my_test_client', client_secret='my_test_secret')
 
         self.assertFalse(await dracoon.test_connection())
+        logging.disable(level=logging.DEBUG)
 
     
     async def test_connection_password_flow(self):
