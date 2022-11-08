@@ -176,9 +176,6 @@ class DRACOON:
             self.logger.error("DRACOON client not connected: Keypair not retrieved.")
             raise ClientDisconnectedError()
         
-        if not self.user_info.isEncryptionEnabled:
-            raise DRACOONCryptoError("Keypair not set (encryption enabled?)")
-
         enc_keypair = await self.user.get_user_keypair(raise_on_err=True)
         try:
             plain_keypair = decrypt_private_key(secret, enc_keypair)

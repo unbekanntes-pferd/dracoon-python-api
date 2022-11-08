@@ -2,6 +2,7 @@ import asyncio
 import unittest
 import dotenv
 import os
+import logging
 
 from dracoon import DRACOONClient, OAuth2ConnectionType
 from dracoon.errors import DRACOONHttpError, HTTPNotFoundError
@@ -24,6 +25,8 @@ class TestAsyncDRACOONUser(unittest.IsolatedAsyncioTestCase):
     
     async def asyncSetUp(self) -> None:
         asyncio.get_running_loop().set_debug(False)
+        
+        logging.disable(level=logging.CRITICAL)
         
         self.dracoon = DRACOONClient(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=True)
         await self.dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)

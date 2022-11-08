@@ -1,10 +1,11 @@
-from doctest import testfile
 import os
-import asyncio
-from pathlib import Path
 import random
 import unittest
 import dotenv
+import asyncio
+import logging
+from pathlib import Path
+
 from dracoon import DRACOON, OAuth2ConnectionType
 from dracoon.errors import HTTPNotFoundError
 from dracoon.nodes import DRACOONNodes, CHUNK_SIZE
@@ -51,11 +52,20 @@ class DRACOONTransferTestsHelper():
 
 @unittest.skipIf(is_github_action is not None, reason="No transfer E2E tests in Github action")  
 class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        
+        for file in os.listdir(Path.cwd()):
+            if file.startswith('test_large_') or file.startswith('test_small_'):
+                file_path = Path.joinpath(Path.cwd(), file)
+                os.remove(file_path)
     
     async def asyncSetUp(self) -> None:
+        logging.disable(level=logging.CRITICAL)
         asyncio.get_running_loop().set_debug(False)
         
-        self.dracoon = DRACOON(base_url=base_url, client_id=client_id, client_secret=client_secret)
+        self.dracoon = DRACOON(base_url=base_url, client_id=client_id, client_secret=client_secret, raise_on_err=True)
         await self.dracoon.connect(OAuth2ConnectionType.password_flow, username=username, password=password)
         
         try:
@@ -66,7 +76,7 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
         
         await self.dracoon.user.set_user_keypair('VerySecret123!')
         await self.dracoon.get_keypair('VerySecret123!')
-        
+        logging.disable(level=logging.DEBUG)
         self.test_helper = DRACOONTransferTestsHelper(chunksize=chunksize)
         
         self.assertIsInstance(self.dracoon.nodes, DRACOONNodes)
@@ -217,6 +227,5 @@ class TestAsyncDRACOONTransfers(unittest.IsolatedAsyncioTestCase):
         
         os.remove(test_file)
 
-       
 if __name__ == '__main__':
     unittest.main()
