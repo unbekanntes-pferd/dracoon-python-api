@@ -105,18 +105,18 @@ class DRACOONClient:
         self.logger.debug("Establishing DRACOON connection...")
         
         # handle missing credentials for password flow
-        if connection_type == OAuth2ConnectionType.password_flow and username == None and password == None:
-            await self.http.aclose()
+        if connection_type == OAuth2ConnectionType.password_flow and username is None and password is None:
+            await self.disconnect()
             self.logger.error("Missing credentials for OAuth2 password flow.")
             raise MissingCredentialsError(message='Username and password are mandatory for OAuth2 password flow.')
 
         # handle missing auth code for authorization code flow 
-        if connection_type == OAuth2ConnectionType.auth_code and auth_code == None:
-            await self.http.aclose()
+        if connection_type == OAuth2ConnectionType.auth_code and auth_code is None:
+            await self.disconnect()
             self.logger.error("Missing auth code for OAuth2 password flow.")
             raise MissingCredentialsError(message='Auth code is mandatory for OAuth2 authorization code flow.')
                 
-        # get connection via OAuth2 password flow
+        # TODO: refactor to own _method
         if connection_type == OAuth2ConnectionType.password_flow:
             data = {'grant_type': 'password',
                 'username': username, 'password': password}
@@ -142,7 +142,7 @@ class DRACOONClient:
             self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in"],
                                          res.json()["refresh_token"])
 
-
+        # TODO: refactor to own _method
         if connection_type == OAuth2ConnectionType.auth_code:
             
             if redirect_uri:
@@ -168,16 +168,18 @@ class DRACOONClient:
             self.logger.debug("Access token valid: %s", self.connection.access_token_validity)
 
 
-
+        # TODO: refactor to own _method
         if connection_type == OAuth2ConnectionType.refresh_token:
-
-            if self.connection:
+            
+            # only use connection refresh token if no token is provided
+            if self.connection and refresh_token is not None:
                 refresh_token = self.connection.refresh_token
-            if refresh_token == None:
+            # raise if no connection and no token provided
+            if refresh_token is None:
+                await self.disconnect()
                 raise MissingCredentialsError(message='Missing refresh token.')
 
             data = {'grant_type': 'refresh_token', 'refresh_token': refresh_token, 'client_id': self.client_id, 'client_secret': self.client_secret}
-
 
             try:
                 res = await self.http.post(url=token_url, data=data)
@@ -200,6 +202,7 @@ class DRACOONClient:
         return self.connection
 
     async def disconnect(self):
+        """ close async httpx clients """
         await self.http.aclose()
         await self.downloader.aclose()
         await self.uploader.aclose()
@@ -278,6 +281,7 @@ class DRACOONClient:
 
 
     async def handle_http_error(self, err: httpx.HTTPStatusError, raise_on_err: bool, is_xml: bool = False, close_client: bool = False, debug_content: bool = True):
+        """ handle http error in httpx client """
         if self.raise_on_err:
             raise_on_err = self.raise_on_err
         
@@ -296,12 +300,14 @@ class DRACOONClient:
             self.raise_http_error(err=err)
 
     async def handle_connection_error(self, err: httpx.RequestError):
+        """ handle connection error in httpx client """
         self.logger.critical("Connection error.")
         self.logger.critical(err.request.url)
         await self.disconnect()
         raise err
     
     async def handle_generic_error(self, err: Exception, close_client: bool = False):
+        """ handle generic non-connection / non-http error """
         self.logger.critical("An error ocurred.")
         self.logger.debug("%s", err)
         if close_client:
@@ -309,7 +315,8 @@ class DRACOONClient:
         raise err
 
     def raise_http_error(self, err: httpx.HTTPStatusError):
-
+        """ raise error based on http status code """
+        
         if err.response.status_code == 400:
             raise HTTPBadRequestError(error=err)
         if err.response.status_code == 401:

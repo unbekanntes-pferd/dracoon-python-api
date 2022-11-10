@@ -281,7 +281,7 @@ def decrypt_bytes(enc_data: bytes, plain_file_key: PlainFileKey) -> bytes:
     """ decrypt bytes with given plain file key (on the fly) """
     logger.info("Decrypting bytes with version: %s", plain_file_key.version)
 
-    if enc_data == None:
+    if enc_data is None:
         raise CryptoMissingDataError(message='No data to process.')
 
     key = base64.b64decode(plain_file_key.key)
