@@ -172,7 +172,7 @@ class DRACOONClient:
         if connection_type == OAuth2ConnectionType.refresh_token:
             
             # only use connection refresh token if no token is provided
-            if self.connection and refresh_token is not None:
+            if self.connection and refresh_token is None:
                 refresh_token = self.connection.refresh_token
             # raise if no connection and no token provided
             if refresh_token is None:
