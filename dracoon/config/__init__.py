@@ -13,8 +13,9 @@ Please note: maximum 500 items are returned in GET requests
 import logging
 
 import httpx
+from tenacity import retry
 
-from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.client import RETRY_CONFIG, DRACOONClient, OAuth2ConnectionType
 from dracoon.config.responses import AlgorithmVersionInfoList, ClassificationPoliciesConfig, GeneralSettingsInfo, InfrastructureProperties, PasswordPoliciesConfig, ProductPackageResponseList, S3TagList, SystemDefaults
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
 
@@ -48,7 +49,8 @@ class DRACOONConfig:
         else:
             self.logger.critical("DRACOON client not connected.")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
-        
+    
+    @retry(**RETRY_CONFIG) 
     async def get_system_defaults(self, raise_on_err: bool = False) -> SystemDefaults:
         
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -71,6 +73,7 @@ class DRACOONConfig:
         self.logger.info("Retrieved system defaults.")
         return SystemDefaults(**res.json())
     
+    @retry(**RETRY_CONFIG)
     async def get_general_settings(self, raise_on_err: bool = False) -> GeneralSettingsInfo:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -92,6 +95,7 @@ class DRACOONConfig:
         self.logger.info("Retrieved general settings.")
         return GeneralSettingsInfo(**res.json())
     
+    @retry(**RETRY_CONFIG)
     async def get_infrastructure_properties(self, raise_on_err: bool = False) -> InfrastructureProperties:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -113,6 +117,7 @@ class DRACOONConfig:
         self.logger.info("Retrieved infrastructure properties.")
         return InfrastructureProperties(**res.json())
     
+    @retry(**RETRY_CONFIG)
     async def get_algorithms(self, raise_on_err: bool = False) -> AlgorithmVersionInfoList:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -134,6 +139,7 @@ class DRACOONConfig:
         self.logger.info("Retrieved infrastructure properties.")
         return AlgorithmVersionInfoList(**res.json())
     
+    @retry(**RETRY_CONFIG)
     async def get_classification_policies(self, raise_on_err: bool = False) -> ClassificationPoliciesConfig:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -155,6 +161,7 @@ class DRACOONConfig:
         self.logger.info("Retrieved infrastructure properties.")
         return ClassificationPoliciesConfig(**res.json())
     
+    @retry(**RETRY_CONFIG)
     async def get_password_policies(self, raise_on_err: bool = False) -> PasswordPoliciesConfig:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -175,7 +182,8 @@ class DRACOONConfig:
         
         self.logger.info("Retrieved password policies.")
         return PasswordPoliciesConfig(**res.json())
-        
+    
+    @retry(**RETRY_CONFIG)
     async def get_product_packages(self, raise_on_err: bool = False) -> ProductPackageResponseList:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -197,6 +205,7 @@ class DRACOONConfig:
         self.logger.info("Retrieved product packages.")
         return ProductPackageResponseList(**res.json())
     
+    @retry(**RETRY_CONFIG)
     async def get_current_product_package(self, raise_on_err: bool = False) -> ProductPackageResponseList:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -218,6 +227,7 @@ class DRACOONConfig:
         self.logger.info("Retrieved current product package.")
         return ProductPackageResponseList(**res.json())
     
+    @retry(**RETRY_CONFIG)
     async def get_s3_tags(self, raise_on_err: bool = False) -> S3TagList:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)

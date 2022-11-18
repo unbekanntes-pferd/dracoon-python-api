@@ -16,9 +16,9 @@ from typing import List
 import httpx
 import logging
 import urllib.parse
-from pydantic import validate_arguments
+from tenacity import retry
 
-from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
 from dracoon.errors import InvalidArgumentError, InvalidClientError, ClientDisconnectedError
 from .models import CreateWebhook, UpdateSettings, UpdateWebhook
 from .responses import EventTypeList, WebhookList, Webhook, CustomerSettingsResponse
@@ -51,7 +51,7 @@ class DRACOONSettings:
             self.logger.error("DRACOON client error: no connection. ")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_settings(self, raise_on_err: bool = False) -> CustomerSettingsResponse:
         """ list customer settings (home rooms) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -73,7 +73,7 @@ class DRACOONSettings:
         self.logger.info("Retrieved customer settings.")
         return CustomerSettingsResponse(**res.json())
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_settings(self, settings_update: UpdateSettings, raise_on_err: bool = False) -> CustomerSettingsResponse:
         """ update customer settings (home rooms) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -110,7 +110,7 @@ class DRACOONSettings:
 
         return UpdateSettings(**settings_update)
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_webhooks(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> WebhookList:
         """ list (all) webhooks """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -139,7 +139,7 @@ class DRACOONSettings:
         return WebhookList(**res.json())
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def create_webhook(self, hook: CreateWebhook, raise_on_err: bool = False) -> Webhook:
         """ creates a new webhook """
         payload = hook.dict(exclude_unset=True)
@@ -194,8 +194,7 @@ class DRACOONSettings:
         return UpdateWebhook(**webhook)
 
 
-    # get user details for given user id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_webhook(self, hook_id: int, raise_on_err: bool = False) -> Webhook:
         """ get webhook details for specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -219,7 +218,7 @@ class DRACOONSettings:
         self.logger.info("Retrieved webhook.")
         return Webhook(**res.json())
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_webhook(self, hook_id: int, hook_update: UpdateWebhook, raise_on_err: bool = False) -> Webhook:
 
         payload = hook_update.dict(exclude_unset=True)
@@ -246,8 +245,7 @@ class DRACOONSettings:
         return Webhook(**res.json())
 
 
-    # delete user for given user id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_webhook(self, hook_id: int, raise_on_err: bool = False) -> None:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -268,8 +266,7 @@ class DRACOONSettings:
         self.logger.info("Deleted webhook.")
         return None
     
-    # get user details for given user id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_webhook_event_types(self, raise_on_err: bool = False) -> EventTypeList:
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:

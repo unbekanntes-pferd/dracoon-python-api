@@ -11,9 +11,9 @@ from typing import List
 import httpx
 import logging
 import urllib.parse
-from pydantic import validate_arguments
+from tenacity import retry
 
-from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
 from dracoon.crypto.models import FileKey, UserKeyPairContainer
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .models import CreateFileRequest, CreateShare, Expiration, SendShare, UpdateFileRequest, UpdateFileRequests, UpdateShare, UpdateShares
@@ -50,8 +50,7 @@ class DRACOONShares:
             self.logger.error("DRACOON client error: no connection. ")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
-    # get list of all (download) shares
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_shares(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> DownloadShareList:
         """ list (all) shares visible as authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -79,8 +78,7 @@ class DRACOONShares:
         self.logger.info("Retrieved shares.")
         return DownloadShareList(**res.json())
 
-    # create a new (download) share - for model see documentation linked above
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def create_share(self, share: CreateShare, raise_on_err: bool = False) -> DownloadShare:
         """ create a new share """
         payload = share.dict(exclude_unset=True)
@@ -129,8 +127,7 @@ class DRACOONShares:
 
         return CreateShare(**share)
 
-    # delete an array of shares
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_shares(self, share_list: List[int], raise_on_err: bool = False) -> None:
         """ delete a list of shares (by ids) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -157,8 +154,7 @@ class DRACOONShares:
         self.logger.info("Deleted share.")
         return None
 
-    # get information about a specific share (given share ID)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_share(self, share_id: int, raise_on_err: bool = False) -> DownloadShare:
         """ get information of a specific share (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -182,8 +178,7 @@ class DRACOONShares:
         self.logger.info("Retrieved share.")
         return DownloadShare(**res.json())
 
-    # update a list of shares (given share IDs)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_shares(self, shares_update: UpdateShares, raise_on_err: bool = False) -> None:
         """ bulk update specific shares (by ids) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -255,7 +250,7 @@ class DRACOONShares:
 
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_share(self, share_id: int, share_update: UpdateShare, raise_on_err: bool = False) -> DownloadShare:
         """ update a specific share (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -281,8 +276,7 @@ class DRACOONShares:
         self.logger.info("Updated share.")
         return DownloadShare(**res.json())
 
-    # delete specific share (given share ID)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_share(self, share_id: int, raise_on_err: bool = False) -> None:
         """ delete a specific share (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -306,8 +300,7 @@ class DRACOONShares:
         self.logger.info("Deleted share.")
         return None
 
-    # send share via email 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def mail_share(self, share_id: int, send_share: SendShare, raise_on_err: bool = False) -> None:
         """ send a specific share via email (by id) """
         payload = send_share.dict(exclude_unset=True)
@@ -334,8 +327,7 @@ class DRACOONShares:
         return None
 
 
-    # get list of all (download) shares
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_file_requests(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> UploadShareList:
         """ list all file requests visible as authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -364,8 +356,7 @@ class DRACOONShares:
         self.logger.info("Retrieved file requests.")
         return UploadShareList(**res.json())
 
-    # create a new file request - for model see documentation linked above
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def create_file_request(self, file_request: CreateFileRequest, raise_on_err: bool = False) -> UploadShare:
         """ create a new file request """
         payload = file_request.dict(exclude_unset=True)
@@ -415,8 +406,7 @@ class DRACOONShares:
 
         return CreateFileRequest(**file_request)
 
-    # delete an array of file requests
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_file_requests(self, file_request_list: List[int], raise_on_err: bool = False) -> None:
         """ delete a list of shares (by ids) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -443,8 +433,7 @@ class DRACOONShares:
         self.logger.info("Deleted file requests.")
         return None
 
-    # get information about a specific file request (given request ID)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_file_request(self, file_request_id: int, raise_on_err: bool = False) -> UploadShare:
         """ get information of a specific file request (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -468,8 +457,7 @@ class DRACOONShares:
         self.logger.info("Retrieved file request.")
         return UploadShare(**res.json())
 
-    # update a specific file request (given request ID)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_file_requests(self, file_requests_update: UpdateFileRequests, raise_on_err: bool = False) -> None:
         """ bulk update specifics file requests (by ids) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -546,8 +534,7 @@ class DRACOONShares:
 
         return UpdateFileRequest(**file_request)
 
-    # update a specific file request (given request ID)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_file_request(self, file_request_id: int, file_request_update: UpdateFileRequest, raise_on_err: bool = False) -> UploadShare:
         """ update a specific file request (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -573,8 +560,7 @@ class DRACOONShares:
         self.logger.info("Updated file request.")
         return UploadShare(**res.json())
 
-    # delete specific file request (given request ID)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_file_request(self, file_request_id: int, raise_on_err: bool = False) -> None:
         """ delete a specific file request (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -598,8 +584,7 @@ class DRACOONShares:
         self.logger.info("Deleted file request.")
         return None
 
-    # send file request via email 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def mail_file_request(self, file_request_id: int, send_file_request: SendShare, raise_on_err: bool = False) -> None:
         """ send a specific file request via email (by id) """
         payload = send_file_request.dict(exclude_unset=True)

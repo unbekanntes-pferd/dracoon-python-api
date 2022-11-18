@@ -17,6 +17,7 @@ import string
 
 from cryptography.exceptions import InvalidTag
 from tqdm import tqdm
+
 import httpx
 
 from dracoon.nodes import CHUNK_SIZE
@@ -65,7 +66,6 @@ class DRACOONDownloads:
 
         return file.exists() and file.is_file()
 
-    
     async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = CHUNK_SIZE, 
                                    raise_on_err: bool = False, display_progress: bool = False,
                                    callback_fn: Callback  = None,
@@ -132,7 +132,6 @@ class DRACOONDownloads:
                    
         self.logger.info("Download completed.")
             
-
     async def download_encrypted(self, download_url: str, target_path: str, node_info: Node, plain_keypair: PlainUserKeyPairContainer, file_key: FileKey, 
                                        chunksize: int = CHUNK_SIZE, raise_on_err: bool = False, display_progress: bool = False, 
                                        callback_fn: Callback  = None, file_name: str = None):   
