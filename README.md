@@ -354,7 +354,7 @@ Here is an example of uploading a file to an encrypted room:
     source = '/Example/Path/test.mov'
     target = '/Example/Target/'
     
-    await dracoon.upload(file_path=source, target_path=target, display_progress=True)
+    await dracoon.upload(file_path=source, target_path=target)
     
 ```
 
@@ -364,7 +364,7 @@ If you have the node id of the target room / folder, you can also pass this and 
 
 ```Python
 
-    await dracoon.upload(file_path=source, display_progress=True, target_parent_id=999)
+    await dracoon.upload(file_path=source, target_parent_id=999)
     
 ```
 
@@ -372,7 +372,7 @@ You can also pass a custom file name, if required:
 
 ```Python
 
-    await dracoon.upload(file_path=source, display_progress=True, target_parent_id=999, file_name='my_custom.pdf')
+    await dracoon.upload(file_path=source, target_parent_id=999, file_name='my_custom.pdf')
     
 ```
 
