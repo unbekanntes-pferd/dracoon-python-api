@@ -23,7 +23,7 @@ from dracoon.errors import (HTTPTooManyRequestsError, MissingCredentialsError, H
                             HTTPUnknownError)
 
 # constants for client config
-USER_AGENT = 'dracoon-python-1.9.0-SNAPSHOT'
+USER_AGENT = 'dracoon-python-1.9.0'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=30, read=30)
 RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type(HTTPTooManyRequestsError),
                            stop=stop_after_attempt(5),
@@ -325,7 +325,7 @@ class DRACOONClient:
         if err.response.status_code == 412:
             raise HTTPPreconditionsFailedError(error=err)
         if err.response.status_code == 429:
-            raise HTTPTooManyRequestsError(err=err)
+            raise HTTPTooManyRequestsError(error=err)
         else:
             raise HTTPUnknownError(error=err)
 
