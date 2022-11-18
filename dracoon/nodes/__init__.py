@@ -15,7 +15,6 @@ Please note: maximum 500 items are returned in GET requests
 """
 
 import datetime
-import os
 import math
 from pathlib import Path
 from datetime import datetime
@@ -25,13 +24,12 @@ import asyncio
 import urllib.parse
 
 import httpx
-from pydantic import validate_arguments
-from tqdm import tqdm
+from tenacity import retry
 
-from dracoon.crypto import FileEncryptionCipher, encrypt_bytes, encrypt_file_key, create_file_key, get_file_key_version
+from dracoon.crypto import FileEncryptionCipher, encrypt_bytes, encrypt_file_key, create_file_key
 from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer, UserKeyPairContainer
 from dracoon.groups.models import Expiration
-from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
 from dracoon.errors import (InvalidClientError, ClientDisconnectedError, InvalidFileError, InvalidArgumentError)
 from dracoon.uploads.models import UploadChannelResponse
 from .models import (Callback, CompleteS3Upload, CompleteUpload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, EncryptRoom, 
@@ -78,37 +76,34 @@ class DRACOONNodes:
             self.logger.error("DRACOON client error: no connection. ")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
     
-    async def upload_bytes(self, file_obj, progress: tqdm = None, callback_fn: Callback  = None):
+    async def upload_bytes(self, file_obj, callback_fn: Callback  = None):
         """ async iterator to stream byte upload """
         while True:
             data = file_obj.read()
             if not data:
                 break
-            if progress: progress.update(len(data))
             if callback_fn: callback_fn(len(data))
             yield data
             
-    def read_in_chunks(self, file_obj, chunksize: int = CHUNK_SIZE, progress: tqdm = None, callback_fn: Callback  = None):
+    def read_in_chunks(self, file_obj, chunksize: int = CHUNK_SIZE, callback_fn: Callback  = None):
         """ iterator to read a file object in chunks (default chunk size: 32 MB) """
         while True:
             data = file_obj.read(chunksize)
             if not data:
                 break
-            if progress: progress.update(len(data))
             if callback_fn: callback_fn(len(data))
             yield data
             
-    async def byte_stream(self, data: bytes, progress: tqdm = None, callback_fn: Callback  = None):  
+    async def byte_stream(self, data: bytes, callback_fn: Callback  = None):  
         """ stream bytes """   
         while True:
             if not data:
                 break
-            if progress: progress.update(len(data))
             if callback_fn: callback_fn(len(data))
             yield data
 
     # get download url as authenticated user to download a file
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def create_upload_channel(self, upload_channel: CreateUploadChannel, raise_on_err: bool = False) -> CreateFileUploadResponse:
         """ create an upload channel to upload (S3 direct or proxy) """
         payload = upload_channel.dict(exclude_unset=True)
@@ -152,7 +147,7 @@ class DRACOONNodes:
         return CreateUploadChannel(**upload_channel)
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def cancel_upload(self, upload_id: str, raise_on_err: bool = False) -> None:
         """ cancel an upload channel (and delete chunks) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -173,7 +168,8 @@ class DRACOONNodes:
 
         self.logger.info("Upload canceled.")
         return None
-
+    
+    @retry(**RETRY_CONFIG)
     async def get_node_from_path(self, path: str, filter: str = None, raise_on_err: bool = False) -> Node:
         """ get node id from path """
         
@@ -221,7 +217,7 @@ class DRACOONNodes:
             return None
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def complete_s3_upload(self, upload_id: str, upload: CompleteS3Upload, raise_on_err: bool = False) -> None:
         """ finalize an S3 direct upload """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -275,7 +271,7 @@ class DRACOONNodes:
         
         return GetS3Urls(**payload)
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_s3_urls(self, upload_id: str, upload: GetS3Urls, raise_on_err: bool = False) -> PresignedUrlList:
         """ get a list of S3 urls based on provided chunk count """
         """ chunk size needs to be larger than 5 MB """
@@ -301,9 +297,9 @@ class DRACOONNodes:
         self.logger.info("Retrieved S3 presigned upload URLs.")
         return PresignedUrlList(**res.json())
     
+    @retry(**RETRY_CONFIG)
     async def upload_unencrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, keep_shares: bool = False, 
                                     file_name: str = None, resolution_strategy: str = 'autorename', chunksize: int = CHUNK_SIZE, 
-                                    display_progress: bool = False, raise_on_err: bool = False, 
                                     callback_fn: Callback  = None
                                     ) -> Node:
         if self.raise_on_err:
@@ -324,17 +320,11 @@ class DRACOONNodes:
         
         if filesize <= chunksize:
             
-            if display_progress: 
-                progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True, desc=file_name)
-            else:
-                progress = None
-
             with open(file, 'rb') as f:
                          
                 try:
-                    res = await self.dracoon.uploader.post(url=upload_channel.uploadUrl, content=self.upload_bytes(file_obj=f, progress=progress, callback_fn=callback_fn))
+                    res = await self.dracoon.uploader.post(url=upload_channel.uploadUrl, content=self.upload_bytes(file_obj=f, callback_fn=callback_fn))
                     res.raise_for_status()     
-                    if display_progress: progress.update(filesize)
                 except httpx.RequestError as e:
                     res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                     await self.dracoon.handle_connection_error(e)
@@ -342,23 +332,15 @@ class DRACOONNodes:
                     self.logger.error("Uploading file failed.")
                     res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                     await self.dracoon.handle_http_error(err=e, raise_on_err=True)
-                finally: 
-                    if display_progress: progress.close()
-                    
+          
         elif filesize > chunksize:
-            
-            if display_progress: 
-                progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True, desc=file_name)
-            else:
-                progress = None
-                
-
+    
             with open(file, 'rb') as f:
                 
                 index = 0
                 offset = 0
                                          
-                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, progress=progress, callback_fn=callback_fn):
+                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, callback_fn=callback_fn):
                                           
                     upload_url = upload_channel.uploadUrl
                     content_range = f'bytes {index}-{offset}/{filesize}'
@@ -378,15 +360,11 @@ class DRACOONNodes:
                     except httpx.RequestError as e:
                         res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                         await self.dracoon.handle_connection_error(e)
-                        if display_progress: progress.close()
                     except httpx.HTTPStatusError as e:
                         res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                         self.logger.error("Uploading chunk failed.")
                         await self.dracoon.handle_http_error(err=e, raise_on_err=True)
-                        if display_progress: progress.close()
-
-         
-                if display_progress: progress.close()             
+          
                     
         complete_upload = self.make_upload_complete(file_name=file_name, keep_shares=keep_shares, 
                                                    resolution_strategy=resolution_strategy)
@@ -395,10 +373,10 @@ class DRACOONNodes:
              
         return node
     
-                                  
+    @retry(**RETRY_CONFIG)                     
     async def upload_encrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, plain_keypair: PlainUserKeyPairContainer, 
                                   file_name: str = None, keep_shares: bool = False, resolution_strategy: str = 'autorename', 
-                                  chunksize: int = CHUNK_SIZE, display_progress: bool = False, raise_on_err: bool = False,
+                                  chunksize: int = CHUNK_SIZE, raise_on_err: bool = False,
                                   callback_fn: Callback  = None
                                   ) -> Node:
         if self.raise_on_err:
@@ -418,12 +396,7 @@ class DRACOONNodes:
         if callback_fn: callback_fn(0, filesize)
         
         if filesize <= chunksize:
-            
-            if display_progress: 
-                progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True, desc=file_name)
-            else:
-                progress = None
-                
+                  
             plain_file_key = create_file_key()
 
             with open(file, 'rb') as f:
@@ -437,7 +410,6 @@ class DRACOONNodes:
                 try:
                     res = await self.dracoon.uploader.post(url=upload_channel.uploadUrl, files=files)
                     res.raise_for_status()
-                    if display_progress: progress.update(filesize)
                     if callback_fn: callback_fn(filesize)
                 except httpx.RequestError as e:
                     res = await self.dracoon.http.delete(upload_channel.uploadUrl)
@@ -446,17 +418,9 @@ class DRACOONNodes:
                     self.logger.error("Uploading file failed.")
                     res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                     await self.dracoon.handle_http_error(err=e, raise_on_err=True)
-                finally: 
-                    if display_progress: progress.close()
-                    
+         
         elif filesize > chunksize:
             
-            if display_progress: 
-                progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True, desc=file_name)
-            else:
-                progress = None
-                
-
             with open(file, 'rb') as f:
                 
                 index = 0
@@ -466,7 +430,7 @@ class DRACOONNodes:
                 
                 dracoon_cipher = FileEncryptionCipher(plain_file_key=plain_file_key)
                                          
-                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, progress=progress, callback_fn=callback_fn):
+                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, callback_fn=callback_fn):
                                           
                     upload_url = upload_channel.uploadUrl
                     content_range = f'bytes {index}-{offset}/{filesize}'
@@ -488,7 +452,6 @@ class DRACOONNodes:
                     'file': enc_chunk
                         }
                     
-                    
                     try:                              
                         self.dracoon.uploader.headers["Content-Range"] = content_range                    
                         res = await self.dracoon.uploader.post(url=upload_url, files=upload_file) 
@@ -497,15 +460,10 @@ class DRACOONNodes:
                     except httpx.RequestError as e:
                         res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                         await self.dracoon.handle_connection_error(e)
-                        if display_progress: progress.close()
                     except httpx.HTTPStatusError as e:
                         res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                         self.logger.error("Uploading chunk failed.")
                         await self.dracoon.handle_http_error(err=e, raise_on_err=True)
-                        if display_progress: progress.close()
-
-                if display_progress: progress.close()
-                    
 
         # encrypt file key    
         file_key = encrypt_file_key(plain_file_key=plain_file_key, keypair=plain_keypair)
@@ -538,7 +496,8 @@ class DRACOONNodes:
             
         
         return CompleteUpload(**payload)
-            
+    
+    @retry(**RETRY_CONFIG)   
     async def complete_upload(self, upload_channel: UploadChannelResponse, payload: CompleteUpload, raise_on_err: bool = False) -> Node:
         
         api_url = self.dracoon.base_url + self.dracoon.api_base_url + f'/uploads/{upload_channel.token}'
@@ -556,11 +515,11 @@ class DRACOONNodes:
           
         return Node(**res.json())
     
+    @retry(**RETRY_CONFIG)
     async def upload_s3_unencrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, keep_shares: bool = False,
                                     file_name: str = None,
                                     resolution_strategy: str = 'autorename', chunksize: int = CHUNK_SIZE, 
-                                    display_progress: bool = False, raise_on_err: bool = False, 
-                                    callback_fn: Callback  = None) -> S3FileUploadStatus:
+                                    raise_on_err: bool = False, callback_fn: Callback  = None) -> S3FileUploadStatus:
         if self.raise_on_err:
             raise_on_err = True
 
@@ -617,16 +576,11 @@ class DRACOONNodes:
         # single part upload
         if part_count == 1:
             
-            if display_progress: 
-                progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True, desc=file_name)
-            else:
-                progress = None
-            
             with open(file, 'rb') as f:
                          
                 try:
                     self.dracoon.uploader.headers["Content-Length"] = str(filesize)
-                    res = await self.dracoon.uploader.put(url=s3_urls.urls[0].url, content=self.upload_bytes(file_obj=f, progress=progress, callback_fn=callback_fn))
+                    res = await self.dracoon.uploader.put(url=s3_urls.urls[0].url, content=self.upload_bytes(file_obj=f, callback_fn=callback_fn))
                     res.raise_for_status()
                         
                     # remove double quotes from etag
@@ -634,7 +588,6 @@ class DRACOONNodes:
                     part = S3Part(**{ "partNumber": 1, "partEtag": e_tag })
                     parts.append(part)
                         
-                    if display_progress: progress.update(filesize)
                 except httpx.RequestError as e:
                     res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                     await self.dracoon.handle_connection_error(e)
@@ -642,22 +595,15 @@ class DRACOONNodes:
                     self.logger.error("Uploading file failed.")
                     res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                     await self.dracoon.handle_http_error(err=e, raise_on_err=True, is_xml=True)
-                finally: 
-                    if display_progress: progress.close()
 
            
         elif part_count > 1:
-            
-            if display_progress: 
-                progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True, desc=file_name)
-            else:
-                progress = None
-            
+               
             with open(file, 'rb') as f:
                 
                 part_number = 0
                                          
-                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, progress=progress, callback_fn=callback_fn):
+                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, callback_fn=callback_fn):
                                           
                     upload_url = s3_urls.urls[part_number].url
 
@@ -673,16 +619,12 @@ class DRACOONNodes:
                     except httpx.RequestError as e:
                         res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                         await self.dracoon.handle_connection_error(e)
-                        if display_progress: progress.close()
                     except httpx.HTTPStatusError as e:
                         res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                         self.logger.error("Uploading chunk failed.")
                         await self.dracoon.handle_http_error(err=e, raise_on_err=True, is_xml=True)
-                        if display_progress: progress.close()
-
+  
                     part_number += 1
-                    
-                if display_progress: progress.close()
                     
         s3_complete = self.make_s3_upload_complete(parts=parts, file_name=file_name, keep_share_links=keep_shares, 
                                                    resolution_strategy=resolution_strategy)
@@ -707,11 +649,12 @@ class DRACOONNodes:
             time *= 2
             
         return upload_status
-        
+    
+    @retry(**RETRY_CONFIG)
     async def upload_s3_encrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, plain_keypair: PlainUserKeyPairContainer, 
                                   file_name: str = None,
                                   keep_shares: bool = False, resolution_strategy: str = 'autorename', 
-                                  chunksize: int = CHUNK_SIZE, display_progress: bool = False, raise_on_err: bool = False,
+                                  chunksize: int = CHUNK_SIZE, raise_on_err: bool = False,
                                   callback_fn: Callback  = None
                                   ) -> S3FileUploadStatus:
         
@@ -775,11 +718,6 @@ class DRACOONNodes:
         # single part upload
         if part_count == 1:
             
-            if display_progress:
-                progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True, desc=file_name)
-            else:
-                progress = None
-            
             with open(file, 'rb') as f:
                 
                 enc_bytes, plain_file_key = encrypt_bytes(plain_data=f.read(), plain_file_key=plain_file_key)
@@ -794,7 +732,6 @@ class DRACOONNodes:
                     e_tag = res.headers["ETag"].replace('"', '')
                     part = S3Part(**{ "partNumber": 1, "partEtag": e_tag })
                     parts.append(part)
-                    if display_progress: progress.update(filesize)
                     if callback_fn: callback_fn(filesize)
                 except httpx.RequestError as e:
                     res = await self.dracoon.http.delete(upload_channel.uploadUrl)
@@ -803,17 +740,10 @@ class DRACOONNodes:
                     self.logger.error("Uploading file failed.")
                     res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                     await self.dracoon.handle_http_error(err=e, raise_on_err=True, is_xml=True)
-                finally: 
-                    if display_progress: progress.close()
 
         # multipart upload
         elif part_count > 1:
-            
-            if display_progress:
-                progress = tqdm(unit='iMB',unit_divisor=1024, total=filesize, unit_scale=True, desc=file_name)
-            else:
-                progress = None
-            
+               
             with open(file, 'rb') as f:
                 
                 part_number = 0
@@ -822,7 +752,7 @@ class DRACOONNodes:
                 
                 dracoon_cipher = FileEncryptionCipher(plain_file_key=plain_file_key)
                                     
-                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, progress=progress, callback_fn=callback_fn):
+                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, callback_fn=callback_fn):
                     
                     # if not las chunk
                     if filesize - offset > chunksize:
@@ -849,18 +779,14 @@ class DRACOONNodes:
                         self.logger.debug("Uploaded part %s", part_number)
                     except httpx.RequestError as e:
                         res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                        if progress: progress.close()
                         await self.dracoon.handle_connection_error(e)
                     except httpx.HTTPStatusError as e:
                         res = await self.dracoon.http.delete(upload_channel.uploadUrl)
                         self.logger.error("Uploading chunk failed.")
-                        if progress: progress.close()
                         await self.dracoon.handle_http_error(err=e, raise_on_err=True, is_xml=True)
 
                     part_number += 1
-                    
-                if progress: progress.close()
-                
+                         
         # encrypt file key    
         file_key = encrypt_file_key(plain_file_key=plain_file_key, keypair=plain_keypair)
         
@@ -887,7 +813,8 @@ class DRACOONNodes:
             time *= 2
             
         return upload_status
-            
+    
+    @retry(**RETRY_CONFIG)
     async def check_s3_upload(self, upload_id: str, raise_on_err: bool = False) -> S3FileUploadStatus:
         """ check status of S3 upload """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -908,7 +835,7 @@ class DRACOONNodes:
         return S3FileUploadStatus(**res.json())
         
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_nodes(self, room_manager: bool = False, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, 
                         raise_on_err: bool = False) -> NodeList:
         """ list (all) visible nodes """
@@ -941,8 +868,8 @@ class DRACOONNodes:
         self.logger.info("Retrieved nodes.")
         return NodeList(**res.json())
     
-    # delete nodes for given array of node ids
-    @validate_arguments
+
+    @retry(**RETRY_CONFIG) 
     async def delete_nodes(self, node_list: List[int], raise_on_err: bool = False) -> None:
         """ delete a list of nodes (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -968,8 +895,7 @@ class DRACOONNodes:
         self.logger.info("Deleted node(s).")
         return None
 
-    # get node for given node id
-    @validate_arguments
+    @retry(**RETRY_CONFIG) 
     async def get_node(self, node_id: int, raise_on_err: bool = False) -> Node:
         """ get specific node details (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -993,7 +919,7 @@ class DRACOONNodes:
         return Node(**res.json())
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_node(self, node_id: int, raise_on_err: bool = False) -> None:
         """ delete specific node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1017,8 +943,7 @@ class DRACOONNodes:
         self.logger.info("Deleted node.")
         return None
 
-    # get node comments for given node id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_node_comments(self, node_id: int, offset: int = 0, raise_on_err: bool = False) -> CommentList:
         """ get comments for specific node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1043,8 +968,7 @@ class DRACOONNodes:
         self.logger.info("Retrieved node comments.")
         return CommentList(**res.json())
 
-    # get node for given node id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def add_node_comment(self, node_id: int, comment: CommentNode, raise_on_err: bool = False) -> Comment:
         """ add a comment to a node """
         payload = comment.dict(exclude_unset=True)
@@ -1077,8 +1001,7 @@ class DRACOONNodes:
 
         return CommentNode(**comment)
 
-    # copy node for given node id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def copy_nodes(self, target_id: int, copy_node: TransferNode, raise_on_err: bool = False) -> Node:
         """ copy node(s) to given target id """
         payload = copy_node.dict(exclude_unset=True)
@@ -1128,8 +1051,7 @@ class DRACOONNodes:
         
         return NodeItem(**node_item)
 
-    # get node comfor given node id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_deleted_nodes(self, parent_id: int = 0, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> DeletedNodeSummaryList:
         """ list (all) deleted nodes """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1164,7 +1086,7 @@ class DRACOONNodes:
         return DeletedNodeSummaryList(**res.json())
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def empty_node_recyclebin(self, parent_id: int, raise_on_err: bool = False) -> None:
         """ delete all nodes in recycle bin of parent (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1188,8 +1110,7 @@ class DRACOONNodes:
         self.logger.info("Emptied node recycle bin.")
         return None
 
-    # get node versions in a given parent id (requires name, specification of type)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_node_versions(self, parent_id: int, name: str, type: str, offset: int = 0, raise_on_err: bool = False) -> DeletedNodeVersionsList:
         """ get (all) versions of a node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1216,7 +1137,7 @@ class DRACOONNodes:
         return DeletedNodeVersionsList(**res.json())
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def add_favorite(self, node_id: int, raise_on_err: bool = False) -> Node:
         """ add a specific node to favorites (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1239,8 +1160,7 @@ class DRACOONNodes:
         self.logger.info("Added node to favorites.")
         return Node(**res.json())
 
-    # delete node for given node id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_favorite(self, node_id: int, raise_on_err: bool = False) -> None:
         """ remove a specific node from favorites (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1263,8 +1183,7 @@ class DRACOONNodes:
         self.logger.info("Removed node from favorites.")
         return None
 
-    # copy node for given node id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def move_nodes(self, target_id: int, move_node: TransferNode, raise_on_err: bool = False) -> Node:
         """ move node(s) to target node (by id) """
         payload = move_node.dict(exclude_unset=True)
@@ -1289,8 +1208,7 @@ class DRACOONNodes:
         return Node(**res.json())
 
 
-    # get node ancestors (parents)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_parents(self, node_id: int, raise_on_err: bool = False) -> NodeParentList:
         """ get node parents """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1313,9 +1231,7 @@ class DRACOONNodes:
         self.logger.info("Retrieved node parents.")
         return NodeParentList(**res.json())
 
-    # delete deleted nodes in recycle bin for given array of node ids
-
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def empty_recyclebin(self, node_list: List[int], raise_on_err: bool = False) -> None:
         """ empty recylce bin: list of nodes (deleted nodes by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1343,7 +1259,7 @@ class DRACOONNodes:
         self.logger.info("Emptied recycle bin.")
         return None
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_deleted_node(self, node_id: int, raise_on_err: bool = False) -> DeletedNode:
         """ get details of a specific deleted node (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1368,7 +1284,7 @@ class DRACOONNodes:
         return DeletedNode(**res.json())
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def restore_nodes(self, restore: RestoreNode, raise_on_err: bool = False) -> None:
         """ restore a list of nodes from recycle bin """
         payload = restore.dict(exclude_unset=True)
@@ -1406,8 +1322,7 @@ class DRACOONNodes:
         
         return RestoreNode(**node_restore)
 
-    # update file meta data
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_file(self, file_id: int, file_update: UpdateFile, raise_on_err: bool = False) -> Node:
         """ update file metadata """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1433,7 +1348,7 @@ class DRACOONNodes:
         self.logger.info("Updated file.")
         return Node(**res.json())
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_files(self, files_update: UpdateFiles, raise_on_err: bool = False) -> None:
         """ update file metadata """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1489,7 +1404,7 @@ class DRACOONNodes:
         return UpdateFiles(**update_files)
     
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_download_url(self, node_id: int, raise_on_err: bool = False) -> DownloadTokenGenerateResponse:
         """ get download url for a specific node """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1510,8 +1425,7 @@ class DRACOONNodes:
         self.logger.info("Retrieved download URL.")
         return DownloadTokenGenerateResponse(**res.json())
 
-    # get user file key if available
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_user_file_key(self, file_id: int, version: str = None, raise_on_err: bool = False) -> FileKey:
         """ get file key for given node as authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1536,7 +1450,7 @@ class DRACOONNodes:
         self.logger.info("Retrieved user file key.")
         return FileKey(**res.json())
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def set_file_keys(self, file_keys: SetFileKeys, raise_on_err: bool = False) -> None:
         """ set file keys for nodes """
         payload = file_keys.dict(exclude_unset=True)
@@ -1576,7 +1490,8 @@ class DRACOONNodes:
             "userId": user_id, 
             "fileKey": file_key
         })
-        
+    
+    @retry(**RETRY_CONFIG)
     async def get_file_versions(self, reference_id: int, raise_on_err: bool = False):
         """ get all file versions (including deleted nodes) for given reference id """
         
@@ -1600,7 +1515,7 @@ class DRACOONNodes:
         self.logger.info("Retrieved node.")
         return Node(**res.json())
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def create_folder(self, folder: CreateFolder, raise_on_err: bool = False) -> Node:
         """ create a new folder """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1650,8 +1565,7 @@ class DRACOONNodes:
 
         return UpdateFolder(**folder)
 
-    # update folder mets data
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_folder(self, node_id: int, folder_update: UpdateFolder, raise_on_err: bool = False) -> Node:
         """ update a folder """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1676,8 +1590,7 @@ class DRACOONNodes:
         self.logger.info("Updated folder.")
         return Node(**res.json())
 
-    # get missing file keys
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_missing_file_keys(self, file_id: int = None, room_id: int = None, user_id: int = None, use_key: str = None, 
                                       offset: int = 0, limit: int = None, raise_on_err: bool = False) -> MissingKeysResponse:
         """ get (all) missing file keys """
@@ -1713,8 +1626,7 @@ class DRACOONNodes:
         self.logger.info("Retrieved missing file keys.")
         return MissingKeysResponse(**res.json())
 
-    # create room
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def create_room(self, room: CreateRoom, raise_on_err: bool = False) -> Node:
         """ create a new room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1740,8 +1652,7 @@ class DRACOONNodes:
         return Node(**res.json())
     
 
-    # update room mets data
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_room(self, node_id: int, room_update: UpdateRoom, raise_on_err: bool = False) -> Node:
         """ update a room (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1805,8 +1716,7 @@ class DRACOONNodes:
 
         return UpdateRoom(**room)
 
-    # configure data room
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def config_room(self, node_id: int, config_update: ConfigRoom, raise_on_err: bool = False) -> Node:
         """ configure a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1879,8 +1789,7 @@ class DRACOONNodes:
             "permissions": permission
 
         }
-    
-    @validate_arguments
+
     def make_encrypt_room(self, is_encrypted: bool, use_sytem_rescue_key: bool = None, room_rescue_key: UserKeyPairContainer = None) -> EncryptRoom:
         """ make room encryption payload """
         
@@ -1891,9 +1800,9 @@ class DRACOONNodes:
         if use_sytem_rescue_key is not None: encrypt_room["useDataSpaceRescueKey"] = use_sytem_rescue_key
         if room_rescue_key: encrypt_room["dataRoomRescueKey"] = room_rescue_key
         
-        return encrypt_room
+        return EncryptRoom(**encrypt_room)
     
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def encrypt_room(self, room_id: int, encrypt_room: EncryptRoom, raise_on_err: bool = False) -> Node:
         
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1918,8 +1827,7 @@ class DRACOONNodes:
         self.logger.info("Encrypted room.")
         return Node(**res.json())
 
-    # get node comfor given node id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_room_groups(self, room_id: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None, raise_on_err: bool = False) -> RoomGroupList:
         """ list (all) groups assigned to a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1953,7 +1861,7 @@ class DRACOONNodes:
         return RoomGroupList(**res.json())
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_room_groups(self, room_id: int, groups_update: UpdateRoomGroups, raise_on_err: bool = False) -> None:
         """ bulk update assigned groups of a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -1979,8 +1887,7 @@ class DRACOONNodes:
         self.logger.info("Updated room groups.")
         return None
 
-    # delete groups assigned to room with given node id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_room_groups(self, room_id: int, group_list: List[int], raise_on_err: bool = False) -> None:
         """ bulk delete assigned groups of a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -2007,9 +1914,7 @@ class DRACOONNodes:
         self.logger.info("Deleted room group(s).")
         return None
 
-    # get node comfor given node id
-
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_room_users(self, room_id: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None, raise_on_err: bool = False) -> RoomUserList:
         """ get (all) users assigned to a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -2042,8 +1947,7 @@ class DRACOONNodes:
         self.logger.info("Retrieved room users.")
         return RoomUserList(**res.json())
 
-    # add or change users assigned to room with given node id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_room_users(self, room_id: int, users_update: UpdateRoomUsers, raise_on_err: bool = False) -> None:
         """ bulk update assigned users in a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -2072,8 +1976,7 @@ class DRACOONNodes:
         self.logger.info("Updated room user(s).")
         return None
 
-    # delete users assigned to room with given node id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_room_users(self, room_id: int, user_list: List[int], raise_on_err: bool = False) -> None:
         """ bulk remove assigned users in a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -2100,8 +2003,7 @@ class DRACOONNodes:
         self.logger.info("Deleted room user(s).")
         return None
 
-    # get webhooks assigned or assignable to room with given node id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_room_webhooks(self, node_id: int, offset: int = 0, filter: str = None, limit: str = None, sort: str = None, raise_on_err: bool = False) -> RoomWebhookList:
         """" list (all) room webhooks """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -2135,9 +2037,7 @@ class DRACOONNodes:
         self.logger.info("Retrieved room webhooks.")
         return RoomWebhookList(**res.json())
 
-    # delete users assigned to room with given node id
-
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_room_webhooks(self, node_id: int, hook_update: UpdateRoomHooks, raise_on_err: bool = False) -> RoomWebhookList:
         """ update room webhooks """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -2163,7 +2063,7 @@ class DRACOONNodes:
         self.logger.info("Updated room webhooks.")
         return RoomWebhookList(**res.json())
     
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_room_events(self, room_id: int, offset: int = 0, filter: str = None, limit: int = None, 
                         sort: str = None, date_start: str = None, date_end: str = None, operation_id: int = None, user_id: int = None, raise_on_err = False) -> LogEventList:
         """ get pending room assignments (new group members not accepted) """
@@ -2199,7 +2099,7 @@ class DRACOONNodes:
         return LogEventList(**res.json())
 
     
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_pending_assignments(self, offset: int = 0, filter: str = None, limit: str = None, sort: str = None, raise_on_err: bool = False) -> PendingAssignmentList:
         """ get pending room assignments (new group members not accepted) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -2233,7 +2133,7 @@ class DRACOONNodes:
         return PendingAssignmentList(**res.json())
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def process_pending_assignments(self, pending_update: ProcessRoomPendingUsers, raise_on_err: bool = False) -> None:
         """ procces (accept or reject) new group members of a room """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -2259,8 +2159,7 @@ class DRACOONNodes:
         self.logger.info("Processed pending assignments.")
         return None
 
-    # search for nodes
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def search_nodes(self, search: str, parent_id: int = 0, depth_level: int = 0, offset: int = 0, 
                            filter: str = None, limit: str = None, sort: str = None, raise_on_err: bool = False) -> NodeList:
         """ search for specific nodes """

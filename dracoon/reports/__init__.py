@@ -15,11 +15,11 @@ Please note: maximum 500 items are returned in GET requests
 from typing import List
 import httpx
 import logging
-from pydantic import validate_arguments
+
 from datetime import datetime
+from tenacity import retry
 
-
-from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .models import CreateReport, ReportFilter, ReportFormat, ReportSubType, ReportType
 from .responses import ReportList
@@ -51,7 +51,7 @@ class DRACOONReports:
             self.logger.error("DRACOON client error: no connection. ")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def create_report(self, report: CreateReport, raise_on_err: bool = False) -> None:
         """ create a new report """
         payload = report.dict(exclude_unset=True)
@@ -109,7 +109,7 @@ class DRACOONReports:
 
         return ReportFilter(**filter)
     
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_reports(self, name: str = None, type: str = None, sub_type: str = None, state: str = None, 
                 has_error: bool = None, enabled: bool = None, 
                 offset: int = 0, limit: int = None, sort: str = None, raise_on_err: bool = False) -> ReportList:
@@ -143,7 +143,7 @@ class DRACOONReports:
         self.logger.info("Retrieved reports.")
         return ReportList(**res.json())
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_reports(self, report_list: List[int], raise_on_err: bool = False) -> None:
         """ delete a list of reports (by ids) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -168,7 +168,7 @@ class DRACOONReports:
         self.logger.info("Deleted reports.")
         return None
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_report(self, report_id: int, raise_on_err: bool = False) -> None:
         """ delete a specific report (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:

@@ -1,5 +1,5 @@
 """
-Async DRACOON downloads adapter based on httpx, tqdm and pydantic
+Async DRACOON downloads adapter based on httpx and pydantic
 V1.2.0
 (c) Octavio Simone, February 2022 
 
@@ -15,9 +15,8 @@ import logging
 import random
 import string
 
-from cryptography.exceptions import InvalidTag
-from tqdm import tqdm
 import httpx
+from cryptography.exceptions import InvalidTag
 
 from dracoon.nodes import CHUNK_SIZE
 from dracoon.nodes.models import Callback, Node, NodeType
@@ -65,10 +64,8 @@ class DRACOONDownloads:
 
         return file.exists() and file.is_file()
 
-    
     async def download_unencrypted(self, download_url: str, target_path: str, node_info: Node, chunksize: int = CHUNK_SIZE, 
-                                   raise_on_err: bool = False, display_progress: bool = False,
-                                   callback_fn: Callback  = None,
+                                   raise_on_err: bool = False, callback_fn: Callback  = None,
                                    file_name: str = None
                                    ):
         """ Download a file from an unecrypted data room. """
@@ -114,10 +111,8 @@ class DRACOONDownloads:
                 
             async with self.dracoon.downloader.stream(method='GET', url=download_url) as res:
                 res.raise_for_status()
-                if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)
                 async for chunk in res.aiter_bytes(chunksize):
                     file_out.write(chunk)
-                    if display_progress: progress.update(len(chunk))
                     if callback_fn: callback_fn(len(chunk))
                                         
         except httpx.RequestError as e:
@@ -128,14 +123,11 @@ class DRACOONDownloads:
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err, is_xml=True, debug_content=False)
         finally:
             if file_out: file_out.close()
-            if display_progress and progress: progress.close()
-                   
+           
         self.logger.info("Download completed.")
             
-
     async def download_encrypted(self, download_url: str, target_path: str, node_info: Node, plain_keypair: PlainUserKeyPairContainer, file_key: FileKey, 
-                                       chunksize: int = CHUNK_SIZE, raise_on_err: bool = False, display_progress: bool = False, 
-                                       callback_fn: Callback  = None, file_name: str = None):   
+                                       chunksize: int = CHUNK_SIZE, raise_on_err: bool = False, callback_fn: Callback  = None, file_name: str = None):   
         """ Download a file from an encrypted data room. """
 
         self.logger.info("Download started.")
@@ -188,13 +180,11 @@ class DRACOONDownloads:
             with open(file_path, 'wb') as file_out:       
                 async with self.dracoon.downloader.stream(method='GET', url=download_url) as res:
                     res.raise_for_status()
-                    if display_progress: progress = tqdm(unit='iMB',unit_divisor=1024, total=size, unit_scale=True, desc=node_info.name)   
-                        
+                
                     # decrypt file and then write to disk
                     async for chunk in res.aiter_bytes(chunksize):            
                         plain_chunk = decryptor.decode_bytes(chunk)
                         file_out.write(plain_chunk)
-                        if display_progress: progress.update(len(chunk))
                         if callback_fn: callback_fn(len(chunk))
                             
                             # finalize encryption after last chunk
@@ -213,9 +203,7 @@ class DRACOONDownloads:
         except httpx.HTTPStatusError as e:
             os.remove(file_path)
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err, is_xml=True, debug_content=False)
-        finally:
-            if display_progress and progress: progress.close()
-            
+   
         end_file = folder.joinpath(file_name)
             
         file_path.rename(end_file)

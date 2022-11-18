@@ -16,7 +16,7 @@ except FileNotFoundError:
 # This call to setup() does all the work
 setup(
     name="dracoon",
-    version="1.8.4",
+    version="1.9.0",
     description=DESCRIPTION,
     long_description=README,
     long_description_content_type="text/markdown",
@@ -31,5 +31,5 @@ setup(
     ],
     packages=find_packages(),
     include_package_data=True,
-    install_requires=["httpx", "asyncio", "pydantic", "cryptography", "tqdm"]
+    install_requires=["httpx", "asyncio", "pydantic", "cryptography", "tenacity"]
 )
