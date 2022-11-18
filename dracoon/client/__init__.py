@@ -11,34 +11,27 @@ The client implements all login and logout procedures and is part of every API a
 import base64 
 import asyncio
 import logging
-from enum import Enum
-from dataclasses import dataclass
+
 from datetime import datetime
 
 import httpx
-from dracoon.client.models import ProxyConfig
+from tenacity import retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from dracoon.errors import (MissingCredentialsError, HTTPBadRequestError, HTTPUnauthorizedError, 
+from dracoon.client.models import DRACOONConnection, OAuth2ConnectionType, ProxyConfig, RetryConfig
+from dracoon.errors import (HTTPTooManyRequestsError, MissingCredentialsError, HTTPBadRequestError, HTTPUnauthorizedError, 
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
                             HTTPUnknownError)
 
-USER_AGENT = 'dracoon-python-1.8.4'
+# constants for client config
+USER_AGENT = 'dracoon-python-1.9.0-SNAPSHOT'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=30, read=30)
+RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type(HTTPTooManyRequestsError),
+                           stop=stop_after_attempt(5),
+                           wait=wait_exponential(multiplier=1.2, min=5, max=15),
+                           reraise=True
+                           )
+RETRY_CONFIG = RETRY_CONFIG_BASE.dict()
 
-class OAuth2ConnectionType(Enum):
-    """ enum as connection type for DRACOONClient """
-    """ supports authorization code flow, password flow and refresh token """
-    password_flow = 1
-    auth_code = 2
-    refresh_token = 3
-
-@dataclass
-class DRACOONConnection:
-    """ DRACOON connection with tokens and validity """
-    connected_at: datetime
-    access_token: str
-    access_token_validity: int
-    refresh_token: str
 
 class DRACOONClient:
     """ DRACOON client with an httpx async client """
@@ -331,6 +324,8 @@ class DRACOONClient:
             raise HTTPConflictError(error=err)
         if err.response.status_code == 412:
             raise HTTPPreconditionsFailedError(error=err)
+        if err.response.status_code == 429:
+            raise HTTPTooManyRequestsError(err=err)
         else:
             raise HTTPUnknownError(error=err)
 

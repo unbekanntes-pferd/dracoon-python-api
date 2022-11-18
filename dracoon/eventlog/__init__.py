@@ -17,10 +17,10 @@ Please note: maximum 500 items are returned in GET requests
 from typing import List
 import httpx
 import logging
-from pydantic import validate_arguments
 import urllib.parse
+from tenacity import retry
 
-from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .responses import AuditNodeInfoResponse, AuditNodeResponse, LogEventList
 
@@ -57,7 +57,7 @@ class DRACOONEvents:
             self.logger.critical("DRACOON client not connected.")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
    
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_permissions(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err = False) -> List[AuditNodeResponse]:
         """ get permissions for all nodes (rooms) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -87,7 +87,7 @@ class DRACOONEvents:
         
         return [AuditNodeResponse(**node_info) for node_info in tmp_list]
     
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_rooms(self, parent_id: int = 0, offset: int = 0, filter: str = None, 
                                    limit: int = None, sort: str = None, raise_on_err = False) -> AuditNodeInfoResponse:
         """ get permissions for all nodes (rooms) """
@@ -116,7 +116,7 @@ class DRACOONEvents:
         self.logger.info("Retrieved node permission audit.")
         return AuditNodeInfoResponse(**res.json())
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_events(self, offset: int = 0, filter: str = None, limit: int = None, 
                         sort: str = None, date_start: str = None, date_end: str = None, operation_id: int = None, user_id: int = None, raise_on_err = False) -> LogEventList:
         """ get events (audit log) """

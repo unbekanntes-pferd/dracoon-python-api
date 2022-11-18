@@ -15,9 +15,11 @@ Please note: maximum 500 items are returned in GET requests
 """
 import logging
 import httpx
-from dracoon.branding import DRACOONPublicBranding
 
-from dracoon.client import DRACOONClient
+from tenacity import retry
+
+from dracoon.branding import DRACOONPublicBranding
+from dracoon.client import DRACOONClient, RETRY_CONFIG
 from dracoon.errors import InvalidClientError
 from .responses import AuthOIDCInfoList, AuthADInfoList, SystemInfo
 
@@ -49,7 +51,7 @@ class DRACOONPublic:
     def branding(self) -> DRACOONPublicBranding:
         return DRACOONPublicBranding(dracoon_client=self.dracoon)
 
-
+    @retry(**RETRY_CONFIG)
     async def get_system_info(self, raise_on_err: bool = False) -> SystemInfo:
         """ get sytem information (S3) """
 
@@ -67,7 +69,8 @@ class DRACOONPublic:
         
         self.logger.info("Retrieved system info.")
         return SystemInfo(**res.json())
-
+    
+    @retry(**RETRY_CONFIG)
     async def get_auth_ad_info(self, raise_on_err: bool = False) -> AuthADInfoList:
         """ get active directory information """
 
@@ -86,7 +89,8 @@ class DRACOONPublic:
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         self.logger.info("Retrieved AD auth info.")
         return AuthADInfoList(**res.json())
-
+    
+    @retry(**RETRY_CONFIG)
     async def get_auth_openid_info(self, raise_on_err: bool = False) -> AuthOIDCInfoList:
         """ get openid information """
         

@@ -19,10 +19,10 @@ from typing import List
 import urllib.parse
 
 import httpx
-from pydantic import validate_arguments
+from tenacity import retry
 
 from dracoon.user.responses import RoleList
-from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .models import CreateGroup, Expiration, UpdateGroup
 from .responses import Group, GroupList, GroupUserList, LastAdminGroupRoomList
@@ -57,7 +57,7 @@ class DRACOONGroups:
             self.logger.error("DRACOON client error: no connection. ")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def create_group(self, group: CreateGroup, raise_on_err: bool = False) -> Group:
         """ creates a new group """
 
@@ -92,7 +92,7 @@ class DRACOONGroups:
 
         return CreateGroup(**group)
     
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_groups(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> GroupList:
         """ list (all) groups """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -121,7 +121,7 @@ class DRACOONGroups:
         return GroupList(**res.json())
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_group(self, group_id: int, raise_on_err: bool = True) -> Group:
         """ get user details for specific group (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -145,7 +145,7 @@ class DRACOONGroups:
         return Group(**res.json())
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_group(self, group_id: int, group_update: UpdateGroup, raise_on_err: bool = False) -> Group:
         """ update user details for specific group (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -179,7 +179,7 @@ class DRACOONGroups:
 
         return UpdateGroup(**group_update)
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_group(self, group_id: int, raise_on_err = False) -> None:
         """ delete specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -202,8 +202,7 @@ class DRACOONGroups:
         self.logger.info("Deleted group.")
         return None
 
-    # get user details for given user id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_group_users(self, group_id: int, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> GroupUserList:
         """ list all users for a specific group (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -231,8 +230,7 @@ class DRACOONGroups:
         self.logger.info("Retrieved group users.")
         return GroupUserList(**res.json())
 
-    # get rooms in which group is last remaining admin (prevents user deletion!)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_group_last_admin_rooms(self, group_id: int, raise_on_err: bool = False) -> LastAdminGroupRoomList:
         """ list all rooms, in which group is last admin (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -255,8 +253,7 @@ class DRACOONGroups:
         self.logger.info("Retrieved last admin group list.")
         return LastAdminGroupRoomList(**res.json())
 
-    # get roles assigned to group
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_group_roles(self, group_id: int, raise_on_err: bool = False) -> RoleList:
         """ get group roles for specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -280,7 +277,7 @@ class DRACOONGroups:
         self.logger.info("Retrieved group roles list.")
         return RoleList(**res.json())
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def add_group_users(self, group_id: int, user_list: List[int], raise_on_err: bool = False) -> Group:
         """ bulk add a list of users to a group (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -308,7 +305,7 @@ class DRACOONGroups:
         self.logger.info("Added group user(s).")
         return Group(**res.json())
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_group_users(self, group_id: int, user_list: List[int], raise_on_err: bool = False) -> Group:
         """ bulk delete a list of users to a group (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
