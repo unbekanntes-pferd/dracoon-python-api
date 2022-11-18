@@ -31,5 +31,5 @@ setup(
     ],
     packages=find_packages(),
     include_package_data=True,
-    install_requires=["httpx", "asyncio", "pydantic", "cryptography", "tqdm"]
+    install_requires=["httpx", "asyncio", "pydantic", "cryptography", "tenacity"]
 )
