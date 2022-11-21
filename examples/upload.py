@@ -34,7 +34,7 @@ async def main():
     files = [file_small, file_medium, file_large]
 
     for file in files:
-        await dracoon.upload(file_path=file, target_path=target, display_progress=True)
+        await dracoon.upload(file_path=file, target_path=target, =True)
 
     await dracoon.logout()
 

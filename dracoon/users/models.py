@@ -12,7 +12,7 @@ class UserAuthData(BaseModel):
     password: Optional[str]
     mustChangePassword: Optional[bool]
     adConfigId: Optional[int]
-    oidConfigId: Optional[str]
+    oidConfigId: Optional[int]
 
 class UserAuthMethodOption(BaseModel):
     key: str

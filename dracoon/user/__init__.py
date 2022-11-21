@@ -17,9 +17,9 @@ All requests with bodies use generic params variable to pass JSON body
 
 import httpx
 import logging
-from pydantic import validate_arguments
+from tenacity import retry
 
-from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
 from dracoon.crypto import create_plain_userkeypair, encrypt_private_key
 from dracoon.crypto.models import UserKeyPairContainer, UserKeyPairVersion
 from dracoon.errors import ClientDisconnectedError, InvalidClientError, InvalidArgumentError
@@ -56,8 +56,7 @@ class DRACOONUser:
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
 
-    # get account information for current user
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_account_information(self, more_info: bool = False, raise_on_err: bool = False) -> UserAccount:
         """ returns account information for authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -79,8 +78,7 @@ class DRACOONUser:
         self.logger.info("Retrieved user account.")
         return UserAccount(**res.json())
 
-    # update account information for current user
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_account_information(self, account_update: UpdateAccount, raise_on_err: bool = False) -> UserAccount:
         """ updates account information for authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -123,8 +121,7 @@ class DRACOONUser:
 
         return UpdateAccount(**account_update)
 
-    # get user keypair (encrypted)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_user_keypair(self, version: UserKeyPairVersion = None, raise_on_err: bool = False) -> UserKeyPairContainer:
         """ returns encrypted user keypair (if present) for authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -148,8 +145,7 @@ class DRACOONUser:
         self.logger.info("Retrieved user keypair.")
         return UserKeyPairContainer(**res.json())
 
-    # set user keypair 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def set_user_keypair(self, secret: str, version: UserKeyPairVersion = UserKeyPairVersion.RSA4096, raise_on_err: bool = False) -> None:
         """ sets encrypted user keypair protected with secret (if none present) for authenticated user """
         plain_keypair = create_plain_userkeypair(version=version)
@@ -178,8 +174,7 @@ class DRACOONUser:
         self.logger.info("Set user keypair.")
         return None
 
-    # delete user keypair 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_user_keypair(self, version: UserKeyPairVersion = None, raise_on_err: bool = False) -> None:
         """ deletes encrypted user keypair (if present) for authenticated user """
         if not await self.dracoon.test_connection() and self.dracoon.connection:

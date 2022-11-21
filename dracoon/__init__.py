@@ -192,8 +192,7 @@ class DRACOON:
         return plain_keypair
 
     async def upload(self, file_path: str, target_path: str = None, file_name: str = None, resolution_strategy: str = 'autorename', 
-                     display_progress: bool = False, modification_date: str = None, 
-                     creation_date: str = None, 
+                     modification_date: str = None, creation_date: str = None, 
                      raise_on_err: bool = False, callback_fn: Callback  = None,
                      target_parent_id: int = None,
                      chunksize: int = CHUNK_SIZE
@@ -267,12 +266,11 @@ class DRACOON:
 
         # crypto upload 
         if is_encrypted and self.check_keypair() and not use_s3_storage:       
-            upload = await self.nodes.upload_encrypted(file_path=file_path, upload_channel=upload_channel, display_progress=display_progress,
-                                                         plain_keypair=self.plain_keypair, resolution_strategy=resolution_strategy, file_name=file_name,
+            upload = await self.nodes.upload_encrypted(file_path=file_path, upload_channel=upload_channel,                                                           plain_keypair=self.plain_keypair, resolution_strategy=resolution_strategy, file_name=file_name,
                                                          raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
         elif is_encrypted and self.check_keypair() and use_s3_storage:
             upload = await self.nodes.upload_s3_encrypted(file_path=file_path, upload_channel=upload_channel, plain_keypair=self.plain_keypair, 
-                                                          display_progress=display_progress, resolution_strategy=resolution_strategy, file_name=file_name,
+                                                          resolution_strategy=resolution_strategy, file_name=file_name,
                                                           raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
         elif is_encrypted and not self.check_keypair():
             self.logger.critical("Upload failed: Keypair not unlocked.")
@@ -280,18 +278,18 @@ class DRACOON:
         # unencrypted upload
         elif not is_encrypted and not use_s3_storage:
             upload = await self.nodes.upload_unencrypted(file_path=file_path, upload_channel=upload_channel, file_name=file_name,
-                                                         resolution_strategy=resolution_strategy, display_progress=display_progress, 
+                                                         resolution_strategy=resolution_strategy,  
                                                          raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
         elif not is_encrypted and use_s3_storage:
             upload = await self.nodes.upload_s3_unencrypted(file_path=file_path, upload_channel=upload_channel, file_name=file_name,
-                                                            display_progress=display_progress, resolution_strategy=resolution_strategy,
+                                                          resolution_strategy=resolution_strategy,
                                                             raise_on_err=raise_on_err, callback_fn=callback_fn, chunksize=chunksize)
 
         self.logger.info("Upload completed.")
         
         return upload
 
-    async def download(self, target_path: str, file_path: str = None, display_progress: bool = False, raise_on_err: bool = False, 
+    async def download(self, target_path: str, file_path: str = None, raise_on_err: bool = False, 
                        callback_fn: Callback  = None, file_name: str = None, source_node_id: int = None, chunksize: int = CHUNK_SIZE):
         """ download a file to a target """
 
@@ -334,13 +332,13 @@ class DRACOON:
 
         if not is_encrypted:
             await self.downloads.download_unencrypted(download_url=download_url, target_path=target_path, node_info=node_info, 
-                                                      display_progress=display_progress, raise_on_err=raise_on_err, 
+                                                      raise_on_err=raise_on_err, 
                                                       callback_fn=callback_fn, file_name=file_name, chunksize=chunksize)
         elif is_encrypted and self.check_keypair():
             try:
                 file_key = await self.nodes.get_user_file_key(node_id, raise_on_err=True)
                 await self.downloads.download_encrypted(download_url=download_url, target_path=target_path, node_info=node_info, 
-                                                    plain_keypair=self.plain_keypair, file_key=file_key, display_progress=display_progress, 
+                                                    plain_keypair=self.plain_keypair, file_key=file_key,
                                                     raise_on_err=raise_on_err, callback_fn=callback_fn, file_name=file_name, chunksize=chunksize)
             except HTTPNotFoundError:
                 raise CryptoMissingFileKeyError(message=f'No file key for node {node_id}')

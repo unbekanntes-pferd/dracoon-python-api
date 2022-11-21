@@ -19,9 +19,9 @@ import logging
 import urllib.parse
 
 import httpx
-from pydantic import validate_arguments
+from tenacity import retry
 
-from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
 from dracoon.user.responses import (AttributesResponse, LastAdminUserRoomList, RoleList, 
                                     UserData, UserGroupList, UserList)
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
@@ -54,7 +54,7 @@ class DRACOONUsers:
             self.logger.error("DRACOON client error: no connection. ")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def create_user(self, user: CreateUser, raise_on_err: bool = False) -> UserData:
         """ creates a new user """
 
@@ -192,7 +192,7 @@ class DRACOONUsers:
         return UserAuthData(**auth)
 
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_users(self, offset: int = 0, filter: str = None, limit: int = None, 
                         sort: str = None, raise_on_err: bool = False) -> UserList:     
         """ list (all) users """
@@ -218,7 +218,7 @@ class DRACOONUsers:
         self.logger.info("Retrieved users.")
         return UserList(**res.json())
 
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_user(self, user_id: int, raise_on_err: bool = False) -> UserData:
         """ get user details for specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -238,8 +238,8 @@ class DRACOONUsers:
         self.logger.info("Retrieved user.")
         return UserData(**res.json())
 
-    # update user's meta data for given user id
-    @validate_arguments
+
+    @retry(**RETRY_CONFIG)
     async def update_user(self, user_id: int, user_update: UpdateUser, 
                           raise_on_err: bool = False) -> UserData:
         """ update user details for specific user (by id) """
@@ -262,8 +262,7 @@ class DRACOONUsers:
         self.logger.info("Updated user.")
         return UserData(**res.json())
 
-    # delete user for given user id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_user(self, user_id: int, raise_on_err: bool = False) -> None:
         """ delete specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -283,8 +282,7 @@ class DRACOONUsers:
         self.logger.info("Deleted user.")
         return None
 
-    # get user details for given user id
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_user_groups(self, user_id: int, offset: int = 0, filter: str = None, 
                               limit: int = None, sort: str = None, 
                               raise_on_err: bool = False) -> UserGroupList:
@@ -311,8 +309,7 @@ class DRACOONUsers:
         self.logger.info("Retrieved user groups.")
         return UserGroupList(**res.json())
 
-    # get rooms in which user is last remaining admin (prevents user deletion!)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_user_last_admin_rooms(self, user_id: int, 
                                         raise_on_err: bool = False) -> LastAdminUserRoomList:
         """ list all rooms, in which user is last admin (by id) """
@@ -333,8 +330,7 @@ class DRACOONUsers:
         self.logger.info("Retrieved user last admin rooms.")
         return LastAdminUserRoomList(**res.json())
 
-    # get roles assigned to user
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_user_roles(self, user_id: int, raise_on_err: bool = False) -> RoleList:
         """ get user roles for specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
@@ -354,8 +350,7 @@ class DRACOONUsers:
         self.logger.info("Retrieved user roles.")
         return RoleList(**res.json())
 
-    # get custom user attributes (key, value)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def get_user_attributes(self, user_id: int, offset: int = 0, filter: str = None, 
                                   limit: int = None, sort: str = None, 
                                   raise_on_err: bool = False) -> AttributesResponse:
@@ -382,8 +377,7 @@ class DRACOONUsers:
         self.logger.info("Retrieved user attributes.")
         return AttributesResponse(**res.json())
 
-    # set custom user attributes (key, value)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def delete_user_attribute(self, user_id: int, key: str, 
                                     raise_on_err: bool = False) -> None:
         """ delete custom user attribute for a specific user (by id) """
@@ -404,8 +398,7 @@ class DRACOONUsers:
         self.logger.info("Deleted user attribute.")
         return None
 
-    # update custom user attributes (key, value)
-    @validate_arguments
+    @retry(**RETRY_CONFIG)
     async def update_user_attributes(self, user_id: int, attributes: UpdateUserAttributes, 
                                      raise_on_err: bool = False) -> UserData:
         """ create / update custom user attribute for a specific user (by id) """

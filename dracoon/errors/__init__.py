@@ -285,6 +285,18 @@ class HTTPPreconditionsFailedError(DRACOONHttpError):
         
         super().__init__(error, is_xml, message)
 
+class HTTPTooManyRequestsError(DRACOONHttpError):
+    """
+    Exception raised for errors returned by DRACOON API 
+    (status code 429)
+
+    """
+
+    def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON Too Many Requests Error"):
+        
+        
+        super().__init__(error, is_xml, message)
+
 
 class HTTPUnknownError(DRACOONHttpError):
     """
