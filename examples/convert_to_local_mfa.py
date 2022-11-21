@@ -19,7 +19,6 @@ from typing import Any, Coroutine, List
 from dracoon import DRACOON
 from dracoon.client import OAuth2ConnectionType
 from dracoon.errors import DRACOONHttpError, HTTPForbiddenError, HTTPUnauthorizedError
-from dracoon.errors import DRACOONHttpError, HTTPForbiddenError, HTTPUnauthorizedError
 from dracoon.user.responses import UserData, UserList
 
 base_url = 'https://demo.dracoon.com'
