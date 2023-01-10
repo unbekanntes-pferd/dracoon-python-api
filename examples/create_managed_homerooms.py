@@ -1,5 +1,5 @@
 """
-homeroom creation: create rooms for users with given internal domain
+homeroom creation: create rooms for users with given internal domain with admin access via group
 
 30.05.2022 Quirin Wierer
 
@@ -80,6 +80,6 @@ async def main():
 
             add_perms = await dracoon.nodes.update_room_users(room_id=room_res.id, users_update=update)
         
-        
+           
 if __name__ == '__main__':
     asyncio.run(main())

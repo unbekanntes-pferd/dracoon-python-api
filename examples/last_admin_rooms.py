@@ -13,10 +13,17 @@ import csv
 
 from dracoon.eventlog.responses import AuditNodeInfo, AuditNodeResponse, AuditUserPermission
 
-client_id = 'XXXXXXXXXXXXXXXX'
-client_secret = 'XXXXXXXXXXXXXXXX'
-base_url = 'https://dracoon.team'
-user_id = 9999999999
+# client_id = 'XXXXXXXXXXXXXXXX'
+# client_secret = 'XXXXXXXXXXXXXXXX'
+# base_url = 'https://dracoon.team'
+# user_id = 9999999999
+# file_path = "./"
+
+#credentials
+base_url = 'https://demo-qw.dracoon.com'
+client_id = '1pi0pNw9RLEJOqXOKfBx36R3vHW7lKrO'
+client_secret = 'unXiTL3us8rOQdzvtkoIb7UMUgdmEtFo'
+user_id = 1
 file_path = "./"
 
 def create_csv(permissions: List, path: str):
@@ -57,13 +64,13 @@ async def main():
             for user in managers.auditUserPermissionList:
                 parentId = managers.nodeParentId
                 parentNodePath = managers.nodeParentPath
-                
-                room_tupel = []
-                room_tupel.append(managers.nodeId)
-                room_tupel.append(managers.nodeName)
-                #room_tupel.append(managers.nodeParentId)
-                room_tupel.append(parentNodePath)
-                last_admin_rooms.append(room_tupel)
+
+                room_list = []
+                room_list.append(managers.nodeId)
+                room_list.append(managers.nodeName)
+                #room_list.append(managers.nodeParentId)
+                room_list.append(parentNodePath)
+                last_admin_rooms.append(room_list)
 
   create_csv(last_admin_rooms, file_path)
 
