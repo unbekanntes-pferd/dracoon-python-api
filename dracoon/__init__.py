@@ -28,6 +28,7 @@ from dracoon.config.responses import GeneralSettingsInfo, InfrastructureProperti
 from dracoon.nodes.models import Callback
 from dracoon.nodes.responses import S3FileUploadStatus
 from dracoon.public.responses import AuthADInfo, AuthOIDCInfo, SystemInfo
+from dracoon.roles import DRACOONRoles
 from dracoon.user.models import UserAccount
 
 from .crypto.models import PlainUserKeyPairContainer
@@ -82,6 +83,10 @@ class DRACOON:
     @property 
     def reports(self) -> DRACOONReports:
         return DRACOONReports(self.client)
+    
+    @property
+    def roles(self) -> DRACOONRoles:
+        return DRACOONRoles(self.client)
     
     @property 
     def settings(self) -> DRACOONSettings:

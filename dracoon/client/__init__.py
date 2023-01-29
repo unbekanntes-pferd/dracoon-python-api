@@ -20,12 +20,12 @@ from tenacity import retry_if_exception_type, stop_after_attempt, wait_exponenti
 from dracoon.client.models import DRACOONConnection, OAuth2ConnectionType, ProxyConfig, RetryConfig
 from dracoon.errors import (HTTPTooManyRequestsError, MissingCredentialsError, HTTPBadRequestError, HTTPUnauthorizedError, 
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
-                            HTTPUnknownError)
+                            HTTPUnknownError, HTTPServerError)
 
 # constants for client config
-USER_AGENT = 'dracoon-python-1.9.0'
+USER_AGENT = 'dracoon-python-1.10.0'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=30, read=30)
-RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type(HTTPTooManyRequestsError),
+RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type((HTTPTooManyRequestsError, HTTPServerError)),
                            stop=stop_after_attempt(5),
                            wait=wait_exponential(multiplier=1.2, min=5, max=15),
                            reraise=True
@@ -326,6 +326,10 @@ class DRACOONClient:
             raise HTTPPreconditionsFailedError(error=err)
         if err.response.status_code == 429:
             raise HTTPTooManyRequestsError(error=err)
+        if err.response.status_code == 500:
+            raise HTTPUnknownError(error=err)
+        if err.response.status_code > 500 and err.response.status_code < 600:
+            raise HTTPServerError(error=err)
         else:
             raise HTTPUnknownError(error=err)
 

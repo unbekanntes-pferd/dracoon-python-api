@@ -309,6 +309,18 @@ class HTTPUnknownError(DRACOONHttpError):
         
         
         super().__init__(error, is_xml, message)
+        
+class HTTPServerError(DRACOONHttpError):
+    """
+    Exception raised for errors returned by DRACOON API 
+    (status code 5xx e.g. 503 unavailable)
+
+    """
+
+    def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON server error"):
+        
+        
+        super().__init__(error, is_xml, message)
 
 
 
