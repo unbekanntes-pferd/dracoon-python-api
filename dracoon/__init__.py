@@ -155,16 +155,13 @@ class DRACOON:
         """ closes the httpx client and revokes tokens """
         await self.client.logout(revoke_refresh_token=revoke_refresh_token)
         self.logger.info("Revoked token(s).")
-        self.logger.debug("Refresh token revoked: %s", revoke_refresh_token)
 
     async def test_connection(self) -> bool:
         """ test authenticated connection via authenticated ping """
-        self.logger.debug("Testing authenticated connection.")
         return await self.client.test_connection()
     
     async def valid_access_token(self) -> bool:
         """ check access token validity based on expiration """
-        self.logger.debug("Checking access token validity.")
         return self.client.check_access_token()
     
     def check_keypair(self) -> bool:
