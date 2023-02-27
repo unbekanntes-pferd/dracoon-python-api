@@ -117,37 +117,37 @@ class DRACOON:
        return DRACOONBranding(self.client) 
    
     async def connect(self, connection_type: OAuth2ConnectionType = OAuth2ConnectionType.auth_code, username: str = None, 
-                      password: str = None, auth_code: str = None, refresh_token: str = None, redirect_uri: str = None) -> DRACOONConnection:
+                      password: str = None, auth_code: str = None, refresh_token: str = None, redirect_uri: str = None, full_info: bool = True) -> DRACOONConnection:
         """ establishes a connection required for all adapters """
         self.connection = await self.client.connect(connection_type=connection_type, username=username, password=password, 
                                                auth_code=auth_code, refresh_token=refresh_token, redirect_uri=redirect_uri)
 
-        self.logger.info("Initialized DRACOON adapters.") 
-
-        user_info_res = self.user.get_account_information()
-        system_info_res = self.public.get_system_info()
-        oidc_auth_info_res = self.public.get_auth_openid_info()
-        ad_auth_info_res = self.public.get_auth_ad_info()
+        self.logger.info("Initialized DRACOON adapters.")
         
-        system_defaults = self.config.get_system_defaults()
-        infrastructure_policies = self.config.get_infrastructure_properties()
-        general_settings = self.config.get_general_settings()
+        if full_info:
+            user_info_res = self.user.get_account_information()
+            system_info_res = self.public.get_system_info()
+            oidc_auth_info_res = self.public.get_auth_openid_info()
+            ad_auth_info_res = self.public.get_auth_ad_info()
+            
+            system_defaults = self.config.get_system_defaults()
+            infrastructure_policies = self.config.get_infrastructure_properties()
+            general_settings = self.config.get_general_settings()
+            self.logger.debug("Getting DRACOON instance information...")
 
-        self.logger.debug("Getting DRACOON instance information...")
+            reqs = await asyncio.gather(user_info_res, system_info_res, oidc_auth_info_res, ad_auth_info_res, system_defaults, infrastructure_policies, general_settings)
+            
+            self.user_info: UserAccount = reqs[0]
+            self.system_info: SystemInfo = reqs[1]
+            self.auth_ad_info: AuthADInfo = reqs[3]
+            self.auth_oidc_info: AuthOIDCInfo = reqs[2]
+            self.general_settings: GeneralSettingsInfo = reqs[6]
+            self.system_defaults: SystemDefaults = reqs[4]
+            self.infrastructure_policies: InfrastructureProperties = reqs[5]
 
-        reqs = await asyncio.gather(user_info_res, system_info_res, oidc_auth_info_res, ad_auth_info_res, system_defaults, infrastructure_policies, general_settings)
-        
-        self.user_info: UserAccount = reqs[0]
-        self.system_info: SystemInfo = reqs[1]
-        self.auth_ad_info: AuthADInfo = reqs[3]
-        self.auth_oidc_info: AuthOIDCInfo = reqs[2]
-        self.general_settings: GeneralSettingsInfo = reqs[6]
-        self.system_defaults: SystemDefaults = reqs[4]
-        self.infrastructure_policies: InfrastructureProperties = reqs[5]
-
-        self.logger.info("Retrieved instance and account information.")
-        self.logger.debug("Logged in as user id %s.", self.user_info.id)
-        self.logger.debug("Using S3: %s.", self.system_info.useS3Storage)
+            self.logger.info("Retrieved instance and account information.")
+            self.logger.debug("Logged in as user id %s.", self.user_info.id)
+            self.logger.debug("Using S3: %s.", self.system_info.useS3Storage)
         
         return self.connection
         

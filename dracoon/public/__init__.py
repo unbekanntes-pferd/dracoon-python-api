@@ -45,8 +45,7 @@ class DRACOONPublic:
             self.raise_on_err = True
         else:
             self.raise_on_err = False
-        self.logger.debug("DRACOON public adapter created.")
-        
+  
     @property
     def branding(self) -> DRACOONPublicBranding:
         return DRACOONPublicBranding(dracoon_client=self.dracoon)

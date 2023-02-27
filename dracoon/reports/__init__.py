@@ -46,7 +46,7 @@ class DRACOONReports:
                 self.raise_on_err = True
             else:
                 self.raise_on_err = False
-            self.logger.debug("DRACOON reports adapter created.")
+
         else:
             self.logger.error("DRACOON client error: no connection. ")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')

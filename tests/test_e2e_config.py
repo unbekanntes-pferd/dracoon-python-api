@@ -7,7 +7,8 @@ import logging
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.config import DRACOONConfig
-from dracoon.config.responses import AlgorithmVersionInfoList, ClassificationPoliciesConfig, GeneralSettingsInfo, InfrastructureProperties, PasswordPoliciesConfig, ProductPackageResponseList, S3TagList, SystemDefaults
+from dracoon.config.responses import (AlgorithmVersionInfoList, ClassificationPoliciesConfig, GeneralSettingsInfo, 
+                                      InfrastructureProperties, PasswordPoliciesConfig, ProductPackageResponseList, S3TagList, SystemDefaults)
 from dracoon.errors import HTTPPreconditionsFailedError
 
 dotenv.load_dotenv()

@@ -232,8 +232,6 @@ class DRACOONClient:
 
     async def check_access_token(self, test: bool = False):
         """ check access token validity (based on connection time and token validity) """
-        self.logger.debug("Testing access token validity.")
-        self.logger.debug("Full authenticated test enabled: %s", test)
 
         if not test and self.connection:
             now = datetime.now()
@@ -246,7 +244,6 @@ class DRACOONClient:
 
     async def test_connection(self, test: bool = False) -> bool:
         """ test authenticated connection via authenticated ping """
-        self.logger.debug("Testing authenticated connection.")
 
         if not self.connection or not self.connected:
             self.logger.critical("DRACOON connection not established.")
