@@ -20,12 +20,12 @@ from tenacity import retry_if_exception_type, stop_after_attempt, wait_exponenti
 from dracoon.client.models import DRACOONConnection, OAuth2ConnectionType, ProxyConfig, RetryConfig
 from dracoon.errors import (HTTPTooManyRequestsError, MissingCredentialsError, HTTPBadRequestError, HTTPUnauthorizedError, 
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
-                            HTTPUnknownError, HTTPServerError)
+                            HTTPUnknownError, HTTPServerError, ConnectionError)
 
 # constants for client config
 USER_AGENT = 'dracoon-python-1.10.0'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=30, read=30)
-RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type((HTTPTooManyRequestsError, HTTPServerError)),
+RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type((HTTPTooManyRequestsError, HTTPServerError, ConnectionError)),
                            stop=stop_after_attempt(5),
                            wait=wait_exponential(multiplier=1.2, min=5, max=15),
                            reraise=True
@@ -293,9 +293,8 @@ class DRACOONClient:
         """ handle connection error in httpx client """
         self.logger.critical("Connection error.")
         self.logger.critical(err.request.url)
-        await self.disconnect()
-        raise err
-    
+        raise ConnectionError()
+
     async def handle_generic_error(self, err: Exception, close_client: bool = False):
         """ handle generic non-connection / non-http error """
         self.logger.critical("An error ocurred.")

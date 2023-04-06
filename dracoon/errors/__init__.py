@@ -147,6 +147,16 @@ class InvalidClientError(DRACOONClientError):
 
         super().__init__(message)
 
+class ConnectionError(DRACOONClientError):
+    """
+    Exception raised in dracoon modules
+    Connection issue with httpx client
+    """
+
+    def __init__(self, message: str = "Connection error."):
+
+        super().__init__(message)
+
 
 class InvalidArgumentError(DRACOONValidationError):
     """
