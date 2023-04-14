@@ -28,6 +28,7 @@ from dracoon.config.responses import GeneralSettingsInfo, InfrastructureProperti
 from dracoon.nodes.models import Callback
 from dracoon.nodes.responses import S3FileUploadStatus
 from dracoon.public.responses import AuthADInfo, AuthOIDCInfo, SystemInfo
+from dracoon.roles import DRACOONRoles
 from dracoon.user.models import UserAccount
 
 from .crypto.models import PlainUserKeyPairContainer
@@ -83,6 +84,10 @@ class DRACOON:
     def reports(self) -> DRACOONReports:
         return DRACOONReports(self.client)
     
+    @property
+    def roles(self) -> DRACOONRoles:
+        return DRACOONRoles(self.client)
+    
     @property 
     def settings(self) -> DRACOONSettings:
         return DRACOONSettings(self.client)
@@ -112,37 +117,37 @@ class DRACOON:
        return DRACOONBranding(self.client) 
    
     async def connect(self, connection_type: OAuth2ConnectionType = OAuth2ConnectionType.auth_code, username: str = None, 
-                      password: str = None, auth_code: str = None, refresh_token: str = None, redirect_uri: str = None) -> DRACOONConnection:
+                      password: str = None, auth_code: str = None, refresh_token: str = None, redirect_uri: str = None, full_info: bool = True) -> DRACOONConnection:
         """ establishes a connection required for all adapters """
         self.connection = await self.client.connect(connection_type=connection_type, username=username, password=password, 
                                                auth_code=auth_code, refresh_token=refresh_token, redirect_uri=redirect_uri)
 
-        self.logger.info("Initialized DRACOON adapters.") 
-
-        user_info_res = self.user.get_account_information()
-        system_info_res = self.public.get_system_info()
-        oidc_auth_info_res = self.public.get_auth_openid_info()
-        ad_auth_info_res = self.public.get_auth_ad_info()
+        self.logger.info("Initialized DRACOON adapters.")
         
-        system_defaults = self.config.get_system_defaults()
-        infrastructure_policies = self.config.get_infrastructure_properties()
-        general_settings = self.config.get_general_settings()
+        if full_info:
+            user_info_res = self.user.get_account_information()
+            system_info_res = self.public.get_system_info()
+            oidc_auth_info_res = self.public.get_auth_openid_info()
+            ad_auth_info_res = self.public.get_auth_ad_info()
+            
+            system_defaults = self.config.get_system_defaults()
+            infrastructure_policies = self.config.get_infrastructure_properties()
+            general_settings = self.config.get_general_settings()
+            self.logger.debug("Getting DRACOON instance information...")
 
-        self.logger.debug("Getting DRACOON instance information...")
+            reqs = await asyncio.gather(user_info_res, system_info_res, oidc_auth_info_res, ad_auth_info_res, system_defaults, infrastructure_policies, general_settings)
+            
+            self.user_info: UserAccount = reqs[0]
+            self.system_info: SystemInfo = reqs[1]
+            self.auth_ad_info: AuthADInfo = reqs[3]
+            self.auth_oidc_info: AuthOIDCInfo = reqs[2]
+            self.general_settings: GeneralSettingsInfo = reqs[6]
+            self.system_defaults: SystemDefaults = reqs[4]
+            self.infrastructure_policies: InfrastructureProperties = reqs[5]
 
-        reqs = await asyncio.gather(user_info_res, system_info_res, oidc_auth_info_res, ad_auth_info_res, system_defaults, infrastructure_policies, general_settings)
-        
-        self.user_info: UserAccount = reqs[0]
-        self.system_info: SystemInfo = reqs[1]
-        self.auth_ad_info: AuthADInfo = reqs[3]
-        self.auth_oidc_info: AuthOIDCInfo = reqs[2]
-        self.general_settings: GeneralSettingsInfo = reqs[6]
-        self.system_defaults: SystemDefaults = reqs[4]
-        self.infrastructure_policies: InfrastructureProperties = reqs[5]
-
-        self.logger.info("Retrieved instance and account information.")
-        self.logger.debug("Logged in as user id %s.", self.user_info.id)
-        self.logger.debug("Using S3: %s.", self.system_info.useS3Storage)
+            self.logger.info("Retrieved instance and account information.")
+            self.logger.debug("Logged in as user id %s.", self.user_info.id)
+            self.logger.debug("Using S3: %s.", self.system_info.useS3Storage)
         
         return self.connection
         
@@ -150,16 +155,13 @@ class DRACOON:
         """ closes the httpx client and revokes tokens """
         await self.client.logout(revoke_refresh_token=revoke_refresh_token)
         self.logger.info("Revoked token(s).")
-        self.logger.debug("Refresh token revoked: %s", revoke_refresh_token)
 
     async def test_connection(self) -> bool:
         """ test authenticated connection via authenticated ping """
-        self.logger.debug("Testing authenticated connection.")
         return await self.client.test_connection()
     
     async def valid_access_token(self) -> bool:
         """ check access token validity based on expiration """
-        self.logger.debug("Checking access token validity.")
         return self.client.check_access_token()
     
     def check_keypair(self) -> bool:

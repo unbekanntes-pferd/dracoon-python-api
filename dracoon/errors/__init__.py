@@ -147,6 +147,16 @@ class InvalidClientError(DRACOONClientError):
 
         super().__init__(message)
 
+class ConnectionError(DRACOONClientError):
+    """
+    Exception raised in dracoon modules
+    Connection issue with httpx client
+    """
+
+    def __init__(self, message: str = "Connection error."):
+
+        super().__init__(message)
+
 
 class InvalidArgumentError(DRACOONValidationError):
     """
@@ -306,6 +316,18 @@ class HTTPUnknownError(DRACOONHttpError):
     """
 
     def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON unknown error"):
+        
+        
+        super().__init__(error, is_xml, message)
+        
+class HTTPServerError(DRACOONHttpError):
+    """
+    Exception raised for errors returned by DRACOON API 
+    (status code 5xx e.g. 503 unavailable)
+
+    """
+
+    def __init__(self, error: HTTPStatusError, is_xml: bool = False, message: str = "DRACOON server error"):
         
         
         super().__init__(error, is_xml, message)

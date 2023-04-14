@@ -20,12 +20,12 @@ from tenacity import retry_if_exception_type, stop_after_attempt, wait_exponenti
 from dracoon.client.models import DRACOONConnection, OAuth2ConnectionType, ProxyConfig, RetryConfig
 from dracoon.errors import (HTTPTooManyRequestsError, MissingCredentialsError, HTTPBadRequestError, HTTPUnauthorizedError, 
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
-                            HTTPUnknownError)
+                            HTTPUnknownError, HTTPServerError, ConnectionError)
 
 # constants for client config
-USER_AGENT = 'dracoon-python-1.9.0'
+USER_AGENT = 'dracoon-python-1.10.0'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=30, read=30)
-RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type(HTTPTooManyRequestsError),
+RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type((HTTPTooManyRequestsError, HTTPServerError, ConnectionError)),
                            stop=stop_after_attempt(5),
                            wait=wait_exponential(multiplier=1.2, min=5, max=15),
                            reraise=True
@@ -232,8 +232,6 @@ class DRACOONClient:
 
     async def check_access_token(self, test: bool = False):
         """ check access token validity (based on connection time and token validity) """
-        self.logger.debug("Testing access token validity.")
-        self.logger.debug("Full authenticated test enabled: %s", test)
 
         if not test and self.connection:
             now = datetime.now()
@@ -246,7 +244,6 @@ class DRACOONClient:
 
     async def test_connection(self, test: bool = False) -> bool:
         """ test authenticated connection via authenticated ping """
-        self.logger.debug("Testing authenticated connection.")
 
         if not self.connection or not self.connected:
             self.logger.critical("DRACOON connection not established.")
@@ -296,9 +293,8 @@ class DRACOONClient:
         """ handle connection error in httpx client """
         self.logger.critical("Connection error.")
         self.logger.critical(err.request.url)
-        await self.disconnect()
-        raise err
-    
+        raise ConnectionError()
+
     async def handle_generic_error(self, err: Exception, close_client: bool = False):
         """ handle generic non-connection / non-http error """
         self.logger.critical("An error ocurred.")
@@ -326,6 +322,10 @@ class DRACOONClient:
             raise HTTPPreconditionsFailedError(error=err)
         if err.response.status_code == 429:
             raise HTTPTooManyRequestsError(error=err)
+        if err.response.status_code == 500:
+            raise HTTPUnknownError(error=err)
+        if err.response.status_code > 500 and err.response.status_code < 600:
+            raise HTTPServerError(error=err)
         else:
             raise HTTPUnknownError(error=err)
 

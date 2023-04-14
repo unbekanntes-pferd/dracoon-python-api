@@ -51,8 +51,6 @@ class DRACOONEvents:
             else:
                 self.raise_on_err = False
 
-            self.logger.debug("DRACOON eventlog adapter created.")
-        
         else:
             self.logger.critical("DRACOON client not connected.")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')

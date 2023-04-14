@@ -1,5 +1,6 @@
 # ignore Python cache, legacy files and package builds for PyPi
 /venv
+/.venv
 /test.py
 
 # cache

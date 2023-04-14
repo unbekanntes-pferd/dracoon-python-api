@@ -5,7 +5,7 @@ import dotenv
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon import DRACOON
-from dracoon.errors import DRACOONCryptoError
+from dracoon.errors import DRACOONCryptoError, HTTPNotFoundError
 
 dotenv.load_dotenv()
 
@@ -28,6 +28,24 @@ class TestAsyncDRACOON(unittest.IsolatedAsyncioTestCase):
         await self.dracoon.logout()
         
     async def test_wrong_enryption_password(self):
+        try:
+            await self.dracoon.user.get_user_keypair(raise_on_err=True) 
+            await self.dracoon.user.delete_user_keypair()
+        except HTTPNotFoundError:
+            pass
+        
+        new_kp = await self.dracoon.user.set_user_keypair(secret='Test1234!')
+        with self.assertRaises(DRACOONCryptoError):
+            kp = await self.dracoon.get_keypair(secret="Wrong")
+        await self.dracoon.user.delete_user_keypair()
+
+    async def test_empty_enryption_password(self):
+        try:
+            await self.dracoon.user.get_user_keypair(raise_on_err=True) 
+            await self.dracoon.user.delete_user_keypair()
+        except HTTPNotFoundError:
+            pass
+        
         new_kp = await self.dracoon.user.set_user_keypair(secret='Test1234!')
         with self.assertRaises(DRACOONCryptoError):
             kp = await self.dracoon.get_keypair(secret="Wrong")
