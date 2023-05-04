@@ -1,5 +1,5 @@
 """
-Update Quota to QUOTA (in Byte) of all Subrooms within certain PARENT_ID
+Update Quota to QUOTA (in Byte) of all Top-Level Rooms within certain PARENT_ID
 04.05.2023 Quirin Wierer
 """
 
