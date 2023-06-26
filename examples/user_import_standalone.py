@@ -12,6 +12,7 @@ Provide a room where the user performing the script has admin permissions
 If root, please use a room manager account.
 
 02.09.2022 Octavio Simone 
+26.06.2023 Octavio Simone (updated to support AD)
 
 """
 
@@ -19,7 +20,7 @@ If root, please use a room manager account.
 
 # std imports
 import asyncio
-from typing import Tuple
+from typing import Optional, Tuple
 import sys
 import argparse
 import csv
@@ -49,6 +50,7 @@ class UserImport(BaseModel):
     first_name: str
     last_name: str
     email: str
+    login: Optional[str]
     
     @property
     def room_name(self):
@@ -65,7 +67,7 @@ def parse_csv(csv_file: str) -> list[UserImport]:
         # skip header
         next(csv_reader)
 
-        # csv format: 'firstName', 'lastName', 'email'
+        # csv format: 'firstName', 'lastName', 'email', 'userName'
         for user in csv_reader:
             print(user)
             
@@ -76,6 +78,9 @@ def parse_csv(csv_file: str) -> list[UserImport]:
             }
                   
             parsed_user = UserImport(**payload)
+            
+            if user[3]:
+                parsed_user.login = user[3]
             
             user_list.append(parsed_user)
             
@@ -88,6 +93,7 @@ def parse_arguments() -> Tuple[str, int]:
     ap = argparse.ArgumentParser()
     ap.add_argument("-f", "--file", required=True, help="CSV file to parse – must contain first & last name and email address of a user.")
     ap.add_argument("-p", "--parent", required=True, help="Parent room id to create personal rooms for users on list.")
+    ap.add_argument("--auth", required=False, help="Optional auth method id (Active Directory)")
     args = vars(ap.parse_args())
 
     # if no file is given, exit
@@ -111,8 +117,18 @@ def parse_arguments() -> Tuple[str, int]:
         except ValueError:
             print(f"Invalid id: {args['parent']} - parent id must be numeric.")
             sys.exit(2)
+    
+    if args["auth"] is not None:
+        auth_id = args["auth"]
+        try:
+            auth_id = int(auth_id)
+        except ValueError:
+            print(f"Invalid id: {args['auth']} - auth id must be numeric.")
+            sys.exit(2)        
+    else:
+        auth_id = None
             
-    return csv_file, parent_id
+    return csv_file, parent_id, auth_id
 
 async def login(username: str, password: str) -> DRACOON:
     """ authenticate in DRACOON """
