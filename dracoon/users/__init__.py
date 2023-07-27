@@ -194,7 +194,8 @@ class DRACOONUsers:
 
     @retry(**RETRY_CONFIG)
     async def get_users(self, offset: int = 0, filter: str = None, limit: int = None, 
-                        sort: str = None, raise_on_err: bool = False) -> UserList:     
+                        sort: str = None, raise_on_err: bool = False, include_attributes: bool = False,
+                        include_roles: bool = False) -> UserList:     
         """ list (all) users """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -204,8 +205,10 @@ class DRACOONUsers:
         api_url = self.api_url + f'/?offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
         if limit != None: api_url += f'&limit={str(limit)}' 
-        if sort != None: api_url += f'&sort={sort}' 
-
+        if sort != None: api_url += f'&sort={sort}'
+        if include_attributes: api_url += f'&include_attributes=true'
+        if include_roles: api_url += f'&include_roles=true'
+        
         try:
             res = await self.dracoon.http.get(api_url)
             res.raise_for_status()
