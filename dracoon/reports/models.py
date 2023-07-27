@@ -44,5 +44,7 @@ class CreateReport(BaseModel):
     formats: List[ReportFormat]
     filter: Optional[ReportFilter]
     target: ReportTarget
+    class Config:
+        use_enum_values = True
 
 
