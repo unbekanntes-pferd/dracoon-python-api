@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dracoon"
-version = "1.11.0"
+version = "1.11.1"
 description = "DRACOON API wrapper in Python"
 authors = ["Octavio Simone <o.simone@dracoon.com>"]
 license = "MIT"
