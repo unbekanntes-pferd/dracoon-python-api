@@ -3,37 +3,45 @@ from typing import List, Optional
 from datetime import datetime, time
 from enum import Enum
 
+
 class ReportType(Enum):
-    single = 'single'
-    periodic = 'periodic'
+    single = "single"
+    periodic = "periodic"
+
 
 class ReportSubType(Enum):
-    audit_report = 'general-audit-report'
-    user_activity = 'user-audit-report'
+    audit_report = "general-audit-report"
+    user_activity = "user-audit-report"
+
 
 class ReportFormat(Enum):
-    pdf = 'pdf'
-    csv = 'csv-plain'
-    csv_semicolon = 'csv-semicolon-delimited'
+    pdf = "pdf"
+    csv = "csv-plain"
+    csv_semicolon = "csv-semicolon-delimited"
+
 
 class ReportFilter(BaseModel):
-    fromDate: Optional[datetime]
-    toDate: Optional[datetime]
+    fromDate: Optional[str]
+    toDate: Optional[str]
     parentRoom: Optional[int]
     userId: Optional[int]
     operations: Optional[List[int]]
 
+
 class ReportExecutionType(Enum):
-    on_demand = 'on-demand'
-    monthly = 'monthly'
+    on_demand = "on-demand"
+    monthly = "monthly"
+
 
 class ReportExecution(BaseModel):
     type: ReportExecutionType
     timeOfDay: time
     dayOfMonth: int
 
+
 class ReportTarget(BaseModel):
     id: int
+
 
 class CreateReport(BaseModel):
     name: str
@@ -44,7 +52,6 @@ class CreateReport(BaseModel):
     formats: List[ReportFormat]
     filter: Optional[ReportFilter]
     target: ReportTarget
+
     class Config:
         use_enum_values = True
-
-
