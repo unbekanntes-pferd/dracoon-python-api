@@ -16,7 +16,7 @@ class GeneralSettingsInfo(BaseModel):
     s3TagsEnabled: bool
     homeRoomsActive: bool
     homeRoomParentId: Optional[int]
-    subscriptionPlan: int
+    subscriptionPlan: Optional[int]
     
 class SystemDefaults(BaseModel):
     languageDefault: Optional[str]
