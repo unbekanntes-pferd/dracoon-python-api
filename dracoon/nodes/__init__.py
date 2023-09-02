@@ -26,7 +26,7 @@ import urllib.parse
 import httpx
 from tenacity import retry
 
-from dracoon.crypto import FileEncryptionCipher, encrypt_bytes, encrypt_file_key, create_file_key
+from dracoon.crypto import FileEncryptionCipher, decrypt_file_key, encrypt_bytes, encrypt_file_key, create_file_key, encrypt_file_key_public
 from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer, UserKeyPairContainer
 from dracoon.groups.models import Expiration
 from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
@@ -48,6 +48,7 @@ CHUNK_SIZE = 33554432
 MIN_CHUNK_SIZE = 5242880
 MAX_CHUNKS = 9999
 POLL_WAIT = 0.1
+FILE_KEY_LIMIT = 50
 
 class DRACOONNodes:
 
@@ -477,6 +478,31 @@ class DRACOONNodes:
                                                    resolution_strategy=resolution_strategy, file_key=file_key)
         
         node = await self.complete_upload(upload_channel=upload_channel, payload=complete_upload, raise_on_err=raise_on_err)
+
+        missing_keys = await self.get_missing_file_keys(file_id=node.id, limit=FILE_KEY_LIMIT)
+
+        if missing_keys.range.total > 0:
+            keys = self.make_set_file_keys(file_key_list=[])
+
+            for key in missing_keys.items:
+                # get file key
+                for file_item in missing_keys.files:
+                    if key.fileId == file_item.id:
+                        file_key = file_item.fileKeyContainer
+                        plain_file_key = decrypt_file_key(file_key=file_key, keypair=plain_keypair)
+
+                # add requests per user 
+                for user in missing_keys.users:
+                    if key.userId == user.id:
+                        public_key = user.publicKeyContainer
+
+                user_file_key = encrypt_file_key_public(plain_file_key=plain_file_key, public_key=public_key)
+
+                file_key_item = self.make_set_file_key_item(file_id=key.fileId, user_id=key.userId, file_key=user_file_key)
+
+                keys.items.append(file_key_item)
+                    
+            await self.set_file_keys(file_keys=keys)
              
         return node
     
@@ -804,6 +830,33 @@ class DRACOONNodes:
         while True:
             upload_status = await self.check_s3_upload(upload_id=upload_channel.uploadId, raise_on_err=raise_on_err)
             if upload_status.status == S3Status.done.value:
+                missing_keys = await self.get_missing_file_keys(file_id=upload_status.node.id, limit=FILE_KEY_LIMIT)
+
+                if missing_keys.range.total == 0:
+                    break
+
+                keys = self.make_set_file_keys(file_key_list=[])
+
+                for key in missing_keys.items:
+                    # get file key
+                    for file_item in missing_keys.files:
+                        if key.fileId == file_item.id:
+                            file_key = file_item.fileKeyContainer
+                            plain_file_key = decrypt_file_key(file_key=file_key, keypair=plain_keypair)
+
+                    # add requests per user 
+                    for user in missing_keys.users:
+                        if key.userId == user.id:
+                            public_key = user.publicKeyContainer
+
+                    user_file_key = encrypt_file_key_public(plain_file_key=plain_file_key, public_key=public_key)
+
+                    file_key_item = self.make_set_file_key_item(file_id=key.fileId, user_id=key.userId, file_key=user_file_key)
+
+                    keys.items.append(file_key_item)
+                
+                await self.set_file_keys(file_keys=keys)
+
                 break
             if upload_status.status == S3Status.error.value:
                 break
