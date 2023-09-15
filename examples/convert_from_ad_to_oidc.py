@@ -199,7 +199,6 @@ class DCUserConverter:
   
     
 async def main():
-
     """ convert users from AD to local and optionally set MFA """
     # create converter
     converter = DCUserConverter(dracoon_url=base_url)
