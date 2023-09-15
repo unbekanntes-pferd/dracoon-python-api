@@ -39,7 +39,7 @@ ENFORCE_MFA = False # set to True to enforce MFA for all users
 
 class DCUserConverter:
     def __init__(self, dracoon_url: str):
-        self.dracoon = DRACOON(base_url=dracoon_url, client_id=client_id, 
+        self.dracoon = DRACOON(base_url=dracoon_url, client_id=client_id, client_secret=client_secret,
                                raise_on_err=True, log_stream=True, log_level=logging.DEBUG)
     
 
