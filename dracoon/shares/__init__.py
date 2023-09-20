@@ -122,7 +122,7 @@ class DRACOONShares:
         if max_downloads: share["maxDownloads"] = max_downloads
         if keypair: share["keyPair"] = keypair
         if file_key: share["fileKey"] = file_key
-        if language: share["langauge"] = file_key
+        if language: share["language"] = language
         if sms_recipients: share["textMessageRecipients"] = sms_recipients
 
         return CreateShare(**share)
