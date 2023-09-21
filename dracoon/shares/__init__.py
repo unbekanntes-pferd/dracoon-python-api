@@ -104,7 +104,7 @@ class DRACOONShares:
         self.logger.info("Created share.")
         return DownloadShare(**res.json())
 
-    def make_share(self, node_id: int, name: str = None, password: str = None, expiration: str = None, notes: str = None, internal_notes: str = None, 
+    def make_share(self, node_id: int, name: str = None, password: str = None, expiration: Expiration = None, notes: str = None, internal_notes: str = None, 
                    show_creator: bool = None, show_creator_login: bool = None, max_downloads: int = None, keypair: UserKeyPairContainer = None, file_key: FileKey = None, 
                    language: str = None, sms_recipients: List[str] = None) -> CreateShare:
         
