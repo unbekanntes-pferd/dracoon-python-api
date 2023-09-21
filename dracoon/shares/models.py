@@ -20,7 +20,7 @@ class CreateShare(BaseModel):
     maxDownloads: Optional[int]
     keyPair: Optional[UserKeyPairContainer]
     fileKey: Optional[FileKey]
-    reciverLanguage: Optional[str]
+    receiverLanguage: Optional[str]
     textMessageRecipients: Optional[List[str]]
 
 # required payload for PUT /shares/downloads
@@ -45,6 +45,7 @@ class UpdateShare(BaseModel):
     internalNotes: Optional[str]
     defaultCountry: Optional[str]
     resetPassword: Optional[bool]
+    receiverLanguage: Optional[str]
 
 # required payload for POST /shares/downloads/{share_id}/email and /shares/loads/{share_id}/email 
 class SendShare(BaseModel):
