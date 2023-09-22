@@ -45,7 +45,7 @@ class PublicKeyContainer(BaseModel):
     publicKey: str
     createdAt: Optional[datetime] = None
     expireAt: Optional[datetime] = None
-    createdBy: Optional[int]
+    createdBy: Optional[int] = None
     model_config = ConfigDict(use_enum_values=True)
 
 class PrivateKeyContainer(BaseModel):

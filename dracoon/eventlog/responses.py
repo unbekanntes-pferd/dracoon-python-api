@@ -65,10 +65,10 @@ class LogEvent(BaseModel):
     authParentSource: Optional[str] = None
     objectId1: Optional[int] = None
     objectName1: Optional[str] = None
-    objectType1:Optional[str] = None
+    objectType1:Optional[int] = None
     objetcId2: Optional[int] = None
     objectName2:Optional[str] = None
-    objectType2: Optional[str] = None
+    objectType2: Optional[int] = None
     attribute1: Optional[str] = None
     attribute2: Optional[str] = None
     attribute3: Optional[str] = None

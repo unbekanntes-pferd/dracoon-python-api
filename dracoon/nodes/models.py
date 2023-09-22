@@ -86,9 +86,9 @@ class GetS3Urls(BaseModel):
 class CreateFolder(BaseModel):
     parentId: int
     name: str
-    notes: Optional[str]
-    timestampCreation: Optional[datetime]
-    timestampModificiation: Optional[datetime]
+    notes: Optional[str] = None
+    timestampCreation: Optional[datetime] = None
+    timestampModificiation: Optional[datetime] = None
 
 # required payload for PUT /nodes/folders/{folder_id}
 class UpdateFolder(BaseModel):
@@ -106,7 +106,7 @@ class CreateRoom(BaseModel):
     recycleBinRetentionPeriod: Optional[int] = None
     inheritPermissions: Optional[bool] = None
     hasActivitiesLog: Optional[bool] = None
-    newGroupMemberAcceptance: Optional[str]
+    newGroupMemberAcceptance: Optional[str] = None
     adminGroupIds: Optional[List[int]] = None
     adminIds: Optional[List[int]] = None
     classification: Optional[int] = None
