@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime, time
 from enum import Enum
@@ -21,11 +21,11 @@ class ReportFormat(Enum):
 
 
 class ReportFilter(BaseModel):
-    fromDate: Optional[str]
-    toDate: Optional[str]
-    parentRoom: Optional[int]
-    userId: Optional[int]
-    operations: Optional[List[int]]
+    fromDate: Optional[str] = None
+    toDate: Optional[str] = None
+    parentRoom: Optional[int] = None
+    userId: Optional[int] = None
+    operations: Optional[List[int]] = None
 
 
 class ReportExecutionType(Enum):
@@ -47,11 +47,9 @@ class CreateReport(BaseModel):
     name: str
     type: ReportType
     subType: ReportSubType
-    enabled: Optional[bool]
-    execution: Optional[ReportExecution]
-    formats: List[ReportFormat]
-    filter: Optional[ReportFilter]
+    enabled: Optional[bool] = None
+    execution: Optional[ReportExecution] = None
+    formats: List[ReportFormat] = None
+    filter: Optional[ReportFilter] = None
     target: ReportTarget
-
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)

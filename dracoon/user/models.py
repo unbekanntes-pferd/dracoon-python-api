@@ -9,13 +9,13 @@ from .responses import RoleList
 
 # required payload for PUT /user/account
 class UpdateAccount(BaseModel):
-    userName: Optional[str]
-    acceptEULA: Optional[bool]
-    firstName: Optional[str]
-    lastName: Optional[str]
-    email: Optional[str]
-    phone: Optional[str]
-    language: Optional[str]
+    userName: Optional[str] = None
+    acceptEULA: Optional[bool] = None
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    language: Optional[str] = None
 
 class UserGroup(BaseModel):
     id: int
@@ -32,15 +32,15 @@ class UserAccount(BaseModel):
     userRoles: RoleList
     language: str
     authData: UserAuthData
-    mudtSetEmail: Optional[bool]
-    needsToAcceptEULA: Optional[bool]
-    isEncryptionEnabled: Optional[bool]
-    lastLoginSuccessAt: Optional[datetime]
-    lastLoginFailAt: Optional[datetime]
-    email: Optional[str]
-    phone: Optional[str]
-    homeRoomId: Optional[int]
-    userGroups: Optional[List[UserGroup]]
+    mudtSetEmail: Optional[bool] = None
+    needsToAcceptEULA: Optional[bool] = None
+    isEncryptionEnabled: Optional[bool] = None
+    lastLoginSuccessAt: Optional[datetime] = None
+    lastLoginFailAt: Optional[datetime] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    homeRoomId: Optional[int] = None
+    userGroups: Optional[List[UserGroup]] = None
 
 class UserType(Enum):
     internal = "internal"
@@ -51,10 +51,10 @@ class UserType(Enum):
 class UserInfo(BaseModel):
     id: int
     userType: UserType
-    avatarUuid: Optional[str]
-    userName: Optional[str]
-    firstName: Optional[str]
-    lastName: Optional[str]
-    email: Optional[str]
+    avatarUuid: Optional[str] = None
+    userName: Optional[str] = None
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    email: Optional[str] = None
 
     

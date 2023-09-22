@@ -1,7 +1,7 @@
 
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -42,9 +42,9 @@ class DeletedNodeSummary(BaseModel):
     firstDeletedAt: datetime
     lastDeletedAt: datetime
     lastDeletedNodeId: int
-    referenceId: Optional[int]
-    timestampCreation: Optional[datetime]
-    timestampModification: Optional[datetime]
+    referenceId: Optional[int] = None
+    timestampCreation: Optional[datetime] = None
+    timestampModification: Optional[datetime] = None
 
 class DeletedNodeSummaryList(BaseModel):
     range: Range
@@ -52,24 +52,24 @@ class DeletedNodeSummaryList(BaseModel):
 
 
 class DeletedNode(BaseModel):
-    id: Optional[int]
+    id: Optional[int] = None
     parentId: int
     parentPath: str
     type: NodeType
     name: str
-    referenceId: Optional[int]
-    expireAt: Optional[datetime]
-    accessedAt: Optional[datetime]
-    isEncrypted: Optional[bool]
-    notes: Optional[str]
-    size: Optional[int]
-    classification: Optional[int]
-    createdAt: Optional[datetime]
-    createdBy: Optional[UserInfo]
-    updatedAt: Optional[datetime]
-    updatedBy: Optional[UserInfo]
-    deletedAt: Optional[datetime]
-    deletedBy: Optional[UserInfo]
+    referenceId: Optional[int] = None
+    expireAt: Optional[datetime] = None
+    accessedAt: Optional[datetime] = None
+    isEncrypted: Optional[bool] = None
+    notes: Optional[str] = None
+    size: Optional[int] = None
+    classification: Optional[int] = None
+    createdAt: Optional[datetime] = None
+    createdBy: Optional[UserInfo] = None
+    updatedAt: Optional[datetime] = None
+    updatedBy: Optional[UserInfo] = None
+    deletedAt: Optional[datetime] = None
+    deletedBy: Optional[UserInfo] = None
 
 class DeletedNodeVersionsList(BaseModel):
     range: Range
@@ -95,7 +95,7 @@ class NodeParent(BaseModel):
     id: int
     name: str
     type: NodeType
-    parentId: Optional[int]
+    parentId: Optional[int] = None
 
 
 class NodeParentList(BaseModel):
@@ -127,15 +127,15 @@ class Webhook(BaseModel):
     id: int
     name: str
     url: str
-    secret: Optional[str]
+    secret: Optional[str] = None
     isEnabled: bool
     expireAt: datetime
     eventTypeNames: List[str]
     createdAt: datetime
-    createdBy: Optional[UserInfo]
+    createdBy: Optional[UserInfo] = None
     updatedAt: datetime
-    updatedBy: Optional[UserInfo]
-    failStatus: Optional[int]
+    updatedBy: Optional[UserInfo] = None
+    failStatus: Optional[int] = None
 
 class RoomWebhook(BaseModel):
     isAssigned: bool
@@ -149,8 +149,8 @@ class RoomWebhookList(BaseModel):
 class RoomUser(BaseModel):
     userInfo: UserInfo
     isGranted: bool
-    permissions: Optional[Permissions]
-    publicKeyContainer: Optional[PublicKeyContainer]
+    permissions: Optional[Permissions] = None
+    publicKeyContainer: Optional[PublicKeyContainer] = None
 
 
 class RoomUserList(BaseModel):
@@ -161,8 +161,8 @@ class RoomGroup(BaseModel):
     id: int
     isGranted: bool
     name: str
-    newGroupMemberAcceptance: Optional[str]
-    permissions: Optional[Permissions]
+    newGroupMemberAcceptance: Optional[str] = None
+    permissions: Optional[Permissions] = None
 
 class RoomGroupList(BaseModel):
     range: Range
@@ -176,10 +176,9 @@ class S3Status(Enum):
 
 class S3FileUploadStatus(BaseModel):
     status: S3Status
-    node: Optional[Node]
-    errorDetails: Optional[ErrorMessage]
-    class Config:
-        use_enum_values = True
+    node: Optional[Node] = None
+    errorDetails: Optional[ErrorMessage] = None
+    model_config = ConfigDict(use_enum_values=True)
     
     
     

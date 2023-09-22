@@ -13,19 +13,19 @@ class DownloadShare(BaseModel):
     cntDownloads: int
     createdAt: datetime
     createdBy: UserInfo
-    updatedAt: Optional[datetime]
-    updatedBy: Optional[UserInfo]
-    notes: Optional[str]
-    internalNotes: Optional[str]
-    showCreatorName: Optional[bool]
-    showCreatorUsername: Optional[bool]
-    isProtected: Optional[bool]
-    expireAt: Optional[datetime]
-    maxDownloads: Optional[int]
-    nodePath: Optional[str]
-    dataUrl: Optional[str]
-    isEncrypted: Optional[bool]
-    nodeType: Optional[NodeType]
+    updatedAt: Optional[datetime] = None
+    updatedBy: Optional[UserInfo] = None
+    notes: Optional[str] = None
+    internalNotes: Optional[str] = None
+    showCreatorName: Optional[bool] = None
+    showCreatorUsername: Optional[bool] = None
+    isProtected: Optional[bool] = None
+    expireAt: Optional[datetime] = None
+    maxDownloads: Optional[int] = None
+    nodePath: Optional[str] = None
+    dataUrl: Optional[str] = None
+    isEncrypted: Optional[bool] = None
+    nodeType: Optional[NodeType] = None
 
 class DownloadShareList(BaseModel):
     range: Range
@@ -39,23 +39,23 @@ class UploadShare(BaseModel):
     accessKey: str
     createdAt: datetime
     createdBy: UserInfo
-    updatedAt: Optional[datetime]
-    updatedBy: Optional[UserInfo]
-    expireAt: Optional[datetime]
-    targetPath: Optional[str]
-    isEncrypted: Optional[bool]
-    notes: Optional[str]
-    internalNotes: Optional[str]
-    filesExpiryPeriod: Optional[int]
-    cntFiles: Optional[int]
-    cntUploads: Optional[int]
-    showUploadedFiles: Optional[bool]
-    dataUrl: Optional[str]
-    maxSlots: Optional[int]
-    maxSite: Optional[int]
-    targetType: Optional[NodeType]
-    showCreatorName: Optional[bool]
-    showCreatorUsername: Optional[bool]
+    updatedAt: Optional[datetime] = None
+    updatedBy: Optional[UserInfo] = None
+    expireAt: Optional[datetime] = None
+    targetPath: Optional[str] = None
+    isEncrypted: Optional[bool] = None
+    notes: Optional[str] = None
+    internalNotes: Optional[str] = None
+    filesExpiryPeriod: Optional[int] = None
+    cntFiles: Optional[int] = None
+    cntUploads: Optional[int] = None
+    showUploadedFiles: Optional[bool] = None
+    dataUrl: Optional[str] = None
+    maxSlots: Optional[int] = None
+    maxSite: Optional[int] = None
+    targetType: Optional[NodeType] = None
+    showCreatorName: Optional[bool] = None
+    showCreatorUsername: Optional[bool] = None
 
 class UploadShareList(BaseModel):
     range: Range

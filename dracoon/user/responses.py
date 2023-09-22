@@ -21,7 +21,7 @@ class Role(BaseModel):
     id: int
     name: str
     description: str
-    items: Optional[List[Right]]
+    items: Optional[List[Right]] = None
 
 class RoleList(BaseModel):
     items: List[Role]
@@ -33,14 +33,14 @@ class UserItem(BaseModel):
     lastName: str
     isLocked: bool
     avatarUuid: str
-    createdAt: Optional[datetime]
-    lastLoginSuccessAt: Optional[datetime]
-    expireAt: Optional[datetime]
-    isEncryptionEnabled: Optional[bool]
-    email: Optional[str]
-    phone: Optional[str]
-    homeRoomId: Optional[int]
-    userRoles: Optional[RoleList]
+    createdAt: Optional[datetime] = None
+    lastLoginSuccessAt: Optional[datetime] = None
+    expireAt: Optional[datetime] = None
+    isEncryptionEnabled: Optional[bool] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    homeRoomId: Optional[int] = None
+    userRoles: Optional[RoleList] = None
 
 class UserList(BaseModel):
     range: Range
@@ -55,17 +55,17 @@ class UserData(BaseModel):
     isLocked: bool
     avatarUuid: str
     authData: UserAuthData
-    email: Optional[str]
-    phone: Optional[str]
-    expireAt: Optional[datetime]
-    hasManageableRooms: Optional[bool]
-    isEncryptionEnabled: Optional[bool]
-    lastLoginSuccessAt: Optional[datetime]
-    homeRoomId: Optional[int]
-    publicKeyContainer: Optional[PublicKeyContainer]
-    userRoles: Optional[RoleList]
-    isMfaEnabled: Optional[bool]
-    isMfaEnforced: Optional[bool]
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    expireAt: Optional[datetime] = None
+    hasManageableRooms: Optional[bool] = None
+    isEncryptionEnabled: Optional[bool] = None
+    lastLoginSuccessAt: Optional[datetime] = None
+    homeRoomId: Optional[int] = None
+    publicKeyContainer: Optional[PublicKeyContainer] = None
+    userRoles: Optional[RoleList] = None
+    isMfaEnabled: Optional[bool] = None
+    isMfaEnforced: Optional[bool] = None
 
 
 class UserGroupList(BaseModel):
@@ -78,8 +78,8 @@ class LastAdminUserRoom(BaseModel):
     name: str
     parentPath: str
     lastAdminInGroup: bool
-    parentId: Optional[int]
-    lastAdminInGroupId: Optional[int]
+    parentId: Optional[int] = None
+    lastAdminInGroupId: Optional[int] = None
 
 
 class LastAdminUserRoomList(BaseModel):

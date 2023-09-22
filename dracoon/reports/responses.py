@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
-from pydantic.env_settings import BaseSettings
 from dracoon.client.models import Range
 from dracoon.reports.models import ReportFilter, ReportFormat, ReportSubType, ReportTarget, ReportType, ReportExecution
 
@@ -13,25 +12,25 @@ class ReportState(Enum):
     canceled = "canceled"
     finished = "finished"
 
-class ReportError(BaseSettings):
-    message: Optional[str]
-    code: Optional[int]
-    detail: Optional[str]
+class ReportError(BaseModel):
+    message: Optional[str] = None
+    code: Optional[int] = None
+    detail: Optional[str] = None
 
 class Report(BaseModel):
-    id: Optional[int]
-    created: Optional[datetime]
-    lastModified: Optional[datetime]
-    name: Optional[str]
-    type: Optional[ReportType]
-    subType: Optional[ReportSubType]
-    enabled: Optional[bool]
-    execution: Optional[ReportExecution]
-    formats: Optional[ReportFormat]
-    state: Optional[ReportState]
-    error: Optional[ReportError]
-    filter: Optional[ReportFilter]
-    target: Optional[ReportTarget]
+    id: Optional[int] = None
+    created: Optional[datetime] = None
+    lastModified: Optional[datetime] = None
+    name: Optional[str] = None
+    type: Optional[ReportType] = None
+    subType: Optional[ReportSubType] = None
+    enabled: Optional[bool] = None
+    execution: Optional[ReportExecution] = None
+    formats: Optional[ReportFormat] = None
+    state: Optional[ReportState] = None
+    error: Optional[ReportError] = None
+    filter: Optional[ReportFilter] = None
+    target: Optional[ReportTarget] = None
 
 class ReportList(BaseModel):
     pagination: Range

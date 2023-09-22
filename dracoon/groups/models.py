@@ -9,9 +9,9 @@ class Expiration(BaseModel):
 # required payload for POST /groups
 class CreateGroup(BaseModel):
     name: str
-    expiration: Optional[Expiration]
+    expiration: Optional[Expiration] = None
 
 # required payload for PUT /groups/{group_id}
 class UpdateGroup(BaseModel):
     name: Optional[str]
-    expiration: Optional[Expiration]
+    expiration: Optional[Expiration] = None

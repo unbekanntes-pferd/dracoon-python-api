@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from dracoon.branding.responses import Color, ImageType, Text
 
@@ -7,8 +7,8 @@ from dracoon.branding.responses import Color, ImageType, Text
 class SimpleImageRequest(BaseModel):
     id: int
     type: ImageType
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
+
 
 class UpdateBrandingRequest(BaseModel):
     productName: str
@@ -23,5 +23,4 @@ class UpdateBrandingRequest(BaseModel):
     appearanceLoginBox: str
     images: List[SimpleImageRequest]
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)

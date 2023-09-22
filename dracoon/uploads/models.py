@@ -15,10 +15,10 @@ class UserFileKeyList(BaseModel):
     items: List[UserFileKey]
 
 class FinalizeUpload(BaseModel):
-    resolutionStrategy: Optional[str]
-    keepShareLinks: Optional[bool]
-    fileName: Optional[str]
-    fileKey: Optional[FileKey]
-    userFileKeyList: Optional[UserFileKeyList]
+    resolutionStrategy: Optional[str] = None
+    keepShareLinks: Optional[bool] = None
+    fileName: Optional[str] = None
+    fileKey: Optional[FileKey] = None
+    userFileKeyList: Optional[UserFileKeyList] = None
 
     
