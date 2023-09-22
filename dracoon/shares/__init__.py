@@ -106,7 +106,7 @@ class DRACOONShares:
 
     def make_share(self, node_id: int, name: str = None, password: str = None, expiration: Expiration = None, notes: str = None, internal_notes: str = None, 
                    show_creator: bool = None, show_creator_login: bool = None, max_downloads: int = None, keypair: UserKeyPairContainer = None, file_key: FileKey = None, 
-                   language: str = None, sms_recipients: List[str] = None) -> CreateShare:
+                   receiver_language: str = None, sms_recipients: List[str] = None) -> CreateShare:
         
         """ make a share payload required for create_share() """
         share = {
@@ -122,7 +122,7 @@ class DRACOONShares:
         if max_downloads: share["maxDownloads"] = max_downloads
         if keypair: share["keyPair"] = keypair
         if file_key: share["fileKey"] = file_key
-        if language: share["language"] = language
+        if receiver_language: share["receiverLanguage"] = receiver_language
         if sms_recipients: share["textMessageRecipients"] = sms_recipients
 
         return CreateShare(**share)
@@ -224,7 +224,7 @@ class DRACOONShares:
 
     def make_share_update(self, name: str = None, password: str = None, expiration: str = None, notes: str = None, internal_notes: str = None, 
                    show_creator: bool = None, show_creator_login: bool = None, max_downloads: int = None, keypair: UserKeyPairContainer = None, file_key: FileKey = None, 
-                   language: str = None, sms_recipients: List[str] = None, default_country: str = None,
+                   receiver_language: str = None, sms_recipients: List[str] = None, default_country: str = None,
                    reset_max_downloads: bool = None, reset_password: bool = None) -> UpdateShare:
         
         """ make a share update payload required for update_share() """
@@ -240,7 +240,7 @@ class DRACOONShares:
         if max_downloads: share_update["maxDownloads"] = max_downloads
         if keypair: share_update["keyPair"] = keypair
         if file_key: share_update["fileKey"] = file_key
-        if language: share_update["receiverLangauge"] = language
+        if receiver_language: share_update["receiverLanguage"] = receiver_language
         if default_country: share_update["defaultCountry"] = default_country
         if sms_recipients: share_update["textMessageRecipients"] = sms_recipients
         if reset_max_downloads is not None: share_update["resetMaxDownloads"] = reset_max_downloads
