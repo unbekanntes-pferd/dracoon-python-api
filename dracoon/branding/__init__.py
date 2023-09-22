@@ -69,7 +69,7 @@ class DRACOONBranding:
         if support_url: branding.supportUrl = support_url
         if email_contact: branding.emailContact = email_contact
         
-        return UpdateBrandingRequest(**branding.dict())
+        return UpdateBrandingRequest(**branding.model_dump())
     
     def make_branding_image_update(self, branding: UpdateBrandingRequest, image_type: ImageType, image_upload: Upload):
         images = [image for image in branding.images if image.type is not image_type]
@@ -105,7 +105,7 @@ class DRACOONBranding:
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
             
-        payload = branding_update.dict()
+        payload = branding_update.model_dump()
 
         if self.raise_on_err:
             raise_on_err = True
@@ -119,7 +119,6 @@ class DRACOONBranding:
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
             self.logger.error("Updating branding failed.")
-            print(e.response.json())
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         
         self.logger.info("Updated branding.")
@@ -150,7 +149,7 @@ class DRACOONBranding:
         except httpx.RequestError as e:
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
-            print(e.response.json())
+
             self.logger.error("Uploading branding image failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         

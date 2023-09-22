@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 from enum import Enum
@@ -30,8 +30,7 @@ class FileKey(BaseModel):
     version: FileKeyVersion
     tag: Optional[str] = None
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 class PlainFileKey(BaseModel):
     version: PlainFileKeyVersion
@@ -39,8 +38,7 @@ class PlainFileKey(BaseModel):
     iv: str
     tag: Optional[str] = None
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 class PublicKeyContainer(BaseModel):
     version: UserKeyPairVersion
@@ -48,8 +46,7 @@ class PublicKeyContainer(BaseModel):
     createdAt: Optional[datetime] = None
     expireAt: Optional[datetime] = None
     createdBy: Optional[int]
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 class PrivateKeyContainer(BaseModel):
     version: UserKeyPairVersion
@@ -58,8 +55,7 @@ class PrivateKeyContainer(BaseModel):
     expireAt: Optional[datetime] = None
     createdBy: Optional[int] = None
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 class UserKeyPairContainer(BaseModel):
     privateKeyContainer: PrivateKeyContainer
@@ -81,7 +77,6 @@ class EncryptionInfo:
     roomKeyState: KeyState
     dataSpaceKeyState: KeyState
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 

@@ -23,14 +23,14 @@ from dracoon.errors import (HTTPTooManyRequestsError, MissingCredentialsError, H
                             HTTPUnknownError, HTTPServerError, ConnectionError)
 
 # constants for client config
-USER_AGENT = 'dracoon-python-1.10.0'
+USER_AGENT = 'dracoon-python-1.12.0'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=30, read=30)
 RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type((HTTPTooManyRequestsError, HTTPServerError, ConnectionError)),
                            stop=stop_after_attempt(5),
                            wait=wait_exponential(multiplier=1.2, min=5, max=15),
                            reraise=True
                            )
-RETRY_CONFIG = RETRY_CONFIG_BASE.dict()
+RETRY_CONFIG = RETRY_CONFIG_BASE.model_dump()
 
 
 class DRACOONClient:

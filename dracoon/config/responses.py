@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from dracoon.nodes.responses import UserInfo
 
@@ -42,9 +42,7 @@ class AlgorithmVersionInfo(BaseModel):
     version: str
     description: str
     status: AlgorithmStatus
-    
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
     
 class AlgorithmVersionInfoList(BaseModel):
     fileKeyAlgorithms: List[AlgorithmVersionInfo]
@@ -59,9 +57,7 @@ class MinimumClassification(Enum):
     
 class ShareClassificationPolicies(BaseModel):
     classificationRequiresSharePassword: int
-    
-    class Config: 
-        use_enum_values = True
+
 
 class ClassificationPoliciesConfig(BaseModel):
     shareClassificationPolicies: Optional[ShareClassificationPolicies] = None

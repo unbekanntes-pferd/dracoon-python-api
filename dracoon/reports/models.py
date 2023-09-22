@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime, time
 from enum import Enum
@@ -52,6 +52,4 @@ class CreateReport(BaseModel):
     formats: List[ReportFormat] = None
     filter: Optional[ReportFilter] = None
     target: ReportTarget
-
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)

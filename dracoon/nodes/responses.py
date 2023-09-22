@@ -1,7 +1,7 @@
 
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -178,8 +178,7 @@ class S3FileUploadStatus(BaseModel):
     status: S3Status
     node: Optional[Node] = None
     errorDetails: Optional[ErrorMessage] = None
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
     
     
     
