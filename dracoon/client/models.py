@@ -22,8 +22,8 @@ class Expiration(BaseModel):
 class ErrorMessage(BaseModel):
     code: int
     message: str
-    debugInfo: Optional[str]
-    errorCode: Optional[int]
+    debugInfo: Optional[str] = None
+    errorCode: Optional[int] = None
 
 # adheres to proxy model from httpx (dict with http / https and respective str) or single str
 ProxyConfig = Union[Dict[str, str], str]

@@ -11,9 +11,9 @@ from dracoon.user.models import UserInfo
 class AuditNodeInfo(BaseModel):
     nodeId: int
     nodeName: str
-    nodeParentId: Optional[int]
-    nodeIsEncrypted: Optional[bool]
-    countChildren: Optional[int]
+    nodeParentId: Optional[int] = None
+    nodeIsEncrypted: Optional[bool] = None
+    countChildren: Optional[int] = None
 
 
 class AuditNodeInfoResponse(BaseModel):
@@ -34,16 +34,16 @@ class AuditNodeResponse(BaseModel):
     nodeParentPath: str
     nodeCntChildren: int
     auditUserPermissionList: List[AuditUserPermission]
-    nodeParentId: Optional[int]
-    nodeSize: Optional[int]
-    nodeRecycleBinRetentionPeriod: Optional[int]
-    nodeQuota: Optional[int]
-    nodeIsEncrypted: Optional[bool]
-    nodeHasActivitiesLog: Optional[bool]
-    nodeCreatedAt: Optional[datetime]
-    nodeCreatedBy: Optional[UserInfo]
-    nodeUpdatedAt: Optional[datetime]
-    nodeUpdatedBy: Optional[UserInfo]
+    nodeParentId: Optional[int] = None
+    nodeSize: Optional[int] = None
+    nodeRecycleBinRetentionPeriod: Optional[int] = None
+    nodeQuota: Optional[int] = None
+    nodeIsEncrypted: Optional[bool] = None
+    nodeHasActivitiesLog: Optional[bool] = None
+    nodeCreatedAt: Optional[datetime] = None
+    nodeCreatedBy: Optional[UserInfo] = None
+    nodeUpdatedAt: Optional[datetime] = None
+    nodeUpdatedBy: Optional[UserInfo] = None
     
 
 class OperationStatus(Enum):
@@ -55,23 +55,23 @@ class LogEvent(BaseModel):
     time: datetime
     userId: int
     message: str
-    operationId: Optional[int]
-    operationName: Optional[str]
-    status: Optional[OperationStatus]
-    userClient: Optional[str]
-    customerId: Optional[int]
-    userName: Optional[str]
-    userIp: Optional[str]
-    authParentSource: Optional[str]
-    objectId1: Optional[int]
-    objectName1: Optional[str]
-    objectType1:Optional[str]
-    objetcId2: Optional[int]
-    objectName2:Optional[str]
-    objectType2: Optional[str]
-    attribute1: Optional[str]
-    attribute2: Optional[str]
-    attribute3: Optional[str]
+    operationId: Optional[int] = None
+    operationName: Optional[str] = None
+    status: Optional[OperationStatus] = None
+    userClient: Optional[str] = None
+    customerId: Optional[int] = None
+    userName: Optional[str] = None
+    userIp: Optional[str] = None
+    authParentSource: Optional[str] = None
+    objectId1: Optional[int] = None
+    objectName1: Optional[str] = None
+    objectType1:Optional[str] = None
+    objetcId2: Optional[int] = None
+    objectName2:Optional[str] = None
+    objectType2: Optional[str] = None
+    attribute1: Optional[str] = None
+    attribute2: Optional[str] = None
+    attribute3: Optional[str] = None
 
 class LogEventList(BaseModel):
     range: Range
