@@ -26,7 +26,7 @@ class AuthOIDCInfo(BaseModel):
     issuer: str
     mappingClaim: str
     isGlobalAvailable: bool
-    userManagementUrl: Optional[str]
+    userManagementUrl: Optional[str] = None
 
 
 class AuthOIDCInfoList(BaseModel):

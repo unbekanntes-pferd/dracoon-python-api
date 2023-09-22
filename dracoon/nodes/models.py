@@ -16,22 +16,22 @@ class CommentNode(BaseModel):
 
 class NodeItem(BaseModel):
     id: int
-    name: Optional[str]
-    timestampCreation: Optional[datetime]
-    timestampModification: Optional[datetime]
+    name: Optional[str] = None
+    timestampCreation: Optional[datetime] = None
+    timestampModification: Optional[datetime] = None
 
 # required payload for POST /nodes/{node_id}/copy_to or /node/{node_id}/move_to
 class TransferNode(BaseModel):
     items: List[NodeItem]
-    resolutionStrategy: Optional[str]
-    keepShareLinks: Optional[bool]
+    resolutionStrategy: Optional[str] = None
+    keepShareLinks: Optional[bool] = None
 
 # required payload for POST /nodes/deleted_nodes/actions/restore
 class RestoreNode(BaseModel):
     deletedNodeIds: List[int]
-    resolutionStrategy: Optional[str]
-    keepShareLinks: Optional[bool]
-    parentId: Optional[int]
+    resolutionStrategy: Optional[str] = None
+    keepShareLinks: Optional[bool] = None
+    parentId: Optional[int] = None
 
 class SetFileKeysItem(BaseModel):
     fileId: int
@@ -50,13 +50,13 @@ class Expiration(BaseModel):
 class CreateUploadChannel(BaseModel):
     parentId: int
     name: str
-    classification: Optional[int]
-    size: Optional[int]
-    expiration: Optional[Expiration]
-    notes: Optional[str]
-    directS3Upload: Optional[bool]
-    timestampCreation: Optional[str]
-    timestampModification: Optional[str]
+    classification: Optional[int] = None
+    size: Optional[int] = None
+    expiration: Optional[Expiration] = None
+    notes: Optional[str] = None
+    directS3Upload: Optional[bool] = None
+    timestampCreation: Optional[str] = None
+    timestampModification: Optional[str] = None
 
 
 class S3Part(BaseModel):
@@ -65,17 +65,17 @@ class S3Part(BaseModel):
 
 class CompleteS3Upload(BaseModel):
     parts: List[S3Part]
-    resolutionStrategy: Optional[str]
-    keepShareLinks: Optional[bool]
-    fileName: Optional[str]
-    fileKey: Optional[FileKey]
+    resolutionStrategy: Optional[str] = None
+    keepShareLinks: Optional[bool] = None
+    fileName: Optional[str] = None
+    fileKey: Optional[FileKey] = None
 
 
 class CompleteUpload(BaseModel):
-    resolutionStrategy: Optional[str]
-    keepShareLinks: Optional[bool]
-    fileName: Optional[str]
-    fileKey: Optional[FileKey]
+    resolutionStrategy: Optional[str] = None
+    keepShareLinks: Optional[bool] = None
+    fileName: Optional[str] = None
+    fileKey: Optional[FileKey] = None
     
 class GetS3Urls(BaseModel):
     firstPartNumber: int
@@ -86,65 +86,65 @@ class GetS3Urls(BaseModel):
 class CreateFolder(BaseModel):
     parentId: int
     name: str
-    notes: Optional[str]
-    timestampCreation: Optional[datetime]
-    timestampModificiation: Optional[datetime]
+    notes: Optional[str] = None
+    timestampCreation: Optional[datetime] = None
+    timestampModificiation: Optional[datetime] = None
 
 # required payload for PUT /nodes/folders/{folder_id}
 class UpdateFolder(BaseModel):
-    name: Optional[str]
-    notes: Optional[str]
-    timestampCreation: Optional[str]
-    timestampModificiation: Optional[str]
+    name: Optional[str] = None
+    notes: Optional[str] = None
+    timestampCreation: Optional[str] = None
+    timestampModificiation: Optional[str] = None
 
 # required payload for POST /nodes/rooms
 class CreateRoom(BaseModel):
-    parentId: Optional[int]
+    parentId: Optional[int] = None
     name: str
-    notes: Optional[str]
-    quota: Optional[int]
-    recycleBinRetentionPeriod: Optional[int]
-    inheritPermissions: Optional[bool]
-    hasActivitiesLog: Optional[bool]
-    newGroupMemberAcceptance: Optional[str]
-    adminGroupIds: Optional[List[int]]
-    adminIds: Optional[List[int]]
-    classification: Optional[int]
-    timestampCreation: Optional[str]
-    timestampModificiation: Optional[str]
+    notes: Optional[str] = None
+    quota: Optional[int] = None
+    recycleBinRetentionPeriod: Optional[int] = None
+    inheritPermissions: Optional[bool] = None
+    hasActivitiesLog: Optional[bool] = None
+    newGroupMemberAcceptance: Optional[str] = None
+    adminGroupIds: Optional[List[int]] = None
+    adminIds: Optional[List[int]] = None
+    classification: Optional[int] = None
+    timestampCreation: Optional[str] = None
+    timestampModificiation: Optional[str] = None
 
 # required payload for PUT /nodes/rooms/{room_id}
 class UpdateRoom(BaseModel):
-    name: Optional[str]
-    quota: Optional[int]
-    notes: Optional[str]
-    timestampCreation: Optional[str]
-    timestampModificiation: Optional[str]
+    name: Optional[str] = None
+    quota: Optional[int] = None
+    notes: Optional[str] = None
+    timestampCreation: Optional[str] = None
+    timestampModificiation: Optional[str] = None
 
 # required payload for PUT /nodes/rooms/{room_id}/config
 class ConfigRoom(BaseModel):
-    adminGroupIds: Optional[List[int]]
-    adminIds: Optional[List[int]]
-    recycleBinRetentionPeriod: Optional[int]
-    inheritPermissions: Optional[bool]
-    takeOverPermissions: Optional[bool]
-    hasActivitiesLog: Optional[bool]
-    newGroupMemberAcceptance: Optional[str]
-    classification: Optional[int]
+    adminGroupIds: Optional[List[int]] = None
+    adminIds: Optional[List[int]] = None
+    recycleBinRetentionPeriod: Optional[int] = None
+    inheritPermissions: Optional[bool] = None
+    takeOverPermissions: Optional[bool] = None
+    hasActivitiesLog: Optional[bool] = None
+    newGroupMemberAcceptance: Optional[str] = None
+    classification: Optional[int] = None
 
 # required payload for PUT /nodes/files
 class UpdateFiles(BaseModel):
-    classification: Optional[int]
-    expiration: Optional[Expiration]
+    classification: Optional[int] = None
+    expiration: Optional[Expiration] = None
     objectIds: List[int]
 
 class UpdateFile(BaseModel):
-    name: Optional[str]
-    expiration: Optional[Expiration]
-    classification: Optional[int]
-    notes: Optional[str]
-    timestampCreation: Optional[str]
-    timestampModification: Optional[str]
+    name: Optional[str] = None
+    expiration: Optional[Expiration] = None
+    classification: Optional[int] = None
+    notes: Optional[str] = None
+    timestampCreation: Optional[str] = None
+    timestampModification: Optional[str] = None
 
 
 class Permissions(BaseModel):
@@ -161,8 +161,8 @@ class Permissions(BaseModel):
     
 class EncryptRoom(BaseModel):
     isEncrypted: bool
-    useDataSpaceRescueKey: Optional[bool]
-    dataRoomRescueKey: Optional[UserKeyPairContainer]
+    useDataSpaceRescueKey: Optional[bool] = None
+    dataRoomRescueKey: Optional[UserKeyPairContainer] = None
 
 
 class UpdateRoomUserItem(BaseModel):
@@ -172,7 +172,7 @@ class UpdateRoomUserItem(BaseModel):
 class UpdateRoomGroupItem(UpdateRoomUserItem):
     id: int
     permissions: Permissions
-    newGroupMemberAcceptance: Optional[str]
+    newGroupMemberAcceptance: Optional[str] = None
 
 # required payload for PUT /nodes/rooms/{room_id}/groups
 class UpdateRoomGroups(BaseModel):
@@ -211,66 +211,66 @@ class NodeType(Enum):
 class Node(BaseModel):
     id: int
     type: NodeType
-    referenceId: Optional[int]
+    referenceId: Optional[int] = None
     name: str
-    timestampCreation: Optional[datetime]
-    timestampModification: Optional[datetime]
-    parentId: Optional[int]
-    parentPath: Optional[str]
-    createdAt: Optional[datetime]
-    updatedAt: Optional[datetime]
-    createdBy: Optional[UserInfo]
-    updatedBy: Optional[UserInfo]
-    expireAt: Optional[datetime]
-    hash: Optional[str]
-    fileType: Optional[str]
-    mediaType: Optional[str]
-    size: Optional[int]
-    classification: Optional[int]
-    notes: Optional[str]
-    permissions: Optional[Permissions]
-    inheritPermissions: Optional[bool]
-    isEncrypted: Optional[bool]
-    encryptionInfo: Optional[EncryptionInfo]
-    cntDeletedVersions: Optional[int]
-    cntComments: Optional[int]
-    cntDownloadShares: Optional[int]
-    cntUploadShares: Optional[int]
-    recycleBinRetentionPeriod: Optional[int]
-    hasActivitiesLog: Optional[bool]
-    quota: Optional[int]
-    isFavorite: Optional[bool]
-    branchVersion: Optional[int]
-    mediaToken: Optional[str]
-    isBrowsable: Optional[bool]
-    cntRooms: Optional[int]
-    cntFolders: Optional[int]
-    cntFiles: Optional[int]
-    authParentId: Optional[int]
+    timestampCreation: Optional[datetime] = None
+    timestampModification: Optional[datetime] = None
+    parentId: Optional[int] = None
+    parentPath: Optional[str] = None
+    createdAt: Optional[datetime] = None
+    updatedAt: Optional[datetime] = None
+    createdBy: Optional[UserInfo] = None
+    updatedBy: Optional[UserInfo] = None
+    expireAt: Optional[datetime] = None
+    hash: Optional[str] = None
+    fileType: Optional[str] = None
+    mediaType: Optional[str] = None
+    size: Optional[int] = None
+    classification: Optional[int] = None
+    notes: Optional[str] = None
+    permissions: Optional[Permissions] = None
+    inheritPermissions: Optional[bool] = None
+    isEncrypted: Optional[bool] = None
+    encryptionInfo: Optional[EncryptionInfo] = None
+    cntDeletedVersions: Optional[int] = None
+    cntComments: Optional[int] = None
+    cntDownloadShares: Optional[int] = None
+    cntUploadShares: Optional[int] = None
+    recycleBinRetentionPeriod: Optional[int] = None
+    hasActivitiesLog: Optional[bool] = None
+    quota: Optional[int] = None
+    isFavorite: Optional[bool] = None
+    branchVersion: Optional[int] = None
+    mediaToken: Optional[str] = None
+    isBrowsable: Optional[bool] = None
+    cntRooms: Optional[int] = None
+    cntFolders: Optional[int] = None
+    cntFiles: Optional[int] = None
+    authParentId: Optional[int] = None
     
 class LogEvent(BaseModel):
     id: int
     time: datetime
     userId: int
     message: str
-    operationId: Optional[int]
-    operationName: Optional[str]
-    status: Optional[int]
-    userClient: Optional[str]
-    customerId: Optional[int]
-    userName: Optional[str]
-    userIp: Optional[str]
-    authParentSource: Optional[str]
-    authParentTarget: Optional[str]
-    objectId1: Optional[int]
-    objectType1: Optional[int]
-    objectName1: Optional[str]
-    objectId2: Optional[int]
-    objectType2: Optional[int]
-    objectName2: Optional[str]
-    attribute1: Optional[str]
-    attribute2: Optional[str]
-    attribute3: Optional[str]
+    operationId: Optional[int] = None
+    operationName: Optional[str] = None
+    status: Optional[int] = None
+    userClient: Optional[str] = None
+    customerId: Optional[int] = None
+    userName: Optional[str] = None
+    userIp: Optional[str] = None
+    authParentSource: Optional[str] = None
+    authParentTarget: Optional[str] = None
+    objectId1: Optional[int] = None
+    objectType1: Optional[int] = None
+    objectName1: Optional[str] = None
+    objectId2: Optional[int] = None
+    objectType2: Optional[int] = None
+    objectName2: Optional[str] = None
+    attribute1: Optional[str] = None
+    attribute2: Optional[str] = None
+    attribute3: Optional[str] = None
     
 class LogEventList(BaseModel):
     range: Range
@@ -298,8 +298,8 @@ class FileVersion(BaseModel):
     id: int
     referenceId: int
     name: str
-    parentId: Optional[int]
-    deleted: Optional[bool]
+    parentId: Optional[int] = None
+    deleted: Optional[bool] = None
     
 class FileVersionList(BaseModel):
     range: Range

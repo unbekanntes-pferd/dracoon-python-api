@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from dracoon.nodes.responses import UserInfo
 
@@ -15,24 +15,24 @@ class GeneralSettingsInfo(BaseModel):
     useS3Storage: bool
     s3TagsEnabled: bool
     homeRoomsActive: bool
-    homeRoomParentId: Optional[int]
-    subscriptionPlan: Optional[int]
+    homeRoomParentId: Optional[int] = None
+    subscriptionPlan: Optional[int] = None
     
 class SystemDefaults(BaseModel):
-    languageDefault: Optional[str]
-    downloadShareDefaultExpirationPeriod: Optional[int]
-    uploadShareDefaultExpirationPeriod: Optional[int]
-    fileDefaultExpirationPeriod: Optional[int]
-    nonmemberViewDefault: Optional[bool]
-    hideLoginInputFields: Optional[bool]
+    languageDefault: Optional[str] = None
+    downloadShareDefaultExpirationPeriod: Optional[int] = None
+    uploadShareDefaultExpirationPeriod: Optional[int] = None
+    fileDefaultExpirationPeriod: Optional[int] = None
+    nonmemberViewDefault: Optional[bool] = None
+    hideLoginInputFields: Optional[bool] = None
     
 class InfrastructureProperties(BaseModel):
-    smsConfigEnabled: Optional[bool]
-    mediaServerConfiEnabled: Optional[bool]
-    s3DefaultRegion: Optional[str]
-    s3EnforceDirectUpload: Optional[bool]
-    isDracoonCloud: Optional[bool]
-    tenantUuid: Optional[str]
+    smsConfigEnabled: Optional[bool] = None
+    mediaServerConfiEnabled: Optional[bool] = None
+    s3DefaultRegion: Optional[str] = None
+    s3EnforceDirectUpload: Optional[bool] = None
+    isDracoonCloud: Optional[bool] = None
+    tenantUuid: Optional[str] = None
     
 class AlgorithmStatus(Enum):
     REQUIRED = 'REQUIRED'
@@ -42,9 +42,7 @@ class AlgorithmVersionInfo(BaseModel):
     version: str
     description: str
     status: AlgorithmStatus
-    
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
     
 class AlgorithmVersionInfoList(BaseModel):
     fileKeyAlgorithms: List[AlgorithmVersionInfo]
@@ -59,16 +57,14 @@ class MinimumClassification(Enum):
     
 class ShareClassificationPolicies(BaseModel):
     classificationRequiresSharePassword: int
-    
-    class Config: 
-        use_enum_values = True
+
 
 class ClassificationPoliciesConfig(BaseModel):
-    shareClassificationPolicies: Optional[ShareClassificationPolicies]
+    shareClassificationPolicies: Optional[ShareClassificationPolicies] = None
 
 class PasswordExpiration(BaseModel):
     enabled: bool
-    maxPasswordAge: Optional[int]
+    maxPasswordAge: Optional[int] = None
 
     
 class CharacterRule(Enum):
@@ -87,8 +83,8 @@ class CharacterRules(BaseModel):
         
 class UserLockout(BaseModel):
     enabled: bool
-    maxNumberOfLoginFailures: Optional[int]
-    lockoutPeriod: Optional[int]
+    maxNumberOfLoginFailures: Optional[int] = None
+    lockoutPeriod: Optional[int] = None
         
 class LoginPasswordPolicies(BaseModel):
     characterRules: CharacterRules
@@ -103,27 +99,27 @@ class LoginPasswordPolicies(BaseModel):
     updatedBy: UserInfo
     
 class SharesPasswordPolicies(BaseModel):
-    characterRules: Optional[CharacterRules]
-    minLength: Optional[int]
-    rejectDictionaryWords: Optional[bool]
-    rejectUserInfo: Optional[bool]
-    rejectKeyboardPatterns: Optional[bool]
-    updatedAt: Optional[datetime]
-    updatedBy: Optional[UserInfo]
+    characterRules: Optional[CharacterRules] = None
+    minLength: Optional[int] = None
+    rejectDictionaryWords: Optional[bool] = None
+    rejectUserInfo: Optional[bool] = None
+    rejectKeyboardPatterns: Optional[bool] = None
+    updatedAt: Optional[datetime] = None
+    updatedBy: Optional[UserInfo] = None
     
 class EncryptionPasswordPolicies(BaseModel):
-    characterRules: Optional[CharacterRules]
-    minLength: Optional[int]
-    rejectDictionaryWords: Optional[bool]
-    rejectUserInfo: Optional[bool]
-    rejectKeyboardPatterns: Optional[bool]
-    updatedAt: Optional[datetime]
-    updatedBy: Optional[UserInfo]  
+    characterRules: Optional[CharacterRules] = None
+    minLength: Optional[int] = None
+    rejectDictionaryWords: Optional[bool] = None
+    rejectUserInfo: Optional[bool] = None
+    rejectKeyboardPatterns: Optional[bool] = None
+    updatedAt: Optional[datetime] = None
+    updatedBy: Optional[UserInfo] = None  
 
 class PasswordPoliciesConfig(BaseModel):
-    loginPasswordPolicies: Optional[LoginPasswordPolicies]
-    sharesPasswordPolicies: Optional[SharesPasswordPolicies]
-    encryptionPasswordPolicies: Optional[EncryptionPasswordPolicies]
+    loginPasswordPolicies: Optional[LoginPasswordPolicies] = None
+    sharesPasswordPolicies: Optional[SharesPasswordPolicies] = None
+    encryptionPasswordPolicies: Optional[EncryptionPasswordPolicies] = None
     
 class Feature(BaseModel):
     featureId: int
@@ -132,7 +128,7 @@ class Feature(BaseModel):
     
 class FeaturedOAuthClient(BaseModel):
     isAvailable: bool
-    oauthClientName: Optional[str]
+    oauthClientName: Optional[str] = None
     
 class ProductPackagesResponse(BaseModel):
     productPackageId: int
@@ -141,13 +137,13 @@ class ProductPackagesResponse(BaseModel):
     clients: List[FeaturedOAuthClient]
     
 class ProductPackageResponseList(BaseModel):
-    packages: List[ProductPackagesResponse]
+    packages: List[ProductPackagesResponse] = None
     
 class S3Tag(BaseModel):
-    id: Optional[int]
-    key: Optional[str]
-    value: Optional[str]
-    isMandatory: Optional[bool]
+    id: Optional[int] = None
+    key: Optional[str] = None
+    value: Optional[str] = None
+    isMandatory: Optional[bool] = None
     
 class S3TagList(BaseModel):
-    items: Optional[List[S3Tag]]
+    items: Optional[List[S3Tag]] = None

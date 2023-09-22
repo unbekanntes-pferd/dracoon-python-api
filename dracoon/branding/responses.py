@@ -1,6 +1,6 @@
 from typing import List
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class ColorDetailType(Enum):
     NORMAL = 'normal'
@@ -33,14 +33,12 @@ class Language(BaseModel):
 class Text(BaseModel):
     type: TextType
     languages: List[Language]
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 class ColorDetails(BaseModel):
     type: ColorDetailType
     rgba: str
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 class Color(BaseModel):
     type: str
@@ -50,8 +48,7 @@ class SimpleImageResponse(BaseModel):
     id: int
     url: str
     type: ImageType
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 class UpdateBrandingResponse(BaseModel):
     productName: str

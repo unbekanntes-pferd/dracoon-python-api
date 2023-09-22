@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 from enum import Enum
@@ -28,38 +28,34 @@ class FileKey(BaseModel):
     key: str
     iv: str
     version: FileKeyVersion
-    tag: Optional[str]
+    tag: Optional[str] = None
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 class PlainFileKey(BaseModel):
     version: PlainFileKeyVersion
     key: str
     iv: str
-    tag: Optional[str]
+    tag: Optional[str] = None
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 class PublicKeyContainer(BaseModel):
     version: UserKeyPairVersion
     publicKey: str
-    createdAt: Optional[datetime]
-    expireAt: Optional[datetime]
-    createdBy: Optional[int]
-    class Config:
-        use_enum_values = True
+    createdAt: Optional[datetime] = None
+    expireAt: Optional[datetime] = None
+    createdBy: Optional[int] = None
+    model_config = ConfigDict(use_enum_values=True)
 
 class PrivateKeyContainer(BaseModel):
     version: UserKeyPairVersion
     privateKey: str
-    createdAt: Optional[datetime]
-    expireAt: Optional[datetime]
-    createdBy: Optional[int]
+    createdAt: Optional[datetime] = None
+    expireAt: Optional[datetime] = None
+    createdBy: Optional[int] = None
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 class UserKeyPairContainer(BaseModel):
     privateKeyContainer: PrivateKeyContainer
@@ -81,7 +77,6 @@ class EncryptionInfo:
     roomKeyState: KeyState
     dataSpaceKeyState: KeyState
     
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 

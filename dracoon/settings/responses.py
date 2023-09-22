@@ -7,9 +7,9 @@ from dracoon.client.models import Range
 
 class CustomerSettingsResponse(BaseModel):
     homeRoomsActive: bool
-    homeRoomParentId: Optional[int]
-    homeRoomParentName: Optional[str]
-    homeRoomQuota: Optional[int]
+    homeRoomParentId: Optional[int] = None
+    homeRoomParentName: Optional[str] = None
+    homeRoomQuota: Optional[int] = None
 
 class WebhookList(BaseModel):
     range: Range

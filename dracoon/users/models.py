@@ -8,11 +8,11 @@ class Expiration(BaseModel):
 
 class UserAuthData(BaseModel):
     method: str
-    login: Optional[str]
-    password: Optional[str]
-    mustChangePassword: Optional[bool]
-    adConfigId: Optional[int]
-    oidConfigId: Optional[int]
+    login: Optional[str] = None
+    password: Optional[str] = None
+    mustChangePassword: Optional[bool] = None
+    adConfigId: Optional[int] = None
+    oidConfigId: Optional[int] = None
 
 class UserAuthMethodOption(BaseModel):
     key: str
@@ -21,39 +21,39 @@ class UserAuthMethodOption(BaseModel):
 class UserAuthMethod(BaseModel):
     authId: str
     isEnabled: bool
-    options: Optional[List[UserAuthMethodOption]]
+    options: Optional[List[UserAuthMethodOption]] = None
 
 class MfaConfig(BaseModel):
-    mfaEnforced: Optional[bool]
+    mfaEnforced: Optional[bool] = None
 
 # required payload for POST /users
 class CreateUser(BaseModel):
     firstName: str
     lastName: str
-    userName: Optional[str]
-    phone: Optional[str]
-    expiration: Optional[Expiration]
-    receiverLanguage: Optional[str]
+    userName: Optional[str] = None
+    phone: Optional[str] = None
+    expiration: Optional[Expiration] = None
+    receiverLanguage: Optional[str] = None
     email: str
-    notifyUser: Optional[bool]
+    notifyUser: Optional[bool] = None
     authData: UserAuthData
-    isNonmemberViewer: Optional[bool]
-    mfaConfig: Optional[MfaConfig]
+    isNonmemberViewer: Optional[bool] = None
+    mfaConfig: Optional[MfaConfig] = None
 
 # required payload for PUT /users/{user_id}
 class UpdateUser(BaseModel):
-    firstName: Optional[str]
-    lastName: Optional[str]
-    userName: Optional[str]
-    isLocked: Optional[bool]
-    phone: Optional[str]
-    expiration: Optional[Expiration]
-    receiverLanguage: Optional[str]
-    email: Optional[str]
-    authData: Optional[UserAuthData]
-    authMethods: Optional[List[UserAuthMethod]]
-    isNonmemberViewer: Optional[bool]
-    mfaConfig: Optional[MfaConfig]
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    userName: Optional[str] = None
+    isLocked: Optional[bool] = None
+    phone: Optional[str] = None
+    expiration: Optional[Expiration] = None
+    receiverLanguage: Optional[str] = None
+    email: Optional[str] = None
+    authData: Optional[UserAuthData] = None
+    authMethods: Optional[List[UserAuthMethod]] = None
+    isNonmemberViewer: Optional[bool] = None
+    mfaConfig: Optional[MfaConfig] = None
 
 class AttributeEntry(BaseModel):
     key: str
@@ -65,7 +65,7 @@ class SetUserAttributes(BaseModel):
 
 # required payload for PUT /users/{user_id}/userAttributes
 class UpdateUserAttributes(BaseModel):
-    items: Optional[List[AttributeEntry]]
+    items: Optional[List[AttributeEntry]] = None
 
 
 
