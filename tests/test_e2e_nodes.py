@@ -9,7 +9,7 @@ from dracoon import DRACOON, OAuth2ConnectionType
 from dracoon.crypto.models import FileKey
 from dracoon.errors import HTTPNotFoundError
 from dracoon.nodes import DRACOONNodes
-from dracoon.nodes.models import Node, NodeType
+from dracoon.nodes.models import Node, NodeType, FileVersionList
 from dracoon.nodes.responses import (CommentList, DeletedNode, DeletedNodeSummaryList, DeletedNodeVersionsList, 
                                      DownloadTokenGenerateResponse, NodeList, NodeParentList)
 
@@ -409,7 +409,21 @@ class TestAsyncDRACOONNodes(unittest.IsolatedAsyncioTestCase):
         await self.dracoon.nodes.delete_node(node_id=source_node.id)
   
     async def test_get_file_versions(self):
-        self.skipTest("Not implemented")
+        room = self.dracoon.nodes.make_room(name='TEST_NODE_VERSIONS')
+        target_node = await self.dracoon.nodes.create_room(room=room)
+        
+        file_path = self.test_helper.generate_tiny_file()
+        
+        file_upload = await self.dracoon.upload(file_path=file_path, target_parent_id=target_node.id)
+        await self.dracoon.upload(file_path=file_path, target_parent_id=target_node.id, resolution_strategy='overwrite')
+        await self.dracoon.upload(file_path=file_path, target_parent_id=target_node.id, resolution_strategy='overwrite')
+        
+        file_versions = await self.dracoon.nodes.get_file_versions(reference_id=file_upload.node.referenceId)
+        
+        self.assertIsInstance(file_versions, FileVersionList)
+        self.assertEqual(len(file_versions.items), 3)
+        
+        await self.dracoon.nodes.delete_node(node_id=target_node.id)
 
     async def test_create_folder(self):
         room = self.dracoon.nodes.make_room(name='TEST_CREATE_FOLDER')

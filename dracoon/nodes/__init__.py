@@ -32,7 +32,7 @@ from dracoon.groups.models import Expiration
 from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
 from dracoon.errors import (InvalidClientError, ClientDisconnectedError, InvalidFileError, InvalidArgumentError)
 from dracoon.uploads.models import UploadChannelResponse
-from .models import (Callback, CompleteS3Upload, CompleteUpload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, EncryptRoom, 
+from .models import (Callback, CompleteS3Upload, CompleteUpload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, EncryptRoom, FileVersionList, 
                      GetS3Urls, LogEventList, MissingKeysResponse, Node, NodeItem, Permissions, ProcessRoomPendingUsers, S3Part, 
                      SetFileKeys, SetFileKeysItem, TransferNode, CommentNode, RestoreNode, UpdateFile, UpdateFiles, 
                      UpdateFolder, UpdateRoom, UpdateRoomGroupItem, UpdateRoomGroups, UpdateRoomHooks, 
@@ -1566,7 +1566,7 @@ class DRACOONNodes:
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
         
         self.logger.info("Retrieved node.")
-        return Node(**res.json())
+        return FileVersionList(**res.json())
 
     @retry(**RETRY_CONFIG)
     async def create_folder(self, folder: CreateFolder, raise_on_err: bool = False) -> Node:
