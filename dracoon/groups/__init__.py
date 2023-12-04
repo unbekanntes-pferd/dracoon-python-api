@@ -101,7 +101,7 @@ class DRACOONGroups:
         
         if filter: filter = urllib.parse.quote(filter)
 
-        api_url = self.api_url + f'/?offset={offset}'
+        api_url = self.api_url + f'?offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 
@@ -211,7 +211,7 @@ class DRACOONGroups:
         
         if filter: filter = urllib.parse.quote(filter)
 
-        api_url = self.api_url + f'/{group_id}/users/?offset={str(offset)}'
+        api_url = self.api_url + f'/{group_id}/users?offset={str(offset)}'
         if filter != None: api_url += f'&filter={filter}' 
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 

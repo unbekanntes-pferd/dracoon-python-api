@@ -120,7 +120,7 @@ class DRACOONSettings:
         
         if filter: filter = urllib.parse.quote(filter)
 
-        api_url = self.api_url + f'/webhooks/?offset={offset}'
+        api_url = self.api_url + f'/webhooks?offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 

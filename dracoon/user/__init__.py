@@ -66,7 +66,7 @@ class DRACOONUser:
             raise_on_err = True
 
         try:
-            api_url = self.api_url + f'/account/?more_info={str(more_info).lower()}'
+            api_url = self.api_url + f'/account?more_info={str(more_info).lower()}'
             res = await self.dracoon.http.get(api_url)
             res.raise_for_status()
         except httpx.RequestError as e:
@@ -131,7 +131,7 @@ class DRACOONUser:
             raise_on_err = True
 
         api_url = self.api_url + f'/account/keypair'
-        if version != None: api_url += '/?version=' + version.value
+        if version != None: api_url += '?version=' + version.value
 
         try:
             res = await self.dracoon.http.get(api_url)
@@ -184,7 +184,7 @@ class DRACOONUser:
             raise_on_err = True
 
         api_url = self.api_url + f'/account/keypair'
-        if version != None: api_url += '/?version=' + version.value
+        if version != None: api_url += '?version=' + version.value
 
         try:
             res = await self.dracoon.http.delete(api_url)
