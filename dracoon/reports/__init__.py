@@ -153,7 +153,7 @@ class DRACOONReports:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f"/?offset={offset}"
+        api_url = self.api_url + f"?offset={offset}"
         if name:
             api_url += f"&name={name}"
         if limit != None:

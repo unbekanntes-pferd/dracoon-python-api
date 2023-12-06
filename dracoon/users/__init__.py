@@ -202,7 +202,7 @@ class DRACOONUsers:
         
         if filter: filter = urllib.parse.quote(filter)
 
-        api_url = self.api_url + f'/?offset={offset}'
+        api_url = self.api_url + f'?offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}'
@@ -295,7 +295,7 @@ class DRACOONUsers:
         
         if filter: filter = urllib.parse.quote(filter)
 
-        api_url = self.api_url + f'/{user_id}/groups/?offset={str(offset)}'
+        api_url = self.api_url + f'/{user_id}/groups?offset={str(offset)}'
         if filter != None: api_url += f'&filter={filter}' 
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 
@@ -363,7 +363,7 @@ class DRACOONUsers:
         
         if filter: filter = urllib.parse.quote(filter)
 
-        api_url = self.api_url + f'/{user_id}/userAttributes/?offset={str(offset)}'
+        api_url = self.api_url + f'/{user_id}/userAttributes?offset={str(offset)}'
         if filter != None: api_url += f'&filter={filter}' 
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 

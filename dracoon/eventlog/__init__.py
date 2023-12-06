@@ -66,7 +66,7 @@ class DRACOONEvents:
         
         if filter: filter = urllib.parse.quote(filter)
 
-        api_url = self.api_url + f'/audits/nodes/?offset={offset}'
+        api_url = self.api_url + f'/audits/nodes?offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 
@@ -97,7 +97,7 @@ class DRACOONEvents:
         
         if filter: filter = urllib.parse.quote(filter)
 
-        api_url = self.api_url + f'/audits/node_info/?parent_id={str(parent_id)}&offset={offset}'
+        api_url = self.api_url + f'/audits/node_info?parent_id={str(parent_id)}&offset={offset}'
         if filter != None: api_url += f'&filter={filter}' 
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}'
@@ -126,7 +126,7 @@ class DRACOONEvents:
         
         if filter: filter = urllib.parse.quote(filter)
 
-        api_url = self.api_url + f'/events/?offset={offset}'
+        api_url = self.api_url + f'/events?offset={offset}'
         if date_start != None: api_url += f'&date_start={date_start}'
         if date_end != None: api_url += f'&date_end={date_end}'
         if operation_id != None: api_url += f'&type={str(operation_id)}'
