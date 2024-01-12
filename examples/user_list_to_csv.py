@@ -12,7 +12,11 @@ from dracoon.client import OAuth2ConnectionType
 
 
 base_url = 'https://staging.dracoon.com'
-client_id = 'dracoon_legacy_scripting' 
+
+# set up client with client credentials
+# redirect uri must be set to https://your.domain.com/oauth/callback
+client_id = 'XXXXXXXXXXX' 
+client_id = 'XXXXXXXXXXX' 
 
 username = 'XXXXXXXXXXX' # replace with username
 password = 'XXXXXXXXXXX' # replace with password / getpass.getpass to enter password
@@ -22,7 +26,12 @@ async def main():
     dracoon = DRACOON(base_url=base_url, client_id=client_id,
                       raise_on_err=True, log_file_out=False, log_stream=True)
     
-    await dracoon.connect(connection_type=OAuth2ConnectionType.password_flow, username=username, password=password)
+    print("Please log in using the following link: ")
+    print(dracoon.get_code_url())
+
+    auth_code = input("Enter auth code: ")
+    
+    await dracoon.connect(connection_type=OAuth2ConnectionType.auth_code, auth_code=auth_code)
 
     user_list = await dracoon.users.get_users()
 
@@ -47,14 +56,5 @@ async def main():
             writer.writerow([user.id, user.userName, user.firstName, user.lastName, user.email, user.createdAt, last_login])
 
 
-
-
-
-
-
-
-
-
-    
 if __name__ == '__main__':
     asyncio.run(main())
