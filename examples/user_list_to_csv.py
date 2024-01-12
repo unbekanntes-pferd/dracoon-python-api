@@ -16,14 +16,11 @@ base_url = 'https://staging.dracoon.com'
 # set up client with client credentials
 # redirect uri must be set to https://your.domain.com/oauth/callback
 client_id = 'XXXXXXXXXXX' 
-client_id = 'XXXXXXXXXXX' 
-
-username = 'XXXXXXXXXXX' # replace with username
-password = 'XXXXXXXXXXX' # replace with password / getpass.getpass to enter password
-
+client_secret = 'XXXXXXXXXXX' 
 
 async def main():
-    dracoon = DRACOON(base_url=base_url, client_id=client_id,
+    dracoon = DRACOON(base_url=base_url, client_id=client_id, 
+                      client_secret=client_secret,
                       raise_on_err=True, log_file_out=False, log_stream=True)
     
     print("Please log in using the following link: ")
