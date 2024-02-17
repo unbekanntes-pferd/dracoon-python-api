@@ -10,7 +10,7 @@ readme = "README.md"
 python = "^3.9"
 httpx = "^0.24.1"
 pydantic = "^2.4.2"
-cryptography = "^41.0.4"
+cryptography = ">=41.0.4,<43.0.0"
 tenacity = "^8.2.3"
 asyncio = "^3.4.3"
 
