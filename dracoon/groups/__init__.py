@@ -62,7 +62,7 @@ class DRACOONGroups:
         if self.raise_on_err:
             raise_on_err = True
 
-        payload = group.dict(exclude_unset=True)
+        payload = group.model_dump(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -154,7 +154,7 @@ class DRACOONGroups:
 
         api_url = self.api_url + f'/{str(group_id)}'
 
-        payload = group_update.dict(exclude_unset=True)
+        payload = group_update.model_dump(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)

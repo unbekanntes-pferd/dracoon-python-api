@@ -1,0 +1,8 @@
+{
+    "smsConfigEnabled": true,
+    "mediaServerConfigEnabled": true,
+    "s3DefaultRegion": "string",
+    "s3EnforceDirectUpload": true,
+    "isDracoonCloud": true,
+    "tenantUuid": "string"
+  }

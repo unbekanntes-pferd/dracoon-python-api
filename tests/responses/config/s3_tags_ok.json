@@ -1,0 +1,10 @@
+{
+    "items": [
+      {
+        "id": 0,
+        "key": "string",
+        "value": "string",
+        "isMandatory": false
+      }
+    ]
+  }

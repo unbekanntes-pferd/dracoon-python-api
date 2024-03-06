@@ -3,7 +3,11 @@
 
 name: dracoon tests
 
-on: [workflow_dispatch]
+on:
+  push:
+    branches: [ "*" ]
+  pull_request:
+    branches: [ "master" ]
 
 jobs:
   build:
@@ -35,6 +39,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest python-dotenv
         python -m pip install --upgrade pip setuptools wheel
+        python -m pip install respx
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Run all tests
       run: |

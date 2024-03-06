@@ -1,0 +1,21 @@
+{
+    "packages": [
+      {
+        "productPackageId": 0,
+        "productPackageName": "string",
+        "features": [
+          {
+            "featureId": 0,
+            "featureName": "string",
+            "isAvailable": true
+          }
+        ],
+        "clients": [
+          {
+            "isAvailable": true,
+            "oauthClientName": "string"
+          }
+        ]
+      }
+    ]
+  }

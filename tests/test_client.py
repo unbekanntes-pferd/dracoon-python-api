@@ -26,8 +26,10 @@ class TestDRACOONClient(unittest.TestCase):
         
         self.assertEqual(dracoon_custom_redirect.redirect_uri, 'https://bar.foo/callback')
         self.assertEqual(dracoon_default_redirect.redirect_uri, f"{dracoon_default_redirect.base_url}/oauth/callback")
-        self.assertEqual(dracoon_custom_redirect.get_code_url(), dracoon_custom_redirect.base_url + f'/oauth/authorize?branding=full&response_type=code&client_id={dracoon_custom_redirect.client_id}&redirect_uri=https://bar.foo/callback&scope=all')
-        self.assertEqual(dracoon_default_redirect.get_code_url(), dracoon_custom_redirect.base_url + f'/oauth/authorize?branding=full&response_type=code&client_id={dracoon_default_redirect.client_id}&redirect_uri=https://foo.bar/oauth/callback&scope=all')
+        self.assertEqual(dracoon_custom_redirect.get_code_url(), f'{dracoon_custom_redirect.base_url}/oauth/authorize?branding=full&response_type=code&client_id={dracoon_custom_redirect.client_id}&redirect_uri=https://bar.foo/callback&scope=all')
+        self.assertEqual(dracoon_default_redirect.get_code_url(), f'{dracoon_custom_redirect.base_url}/oauth/authorize?branding=full&response_type=code&client_id={dracoon_default_redirect.client_id}&redirect_uri=https://foo.bar/oauth/callback&scope=all')
+
+
 
 if __name__ == '__main__':
     unittest.main()

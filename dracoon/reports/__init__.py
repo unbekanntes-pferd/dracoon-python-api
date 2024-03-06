@@ -60,7 +60,7 @@ class DRACOONReports:
         self, report: CreateReport, raise_on_err: bool = False
     ) -> None:
         """create a new report"""
-        payload = report.dict(exclude_unset=True)
+        payload = report.model_dump(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)

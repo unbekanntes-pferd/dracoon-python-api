@@ -1,0 +1,6 @@
+{
+  "key": "string",
+  "iv": "string",
+  "version": "RSA-4096/AES-256-GCM",
+  "tag": "string"
+}

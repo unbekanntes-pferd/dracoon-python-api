@@ -1,0 +1,8 @@
+{
+    "urls": [
+      {
+        "url": "$base_url/upload_url",
+        "partNumber": 1
+      }
+    ]
+  }

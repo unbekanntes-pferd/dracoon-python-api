@@ -1,0 +1,16 @@
+{
+    "fileKeyAlgorithms": [
+      {
+        "version": "string",
+        "description": "string",
+        "status": "REQUIRED"
+      }
+    ],
+    "keyPairAlgorithms": [
+      {
+        "version": "string",
+        "description": "string",
+        "status": "REQUIRED"
+      }
+    ]
+  }

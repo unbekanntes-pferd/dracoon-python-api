@@ -141,7 +141,7 @@ class DRACOONSettings:
     @retry(**RETRY_CONFIG)
     async def create_webhook(self, hook: CreateWebhook, raise_on_err: bool = False) -> Webhook:
         """ creates a new webhook """
-        payload = hook.dict(exclude_unset=True)
+        payload = hook.model_dump(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -220,7 +220,7 @@ class DRACOONSettings:
     @retry(**RETRY_CONFIG)
     async def update_webhook(self, hook_id: int, hook_update: UpdateWebhook, raise_on_err: bool = False) -> Webhook:
 
-        payload = hook_update.dict(exclude_unset=True)
+        payload = hook_update.model_dump(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)

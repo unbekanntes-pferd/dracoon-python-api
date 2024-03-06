@@ -58,7 +58,7 @@ class DRACOONUsers:
     async def create_user(self, user: CreateUser, raise_on_err: bool = False) -> UserData:
         """ creates a new user """
 
-        payload = user.dict(exclude_unset=True)
+        payload = user.model_dump(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -251,7 +251,7 @@ class DRACOONUsers:
 
         api_url = self.api_url + f'/{str(user_id)}'
 
-        payload = user_update.dict(exclude_unset=True)
+        payload = user_update.model_dump(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -409,7 +409,7 @@ class DRACOONUsers:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         api_url = self.api_url + f'/{str(user_id)}/userAttributes'
-        payload = attributes.dict(exclude_unset=True)
+        payload = attributes.model_dump(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)

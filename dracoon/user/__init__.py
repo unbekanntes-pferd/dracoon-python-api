@@ -89,7 +89,7 @@ class DRACOONUser:
 
         api_url = self.api_url + f'/account'
 
-        payload = account_update.dict(exclude_unset=True)
+        payload = account_update.model_dump(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=api_url, json=payload)
@@ -154,7 +154,7 @@ class DRACOONUser:
         if self.raise_on_err:
             raise_on_err = True
         
-        payload = encrypted_keypair.dict(exclude_unset=True)
+        payload = encrypted_keypair.model_dump(exclude_unset=True)
 
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)

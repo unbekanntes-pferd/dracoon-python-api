@@ -1,0 +1,26 @@
+{
+    "id": 1,
+    "name": "string",
+    "createdAt": "2020-01-01T00:00:00.000Z",
+    "createdBy": {
+      "id": 2,
+      "userType": "internal",
+      "avatarUuid": "string",
+      "userName": "string",
+      "firstName": "string",
+      "lastName": "string",
+      "email": "string"
+    },
+    "cntUsers": 2,
+    "updatedAt": "2020-02-01T00:00:00.000Z",
+    "updatedBy": {
+      "id": 2,
+      "userType": "internal",
+      "avatarUuid": "string",
+      "userName": "string",
+      "firstName": "string",
+      "lastName": "string",
+      "email": "string"
+    },
+    "expireAt": "2020-03-01T00:00:00.000Z"
+  }

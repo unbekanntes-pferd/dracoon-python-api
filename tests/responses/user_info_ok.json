@@ -1,0 +1,33 @@
+{
+    "id": 1,
+    "userName": "string",
+    "firstName": "string",
+    "lastName": "string",
+    "isLocked": false,
+    "hasManageableRooms": true,
+    "language": "string",
+    "authData": {
+      "method": "basic"
+    },
+    "userRoles": {
+        "items": [
+          {
+            "id": 6,
+            "name": "NONMEMBER_VIEWER",
+            "description": "View users and groups when having room manage permission"
+          },
+          {
+            "id": 7,
+            "name": "USER",
+            "description": "Represents a regular user"
+          }
+        ]
+      },
+    "mustSetEmail": false,
+    "needsToAcceptEULA": false,
+    "isEncryptionEnabled": true,
+    "lastLoginSuccessAt": "2023-07-22T16:33:25.910Z",
+    "lastLoginFailAt": "2021-07-22T16:33:25.910Z",
+    "email": "string",
+    "phone": "string"
+  }

@@ -1,0 +1,16 @@
+{
+    "sharePasswordSmsEnabled": true,
+    "cryptoEnabled": true,
+    "emailNotificationButtonEnabled": true,
+    "eulaEnabled": true,
+    "useS3Storage": true,
+    "s3TagsEnabled": true,
+    "authTokenRestrictions": {
+      "restrictionEnabled": false,
+      "accessTokenValidity": 0,
+      "refreshTokenValidity": 0
+    },
+    "homeRoomsActive": true,
+    "homeRoomParentId": 2,
+    "subscriptionPlan": 1
+  }

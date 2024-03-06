@@ -1,0 +1,27 @@
+[{
+    "id": 1,
+    "name": "string",
+    "issuer": "string",
+    "authorizationEndPointUrl": "string",
+    "tokenEndPointUrl": "string",
+    "userInfoEndPointUrl": "string",
+    "jwksEndPointUrl": "string",
+    "clientId": "string",
+    "clientSecret": "string",
+    "flow": "authorization_code",
+    "scopes": [
+      "string"
+    ],
+    "redirectUris": [
+      "string"
+    ],
+    "pkceEnabled": true,
+    "pkceChallengeMethod": "string",
+    "mappingClaim": "string",
+    "fallbackMappingClaim": "string",
+    "userInfoSource": "user_info_endpoint",
+    "userImportEnabled": true,
+    "userImportGroup": 2,
+    "userUpdateEnabled": true,
+    "userManagementUrl": "string"
+  }]

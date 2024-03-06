@@ -1,0 +1,35 @@
+{
+    "range": {
+      "offset": 0,
+      "limit": 0,
+      "total": 1
+    },
+    "items": [
+      {
+        "id": 1,
+        "name": "string",
+        "createdAt": "2020-01-01T00:00:00.000Z",
+        "createdBy": {
+          "id": 2,
+          "userType": "internal",
+          "avatarUuid": "string",
+          "userName": "string",
+          "firstName": "string",
+          "lastName": "string",
+          "email": "string"
+        },
+        "cntUsers": 1,
+        "updatedAt": "2023-07-23T08:58:01.236Z",
+        "updatedBy": {
+          "id": 2,
+          "userType": "internal",
+          "avatarUuid": "string",
+          "userName": "string",
+          "firstName": "string",
+          "lastName": "string",
+          "email": "string"
+        },
+        "expireAt": "2023-07-23T08:58:01.236Z"
+      }
+    ]
+  }
