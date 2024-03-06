@@ -3,7 +3,11 @@
 
 name: dracoon tests
 
-on: [workflow_dispatch]
+on:
+  push:
+    branches: [ "*" ]
+  pull_request:
+    branches: [ "master" ]
 
 jobs:
   build:
