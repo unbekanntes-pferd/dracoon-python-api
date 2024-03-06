@@ -1545,7 +1545,7 @@ class DRACOONNodes:
         })
     
     @retry(**RETRY_CONFIG)
-    async def get_file_versions(self, reference_id: int, raise_on_err: bool = False):
+    async def get_file_versions(self, reference_id: int, raise_on_err: bool = False) -> FileVersionList:
         """ get all file versions (including deleted nodes) for given reference id """
         
         if not await self.dracoon.test_connection() and self.dracoon.connection:

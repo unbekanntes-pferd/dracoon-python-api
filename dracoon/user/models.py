@@ -32,7 +32,7 @@ class UserAccount(BaseModel):
     userRoles: RoleList
     language: str
     authData: UserAuthData
-    mudtSetEmail: Optional[bool] = None
+    mustSetEmail: Optional[bool] = None
     needsToAcceptEULA: Optional[bool] = None
     isEncryptionEnabled: Optional[bool] = None
     lastLoginSuccessAt: Optional[datetime] = None

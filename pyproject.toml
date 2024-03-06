@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "dracoon"
-version = "1.12.2"
+version = "1.13.0"
 description = "DRACOON API wrapper in Python"
 authors = ["Octavio Simone <o.simone@dracoon.com>"]
 license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 httpx = "^0.27.0"
 pydantic = "^2.6.3"
 cryptography = "^42.0.5"
