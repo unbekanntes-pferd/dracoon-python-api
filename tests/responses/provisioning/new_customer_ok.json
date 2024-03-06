@@ -1,0 +1,30 @@
+{
+    "id": 1,
+    "companyName": "string",
+    "customerContractType": "pay",
+    "quotaMax": 10000000,
+    "userMax": 100,
+    "firstAdminUser": {
+        "firstName": "string",
+        "lastName": "string",
+        "userName": "string",
+        "authData": {
+          "method": "basic"
+        },
+        "notifyUser": true,
+        "email": "string",
+        "phone": "string"
+      },
+    "isLocked": false,
+    "trialDays": 0,
+    "customerAttributes": {
+      "items": [
+        {
+          "key": "string",
+          "value": "string"
+        }
+      ]
+    },
+    "providerCustomerId": "string",
+    "webhooksMax": 1
+  }

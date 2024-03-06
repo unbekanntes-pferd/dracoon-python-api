@@ -1,0 +1,39 @@
+{
+    "range": {
+      "offset": 0,
+      "limit": 0,
+      "total": 1
+    },
+    "items": [
+      {
+        "userInfo": {
+            "id": 3,
+            "userType": "internal",
+            "avatarUuid": "string",
+            "userName": "string",
+            "firstName": "string",
+            "lastName": "string",
+            "email": "string"
+        },
+        "isGranted": true,
+        "permissions": {
+          "manage": true,
+          "read": true,
+          "create": true,
+          "change": true,
+          "delete": true,
+          "manageDownloadShare": true,
+          "manageUploadShare": true,
+          "readRecycleBin": true,
+          "restoreRecycleBin": true,
+          "deleteRecycleBin": true
+        },
+        "publicKeyContainer": {
+            "version": "RSA-4096",
+            "publicKey": "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAyE4astued9+NIahTcbkc\naPeKWZbHfP5sqtqK0HqcU+4ON2peYsXsJG+z8Opm+q7pLmwzpOezdyCjdkYm7IVX\nG7HAjqqSQN3cth0f46CDFCcDzeCpLwh840mrI87Z1/nBAdE95p76D2mTNU7ScW2U\n03pT9NkgWPZjpJqPwuH6zYp48LigvjqJvQDcEwWVlNalhCp5+2fvU+n3aYV4mvHz\nRui9FTBQU5frT8Yvvqixj+G/93N/8gvH+6IKclARrNjOF6/cEOqBwtqBQlY+h213\nJb22BwWYRZ3CYc/EZfXf4HJ7rylMQzQ9Q6hkajT87cgq7+HCsC9uZo7Lzo2bMHcD\nnOSimhOHfIoYQWsXy75FazrwW/Q0306BgMtsWwLL7blaxmSV86RxbWQZUCrdfLaM\no/AeMjTPeb7WlCvJCzFGBrCWKBiczF8Kr+lPaWOULl5xMqCLqYk5pUYKenhIrj47\nVCtHQyE0uW91TSVKTp5QUyTuQd1V2gs3G7n2zCYgvx1ytiI4BhT7OKtr0/XKX3QN\nvuCGYrpBWr+5x1RGk0bhQZefChbeUrEZmeWq+tJrbmu00SCTBtN/yaq1D4BPjS5K\n/OjUd+SWB9ooMBz3jNG6axEXQp/38iYuAWRauqhOhFijuid09kWqQx3oZ3E6cVxO\nJP3Q9q8MItFsulhzjwpn/UMCAwEAAQ==\n-----END PUBLIC KEY-----\n",
+            "createdAt": "2020-01-00T00:00:00Z",
+            "createdBy": 1
+          }
+      }
+    ]
+  }

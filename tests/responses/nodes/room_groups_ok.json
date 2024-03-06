@@ -1,0 +1,27 @@
+{
+    "range": {
+      "offset": 0,
+      "limit": 0,
+      "total": 1
+    },
+    "items": [
+      {
+        "id": 3,
+        "isGranted": true,
+        "name": "string",
+        "newGroupMemberAcceptance": "autoallow",
+        "permissions": {
+          "manage": true,
+          "read": true,
+          "create": true,
+          "change": true,
+          "delete": true,
+          "manageDownloadShare": true,
+          "manageUploadShare": true,
+          "readRecycleBin": true,
+          "restoreRecycleBin": true,
+          "deleteRecycleBin": true
+        }
+      }
+    ]
+  }

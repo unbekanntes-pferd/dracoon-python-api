@@ -1,0 +1,7 @@
+{
+    "languageDefault": "string",
+    "downloadShareDefaultExpirationPeriod": 0,
+    "uploadShareDefaultExpirationPeriod": 0,
+    "fileDefaultExpirationPeriod": 0,
+    "nonmemberViewerDefault": true
+  }

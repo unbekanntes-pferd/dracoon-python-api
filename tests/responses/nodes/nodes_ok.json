@@ -1,0 +1,71 @@
+{
+    "range": {
+      "offset": 0,
+      "limit": 0,
+      "total": 1
+    },
+    "items": [
+      {
+        "id": 2,
+        "referenceId": 2,
+        "type": "room",
+        "name": "string",
+        "timestampCreation": "2020-01-01T00:00:00.000Z",
+        "timestampModification": "2020-01-01T00:00:00.000Z",
+        "parentId": 1,
+        "parentPath": "string",
+        "createdAt": "2020-01-01T00:00:00.000Z",
+        "createdBy": {
+          "id": 3,
+          "userType": "internal",
+          "avatarUuid": "string",
+          "userName": "string",
+          "firstName": "string",
+          "lastName": "string",
+          "email": "string"
+        },
+        "updatedAt": "2020-02-01T00:00:00.000Z",
+        "updatedBy": {
+          "id": 3,
+          "userType": "internal",
+          "avatarUuid": "string",
+          "userName": "string",
+          "firstName": "string",
+          "lastName": "string",
+          "email": "string"
+        },
+        "size": 123456,
+        "classification": 4,
+        "notes": "string",
+        "permissions": {
+          "manage": true,
+          "read": true,
+          "create": true,
+          "change": true,
+          "delete": true,
+          "manageDownloadShare": true,
+          "manageUploadShare": true,
+          "readRecycleBin": true,
+          "restoreRecycleBin": true,
+          "deleteRecycleBin": true
+        },
+        "inheritPermissions": true,
+        "isEncrypted": false,
+        "cntDeletedVersions": 0,
+        "cntComments": 0,
+        "cntDownloadShares": 0,
+        "cntUploadShares": 0,
+        "recycleBinRetentionPeriod": 9999,
+        "hasActivitiesLog": true,
+        "quota": 0,
+        "isFavorite": true,
+        "branchVersion": 123456,
+        "mediaToken": "string",
+        "isBrowsable": true,
+        "cntRooms": 1,
+        "cntFolders": 2,
+        "cntFiles": 3,
+        "authParentId": 1
+      }
+    ]
+  }

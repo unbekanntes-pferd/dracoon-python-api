@@ -94,7 +94,7 @@ class DRACOONRoles:
         
         api_url = self.api_url + '/' + str(role_id) + '/groups'
         
-        payload = groups.dict(exclude_unset=True)
+        payload = groups.model_dump(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.post(api_url, json=payload)
@@ -118,7 +118,7 @@ class DRACOONRoles:
         
         api_url = self.api_url + '/' + str(role_id) + '/groups'
         
-        payload = groups.dict(exclude_unset=True)
+        payload = groups.model_dump(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.request(method='DELETE', url=api_url, json=payload, headers=self.dracoon.http.headers)
@@ -162,7 +162,7 @@ class DRACOONRoles:
         
         api_url = self.api_url + '/' + str(role_id) + '/users'
         
-        payload = users.dict(exclude_unset=True)
+        payload = users.model_dump(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.post(api_url, json=payload)
@@ -185,7 +185,7 @@ class DRACOONRoles:
         
         api_url = self.api_url + '/' + str(role_id) + '/users'
         
-        payload = users.dict(exclude_unset=True)
+        payload = users.model_dump(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.request(method='DELETE', url=api_url, json=payload, headers=self.dracoon.http.headers)

@@ -1,0 +1,27 @@
+{
+    "id": 1,
+    "companyName": "string",
+    "customerContractType": "pay",
+    "quotaMax": 10000000,
+    "quotaUsed": 10,
+    "userMax": 100,
+    "userUsed": 100,
+    "cntInternalUser": 99,
+    "cntGuestUser": 1,
+    "createdAt": "2020-01-00T00:00:00.000Z",
+    "isLocked": false,
+    "trialDaysLeft": 0,
+    "updatedAt": "2020-01-00T00:00:00.000Z",
+    "lastLoginAt": "2020-01-00T00:00:00.000Z",
+    "customerAttributes": {
+      "items": [
+        {
+          "key": "string",
+          "value": "string"
+        }
+      ]
+    },
+    "providerCustomerId": "string",
+    "webhooksMax": 1,
+    "customerUuid": "string"
+  }

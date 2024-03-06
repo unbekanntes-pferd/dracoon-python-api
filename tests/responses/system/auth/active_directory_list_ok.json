@@ -1,0 +1,18 @@
+{
+    "items": [
+      {
+        "id": 1,
+        "alias": "string",
+        "serverIp": "string",
+        "serverPort": 65535,
+        "serverAdminName": "string",
+        "ldapUsersDomain": "string",
+        "userFilter": "string",
+        "userImport": true,
+        "adExportGroup": "string",
+        "useLdaps": true,
+        "sdsImportGroup": 2,
+        "sslFingerPrint": "string"
+      }
+    ]
+  }

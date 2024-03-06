@@ -1,0 +1,42 @@
+{
+    "id": 1,
+    "name": "string",
+    "targetId": 2,
+    "isProtected": true,
+    "accessKey": "string",
+    "createdAt": "2020-01-01T00:00:00.000Z",
+    "createdBy": {
+      "id": 3,
+      "userType": "internal",
+      "avatarUuid": "string",
+      "userName": "string",
+      "firstName": "string",
+      "lastName": "string",
+      "email": "string"
+    },
+    "updatedAt": "2020-01-01T00:00:00.000Z",
+    "updatedBy": {
+      "id": 3,
+      "userType": "internal",
+      "avatarUuid": "string",
+      "userName": "string",
+      "firstName": "string",
+      "lastName": "string",
+      "email": "string"
+    },
+    "expireAt": "2020-01-01T00:00:00.000Z",
+    "targetPath": "string",
+    "isEncrypted": true,
+    "notes": "string",
+    "internalNotes": "string",
+    "filesExpiryPeriod": 30,
+    "cntFiles": 10,
+    "cntUploads": 15,
+    "showUploadedFiles": true,
+    "dataUrl": "string",
+    "maxSlots": 1,
+    "maxSize": 123456,
+    "targetType": "string",
+    "showCreatorName": true,
+    "showCreatorUsername": true
+  }

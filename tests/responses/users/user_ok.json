@@ -1,0 +1,20 @@
+{
+    "id": 1,
+    "userName": "string",
+    "firstName": "string",
+    "lastName": "string",
+    "isLocked": false,
+    "avatarUuid": "string",
+    "authData": {
+      "method": "basic"
+    },
+    "email": "string",
+    "phone": "string",
+    "expireAt": "2020-01-01T00:00:00.000Z",
+    "hasManageableRooms": true,
+    "isEncryptionEnabled": true,
+    "lastLoginSuccessAt": "2020-01-01T00:00:00.000Z",
+    "homeRoomId": 2,
+    "isMfaEnabled": true,
+    "isMfaEnforced": true
+  }

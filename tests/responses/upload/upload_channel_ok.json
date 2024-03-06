@@ -1,0 +1,5 @@
+{
+    "uploadUrl": "string",
+    "uploadId": "string",
+    "token": "string"
+  }
