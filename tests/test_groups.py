@@ -151,7 +151,6 @@ class TestAsyncDRACOONGroups(unittest.IsolatedAsyncioTestCase):
     @respx.mock
     async def test_delete_group(self):
         group_id = 1
-        group_payload = self.groups.make_group_update(name=DEFAULT_STRING)
         group_mock = respx.delete(
             f'{BASE_URL}/api/v4/groups/{group_id}').respond(204)
         group = await self.groups.delete_group(group_id)
