@@ -200,7 +200,7 @@ class TestAsyncDRACOONUsers(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(attributes_update, UpdateUserAttributes)
 
         attributes_update_res = await self.users.update_user_attributes(user_id=user.id, attributes=attributes_update)
-        self.assertIsInstance(attributes_update_res, UserData)
+        self.assertIsNone(attributes_update_res)
         
         user_attributes = await self.users.get_user_attributes(user_id=user.id)
         self.assertIsInstance(user_attributes, AttributesResponse)
@@ -211,7 +211,6 @@ class TestAsyncDRACOONUsers(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(attr_del)
         
         await self.users.delete_user(user_id=user.id)
-        
 class TestAsyncDRACOONServerUsers(unittest.IsolatedAsyncioTestCase):
     
     async def asyncSetUp(self) -> None:

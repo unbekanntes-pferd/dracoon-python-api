@@ -402,8 +402,8 @@ class DRACOONUsers:
         return None
 
     @retry(**RETRY_CONFIG)
-    async def update_user_attributes(self, user_id: int, attributes: UpdateUserAttributes, 
-                                     raise_on_err: bool = False) -> UserData:
+    async def update_user_attributes(self, user_id: int, attributes: UpdateUserAttributes,
+                                     raise_on_err: bool = False) -> None:
         """ create / update custom user attribute for a specific user (by id) """
         if not await self.dracoon.test_connection() and self.dracoon.connection:
             await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
@@ -421,7 +421,7 @@ class DRACOONUsers:
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
 
         self.logger.info("Updated user attributes.")
-        return UserData(**res.json())
+        return None
 
     def make_custom_user_attribute(self, key: str, value: str) -> AttributeEntry:
         """ make a custom user attribute required for update_user_attributes() """
