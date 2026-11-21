@@ -37,10 +37,6 @@ addopts = "--ignore=tests/e2e"
 requires = ["uv_build>=0.13.9,<0.14"]
 build-backend = "uv_build"
 
-[tool.ruff]
-# outdated examples for the removed 0.x API (dracoon.core) - reference only
-extend-exclude = ["examples/legacy"]
-
 [tool.ruff.lint]
 # ruff defaults - bugs and likely errors, no style rules
 select = ["E4", "E7", "E9", "F"]
