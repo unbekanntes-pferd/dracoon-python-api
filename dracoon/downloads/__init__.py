@@ -51,7 +51,7 @@ class DRACOONDownloads:
                 self.raise_on_err = False
 
         else:
-            self.dracoon.logger.critical("DRACOON client not connected.")
+            self.logger.critical("DRACOON client not connected.")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
     

@@ -12,7 +12,7 @@ from dracoon.downloads import DRACOONDownloads
 from dracoon.nodes.models import Node, NodeType
 from dracoon.crypto import create_plain_userkeypair, create_file_key, encrypt_bytes, encrypt_file_key
 from dracoon.crypto.models import UserKeyPairVersion
-from dracoon.errors import DRACOONCryptoError, FileConflictError, InvalidPathError, HTTPNotFoundError
+from dracoon.errors import DRACOONCryptoError, FileConflictError, InvalidPathError, HTTPNotFoundError, ClientDisconnectedError
 
 CLIENT_ID = 'client_id'
 CLIENT_SECRET = 'client_secret'
@@ -46,6 +46,14 @@ class TestAsyncDRACOONDownloads(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self) -> None:
         await self.dracoon.disconnect()
         self.target_dir.cleanup()
+
+    async def test_downloads_requires_connected_client(self):
+        disconnected_client = DRACOONClient(base_url=BASE_URL)
+
+        with self.assertRaises(ClientDisconnectedError):
+            DRACOONDownloads(disconnected_client)
+
+        await disconnected_client.disconnect()
 
     @respx.mock
     async def test_download_unencrypted(self):
