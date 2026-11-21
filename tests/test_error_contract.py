@@ -2,9 +2,6 @@
 Error contract for all API adapter methods (HTTP 404 on every request):
 - raise_on_err=True: raises the typed DRACOONHttpError subclass (HTTPNotFoundError)
 - default (raise_on_err=False): no exception, returns None (error is logged)
-
-KNOWN_BROKEN_* list methods violating the contract today. They are strict: a listed method that
-fulfills the contract fails the test, so the lists shrink with every fix.
 """
 import asyncio
 import warnings
@@ -19,46 +16,6 @@ ERROR_RESPONSE = {"code": 404, "message": "Not found", "errorCode": -40000}
 
 # method default is raise_on_err=True (public default - kept)
 RAISES_BY_DEFAULT = {'DRACOONGroups.get_group'}
-
-# B18: no raise_for_status - HTTP errors are never raised
-KNOWN_BROKEN_RAISE = {'DRACOONNodes.get_parents'}
-
-# B11: HTTP error ends in ValidationError / TypeError / UnboundLocalError or a model parsed from the error body
-KNOWN_BROKEN_DEFAULT = {
-    'DRACOONNodes.add_favorite',
-    'DRACOONNodes.add_node_comment',
-    'DRACOONNodes.check_s3_upload',
-    'DRACOONNodes.complete_upload',
-    'DRACOONNodes.config_room',
-    'DRACOONNodes.copy_nodes',
-    'DRACOONNodes.create_folder',
-    'DRACOONNodes.create_room',
-    'DRACOONNodes.create_upload_channel',
-    'DRACOONNodes.encrypt_room',
-    'DRACOONNodes.get_deleted_node',
-    'DRACOONNodes.get_deleted_nodes',
-    'DRACOONNodes.get_download_url',
-    'DRACOONNodes.get_file_versions',
-    'DRACOONNodes.get_missing_file_keys',
-    'DRACOONNodes.get_node',
-    'DRACOONNodes.get_node_comments',
-    'DRACOONNodes.get_node_versions',
-    'DRACOONNodes.get_nodes',
-    'DRACOONNodes.get_parents',
-    'DRACOONNodes.get_pending_assignments',
-    'DRACOONNodes.get_room_events',
-    'DRACOONNodes.get_room_groups',
-    'DRACOONNodes.get_room_users',
-    'DRACOONNodes.get_room_webhooks',
-    'DRACOONNodes.get_s3_urls',
-    'DRACOONNodes.get_user_file_key',
-    'DRACOONNodes.move_nodes',
-    'DRACOONNodes.search_nodes',
-    'DRACOONNodes.update_file',
-    'DRACOONNodes.update_folder',
-    'DRACOONNodes.update_room',
-    'DRACOONNodes.update_room_webhooks',
-}
 
 
 async def call_with_not_found(raise_on_err: bool) -> dict:
@@ -86,25 +43,22 @@ async def call_with_not_found(raise_on_err: bool) -> dict:
 
 class TestErrorContract(unittest.TestCase):
 
-    def assert_contract(self, outcomes: dict, expected: dict, known_broken: set):
+    def assert_contract(self, outcomes: dict, expected: dict):
         for name, outcome in outcomes.items():
             with self.subTest(method=name):
-                if name in known_broken:
-                    self.assertNotEqual(outcome, expected[name], f'{name} fulfills the contract - remove it from the known broken list')
-                else:
-                    self.assertEqual(outcome, expected[name])
+                self.assertEqual(outcome, expected[name])
 
     def test_raise_on_err_raises_http_error(self):
         outcomes = asyncio.run(call_with_not_found(raise_on_err=True))
         expected = {name: HTTPNotFoundError.__name__ for name in outcomes}
 
-        self.assert_contract(outcomes, expected, KNOWN_BROKEN_RAISE)
+        self.assert_contract(outcomes, expected)
 
     def test_default_returns_none(self):
         outcomes = asyncio.run(call_with_not_found(raise_on_err=False))
         expected = {name: HTTPNotFoundError.__name__ if name in RAISES_BY_DEFAULT else 'None' for name in outcomes}
 
-        self.assert_contract(outcomes, expected, KNOWN_BROKEN_DEFAULT)
+        self.assert_contract(outcomes, expected)
 
 
 if __name__ == '__main__':

@@ -310,7 +310,7 @@ class TestAsyncDRACOONClient(unittest.IsolatedAsyncioTestCase):
         node_mock = respx.get(f'{BASE_URL}/api/v4/nodes/2').mock(side_effect=[httpx.Response(429), httpx.Response(200, json=self.node_json)])
         nodes = DRACOONNodes(self.client)
 
-        with patch.object(DRACOONNodes.get_node.retry, 'wait', wait_none()):
+        with patch.object(DRACOONClient._send_with_retry.retry, 'wait', wait_none()):
             node = await nodes.get_node(node_id=2)
 
         assert node.id == 2
@@ -324,7 +324,7 @@ class TestAsyncDRACOONClient(unittest.IsolatedAsyncioTestCase):
         node_mock = respx.get(f'{BASE_URL}/api/v4/nodes/2').respond(500)
         nodes = DRACOONNodes(self.client)
 
-        with patch.object(DRACOONNodes.get_node.retry, 'wait', wait_none()):
+        with patch.object(DRACOONClient._send_with_retry.retry, 'wait', wait_none()):
             with self.assertRaises(HTTPUnknownError):
                 await nodes.get_node(node_id=2)
 
