@@ -477,18 +477,10 @@ class DRACOONNodes:
         
         node = await self.complete_upload(upload_channel=upload_channel, payload=complete_upload, raise_on_err=raise_on_err)
 
-        await self._distribute_missing_file_keys(file_id=node.id, plain_keypair=plain_keypair)
-             
-        return node
-    
-    async def _distribute_missing_file_keys(self, file_id: int, plain_keypair: PlainUserKeyPairContainer) -> None:
-        """ set missing file keys of a file for all users with access (all pages) """
-        file_key_items = []
-        offset = 0
+        missing_keys = await self.get_missing_file_keys(file_id=node.id, limit=FILE_KEY_LIMIT)
 
-        # collect all pages first - setting keys changes the list of missing keys
-        while True:
-            missing_keys = await self.get_missing_file_keys(file_id=file_id, offset=offset, limit=FILE_KEY_LIMIT)
+        if missing_keys.range.total > 0:
+            keys = self.make_set_file_keys(file_key_list=[])
 
             for key in missing_keys.items:
                 # get file key
@@ -504,16 +496,14 @@ class DRACOONNodes:
 
                 user_file_key = encrypt_file_key_public(plain_file_key=plain_file_key, public_key=public_key)
 
-                file_key_items.append(self.make_set_file_key_item(file_id=key.fileId, user_id=key.userId, file_key=user_file_key))
+                file_key_item = self.make_set_file_key_item(file_id=key.fileId, user_id=key.userId, file_key=user_file_key)
 
-            offset += len(missing_keys.items)
-            if not missing_keys.items or offset >= missing_keys.range.total:
-                break
-
-        for index in range(0, len(file_key_items), FILE_KEY_LIMIT):
-            keys = self.make_set_file_keys(file_key_list=file_key_items[index:index + FILE_KEY_LIMIT])
+                keys.items.append(file_key_item)
+                    
             await self.set_file_keys(file_keys=keys)
-
+             
+        return node
+    
     def make_upload_complete(self, resolution_strategy: str = 'autorename', keep_shares: bool = False,
                              file_name: str = None, file_key: FileKey = None) -> CompleteUpload:
         
@@ -840,7 +830,32 @@ class DRACOONNodes:
         while True:
             upload_status = await self.check_s3_upload(upload_id=upload_channel.uploadId, raise_on_err=raise_on_err)
             if upload_status.status == S3Status.done.value:
-                await self._distribute_missing_file_keys(file_id=upload_status.node.id, plain_keypair=plain_keypair)
+                missing_keys = await self.get_missing_file_keys(file_id=upload_status.node.id, limit=FILE_KEY_LIMIT)
+
+                if missing_keys.range.total == 0:
+                    break
+
+                keys = self.make_set_file_keys(file_key_list=[])
+
+                for key in missing_keys.items:
+                    # get file key
+                    for file_item in missing_keys.files:
+                        if key.fileId == file_item.id:
+                            file_key = file_item.fileKeyContainer
+                            plain_file_key = decrypt_file_key(file_key=file_key, keypair=plain_keypair)
+
+                    # add requests per user 
+                    for user in missing_keys.users:
+                        if key.userId == user.id:
+                            public_key = user.publicKeyContainer
+
+                    user_file_key = encrypt_file_key_public(plain_file_key=plain_file_key, public_key=public_key)
+
+                    file_key_item = self.make_set_file_key_item(file_id=key.fileId, user_id=key.userId, file_key=user_file_key)
+
+                    keys.items.append(file_key_item)
+                
+                await self.set_file_keys(file_keys=keys)
 
                 break
             if upload_status.status == S3Status.error.value:
