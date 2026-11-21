@@ -11,26 +11,47 @@ The client implements all login and logout procedures and is part of every API a
 import base64 
 import asyncio
 import logging
+import urllib.parse
 
 from datetime import datetime
+from importlib import metadata
+from typing import Optional, Set
 
 import httpx
-from tenacity import retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from dracoon.client.models import DRACOONConnection, OAuth2ConnectionType, ProxyConfig, RetryConfig
 from dracoon.errors import (HTTPTooManyRequestsError, MissingCredentialsError, HTTPBadRequestError, HTTPUnauthorizedError, 
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
-                            HTTPUnknownError, HTTPServerError, ConnectionError)
+                            HTTPUnknownError, HTTPServerError, ConnectionError, DRACOONHttpError)
 
 # constants for client config
-USER_AGENT = 'dracoon-python-1.13.0'
+try:
+    DRACOON_PYTHON_VERSION = metadata.version('dracoon')
+except metadata.PackageNotFoundError:
+    DRACOON_PYTHON_VERSION = 'unknown'
+USER_AGENT = f'dracoon-python-{DRACOON_PYTHON_VERSION}'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=30, read=30)
+# HTTP 500 (HTTPUnknownError) is deliberately not retried: DRACOON responds with 500 under load (e.g. large DB queries) - retries make it worse
 RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type((HTTPTooManyRequestsError, HTTPServerError, ConnectionError)),
                            stop=stop_after_attempt(5),
                            wait=wait_exponential(multiplier=1.2, min=5, max=15),
                            reraise=True
                            )
 RETRY_CONFIG = RETRY_CONFIG_BASE.model_dump()
+CONNECTION_RETRIES = 5
+
+
+def make_transport_config(proxy_config: ProxyConfig = None) -> dict:
+    """ httpx client transport config with retries on connection errors and optional proxy (single url or dict of url patterns) """
+    if proxy_config is None or isinstance(proxy_config, str):
+        return {"transport": httpx.AsyncHTTPTransport(retries=CONNECTION_RETRIES, proxy=proxy_config)}
+
+    return {
+        "transport": httpx.AsyncHTTPTransport(retries=CONNECTION_RETRIES),
+        "mounts": {pattern: httpx.AsyncHTTPTransport(retries=CONNECTION_RETRIES, proxy=proxy_url)
+                   for pattern, proxy_url in proxy_config.items()}
+    }
 
 
 class DRACOONClient:
@@ -48,21 +69,20 @@ class DRACOONClient:
                  raise_on_err: bool = False, proxy_config: ProxyConfig = None):
         """ client is initialized with DRACOON instance details (url and OAuth client credentials) """
         
-        # custom transport for retries on connection errors
-        DEFAULT_HTTPX_TRANSPORT = httpx.AsyncHTTPTransport(retries=5)
-        
         self.base_url = base_url
         self.client_id = client_id
         self.client_secret = client_secret
-        self.http = httpx.AsyncClient(headers=self.headers, timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config, transport=DEFAULT_HTTPX_TRANSPORT)
-        self.uploader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config, transport=DEFAULT_HTTPX_TRANSPORT)
-        self.downloader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config, transport=DEFAULT_HTTPX_TRANSPORT)
+        # custom transport(s) for retries on connection errors and proxy support
+        self.http = httpx.AsyncClient(headers=self.headers, timeout=DEFAULT_TIMEOUT_CONFIG, **make_transport_config(proxy_config))
+        self.uploader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, **make_transport_config(proxy_config))
+        self.downloader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, **make_transport_config(proxy_config))
         self.connected = False
         if redirect_uri:
             self.redirect_uri = redirect_uri
         else:
             self.redirect_uri = f"{self.base_url}/oauth/callback"
         self.connection: DRACOONConnection = None
+        self.refresh_lock = asyncio.Lock()
         self.raise_on_err = raise_on_err
         self.logger = logging.getLogger('dracoon.client')
         self.logger.info("DRACOON client created.")
@@ -98,7 +118,7 @@ class DRACOONClient:
         self.logger.debug("Establishing DRACOON connection...")
         
         # handle missing credentials for password flow
-        if connection_type == OAuth2ConnectionType.password_flow and username is None and password is None:
+        if connection_type == OAuth2ConnectionType.password_flow and (username is None or password is None):
             await self.disconnect()
             self.logger.error("Missing credentials for OAuth2 password flow.")
             raise MissingCredentialsError(message='Username and password are mandatory for OAuth2 password flow.')
@@ -163,31 +183,39 @@ class DRACOONClient:
 
         # TODO: refactor to own _method
         if connection_type == OAuth2ConnectionType.refresh_token:
+
+            # serialize refreshes - concurrent requests with an expired token would otherwise all refresh (and invalidate) the token
+            connection = self.connection
+            async with self.refresh_lock:
+
+                # token already refreshed by another request while waiting
+                if refresh_token is None and self.connection is not None and self.connection is not connection:
+                    return self.connection
             
-            # only use connection refresh token if no token is provided
-            if self.connection and refresh_token is None:
-                refresh_token = self.connection.refresh_token
-            # raise if no connection and no token provided
-            if refresh_token is None:
-                await self.disconnect()
-                raise MissingCredentialsError(message='Missing refresh token.')
+                # only use connection refresh token if no token is provided
+                if self.connection and refresh_token is None:
+                    refresh_token = self.connection.refresh_token
+                # raise if no connection and no token provided
+                if refresh_token is None:
+                    await self.disconnect()
+                    raise MissingCredentialsError(message='Missing refresh token.')
 
-            data = {'grant_type': 'refresh_token', 'refresh_token': refresh_token, 'client_id': self.client_id, 'client_secret': self.client_secret}
+                data = {'grant_type': 'refresh_token', 'refresh_token': refresh_token, 'client_id': self.client_id, 'client_secret': self.client_secret}
 
-            try:
-                res = await self.http.post(url=token_url, data=data)
-                res.raise_for_status()
-            except httpx.RequestError as e:
-                await self.handle_connection_error(e)
+                try:
+                    res = await self.http.post(url=token_url, data=data)
+                    res.raise_for_status()
+                except httpx.RequestError as e:
+                    await self.handle_connection_error(e)
 
-            except httpx.HTTPStatusError as e:
-                self.logger.debug("Login error: %s", e.response.text)
-                self.logger.error("Refresh token authentication failed.")
-                await self.handle_http_error(e, True)
+                except httpx.HTTPStatusError as e:
+                    self.logger.debug("Login error: %s", e.response.text)
+                    self.logger.error("Refresh token authentication failed.")
+                    await self.handle_http_error(e, True)
 
 
-            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in"],
-                                         res.json()["refresh_token"])
+                self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in"],
+                                             res.json()["refresh_token"])
 
         self.connected = True
         self.http.headers["Authorization"] = "Bearer " + self.connection.access_token
@@ -203,7 +231,9 @@ class DRACOONClient:
     def get_code_url(self):
         """ builds OAuth authorization code url to visit – requires OAuth app to use redirect uri ($host/oauth/callback or custom uri) """
         # generate URL string for OAuth auth code flow
-        return self.base_url + f'/oauth/authorize?branding=full&response_type=code&client_id={self.client_id}&redirect_uri={self.redirect_uri}&scope=all'
+        params = urllib.parse.urlencode({'branding': 'full', 'response_type': 'code', 'client_id': self.client_id,
+                                         'redirect_uri': self.redirect_uri, 'scope': 'all'})
+        return self.base_url + f'/oauth/authorize?{params}'
 
 
     async def logout(self, revoke_refresh_token: bool = False):
@@ -235,7 +265,7 @@ class DRACOONClient:
 
         if not test and self.connection:
             now = datetime.now()
-            return (now - self.connection.connected_at).seconds < self.connection.access_token_validity
+            return (now - self.connection.connected_at).total_seconds() < self.connection.access_token_validity
         elif test and self.connection:
             return await self.test_connection()
         else:
@@ -303,6 +333,48 @@ class DRACOONClient:
             await self.disconnect()
         raise err
 
+    async def ensure_valid_token(self) -> None:
+        """ refresh an expired access token (no-op without connection, e.g. public endpoints) """
+        if self.connection and not await self.test_connection():
+            await self.connect(OAuth2ConnectionType.refresh_token)
+
+    async def request(self, method: str, url: str, raise_on_err: bool = False, expected_status: Set[int] = None,
+                      http_client: httpx.AsyncClient = None, **kwargs) -> Optional[httpx.Response]:
+        """ 
+        send a request: refreshes an expired token, retries transient errors (429, 502-504, connection errors)
+        and maps HTTP errors to DRACOONHttpError subclasses
+        HTTP errors are raised with raise_on_err (method or client), otherwise logged and None is returned
+        connection errors are always raised
+        """
+        try:
+            return await self._send_with_retry(method, url, expected_status=expected_status, http_client=http_client, **kwargs)
+        except DRACOONHttpError as err:
+            if raise_on_err or self.raise_on_err:
+                raise
+            self.logger.error("Request failed: %s %s (%s)", method, err.error.request.url.path, err.error.response.status_code)
+            return None
+
+    @retry(**RETRY_CONFIG)
+    async def _send_with_retry(self, method: str, url: str, expected_status: Set[int] = None, http_client: httpx.AsyncClient = None,
+                               **kwargs) -> httpx.Response:
+        """ single request attempt - raises typed errors (retried if transient) """
+        await self.ensure_valid_token()
+
+        if http_client is None:
+            http_client = self.http
+
+        try:
+            res = await http_client.request(method, url, **kwargs)
+        except httpx.RequestError as e:
+            await self.handle_connection_error(e)
+
+        if res.is_error and res.status_code not in (expected_status or set()):
+            self.logger.debug("HTTP request failed: %s", res.status_code)
+            self.logger.debug("%s", res.text)
+            self.raise_http_error(err=httpx.HTTPStatusError(f'HTTP {res.status_code}', request=res.request, response=res))
+
+        return res
+
     def raise_http_error(self, err: httpx.HTTPStatusError):
         """ raise error based on http status code """
         
@@ -322,6 +394,7 @@ class DRACOONClient:
             raise HTTPPreconditionsFailedError(error=err)
         if err.response.status_code == 429:
             raise HTTPTooManyRequestsError(error=err)
+        # 500 is not an HTTPServerError on purpose - not retried (see RETRY_CONFIG_BASE)
         if err.response.status_code == 500:
             raise HTTPUnknownError(error=err)
         if err.response.status_code > 500 and err.response.status_code < 600:

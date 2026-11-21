@@ -7,7 +7,6 @@ Add missing users of domain to group
 from dracoon import DRACOON
 import asyncio
 
-from dracoon.user.responses import UserItem
 
 async def main():
     baseURL = 'https://dracoon.team'

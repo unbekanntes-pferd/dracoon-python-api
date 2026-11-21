@@ -1,6 +1,7 @@
 import unittest
 import sys
 from dracoon import crypto
+from dracoon.errors import CryptoMissingDataError
 from dracoon.crypto.models import FileKey, FileKeyVersion, PlainFileKey, PlainFileKeyVersion, PlainUserKeyPairContainer, UserKeyPairContainer, UserKeyPairVersion
 
 class TestDRACOONCrypto(unittest.TestCase):
@@ -187,7 +188,19 @@ class TestDRACOONCrypto(unittest.TestCase):
 
         self.assertIsInstance(decrypted_key_2048, PlainFileKey)
         self.assertIsInstance(decrypted_key_4096, PlainFileKey)
-        
+
+    def test_encryption_missing_data(self):
+
+        with self.assertRaises(CryptoMissingDataError):
+            crypto.encrypt_bytes(plain_data=None, plain_file_key=crypto.create_file_key())
+
+    def test_encryption_empty_data(self):
+        # empty files (0 bytes) must be encryptable
+        enc_bytes, plain_file_key = crypto.encrypt_bytes(plain_data=b'', plain_file_key=crypto.create_file_key())
+
+        self.assertEqual(enc_bytes, b'')
+        self.assertEqual(crypto.decrypt_bytes(enc_data=enc_bytes, plain_file_key=plain_file_key), b'')
+
 
 if __name__ == '__main__':
     unittest.main()

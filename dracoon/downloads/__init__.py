@@ -51,7 +51,7 @@ class DRACOONDownloads:
                 self.raise_on_err = False
 
         else:
-            self.dracoon.logger.critical("DRACOON client not connected.")
+            self.logger.critical("DRACOON client not connected.")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
     
@@ -105,22 +105,22 @@ class DRACOONDownloads:
         self.logger.debug("Using chunksize: %s", chunksize)
             
         try:             
-            file_out = open(file_path, 'wb')
+            with open(file_path, 'wb') as file_out:
                 
-            async with self.dracoon.downloader.stream(method='GET', url=download_url) as res:
-                res.raise_for_status()
-                async for chunk in res.aiter_bytes(chunksize):
-                    file_out.write(chunk)
-                    if callback_fn: callback_fn(len(chunk))
+                async with self.dracoon.downloader.stream(method='GET', url=download_url) as res:
+                    res.raise_for_status()
+                    async for chunk in res.aiter_bytes(chunksize):
+                        file_out.write(chunk)
+                        if callback_fn: callback_fn(len(chunk))
                                         
         except httpx.RequestError as e:
             os.remove(file_path)
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
             os.remove(file_path)
+            self.logger.error("Download failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err, is_xml=True, debug_content=False)
-        finally:
-            if file_out: file_out.close()
+            return None
            
         self.logger.info("Download completed.")
             
@@ -146,22 +146,22 @@ class DRACOONDownloads:
             file_name = node_info.name
   
         folder = Path(target_path)
+
+        if not folder.is_dir():
+            self.logger.critical("Target path is not a folder.")
+            err = InvalidPathError(f'A folder needs to be provided. {target_path} is not a folder.')
+            await self.dracoon.handle_generic_error(err=err)
+
+        end_file = folder.joinpath(file_name)
+
+        if self.check_file_exists(end_file):
+            self.logger.critical("File already exists: %s", end_file)
+            err = FileConflictError(message='File already exists.')
+            await self.dracoon.handle_generic_error(err=err)
         
         tmp_filename = self.generate_temporary_filename()
             
         file_path = folder.joinpath(tmp_filename)
-            
-        if self.check_file_exists(file_path):
-            await self.dracoon.logout()
-            self.logger.critical("File already exists: %s", file_path)
-            err = FileConflictError(message='File already exists.')
-            await self.dracoon.handle_generic_error(err=err)
-
-        if not folder.is_dir():
-            await self.dracoon.logout()
-            self.logger.critical("Target path is not a folder.")
-            err = InvalidPathError(f'A file needs to be provided. {target_path} is not a folder.')
-            await self.dracoon.handle_generic_error(err=err)
         
         size = node_info.size
 
@@ -180,17 +180,16 @@ class DRACOONDownloads:
                     res.raise_for_status()
                 
                     # decrypt file and then write to disk
-                    async for chunk in res.aiter_bytes(chunksize):            
+                    async for chunk in res.aiter_bytes(chunksize):
                         plain_chunk = decryptor.decode_bytes(chunk)
                         file_out.write(plain_chunk)
                         if callback_fn: callback_fn(len(chunk))
-                            
-                            # finalize encryption after last chunk
-                        if not chunk:
-                            last_data = decryptor.finalize()
-                            file_out.write(last_data)
-                                        
-                        self.logger.info("Download completed.")
+
+                # finalize decryption after last chunk (verifies GCM tag - raises InvalidTag on mismatch)
+                last_data = decryptor.finalize()
+                file_out.write(last_data)
+
+            self.logger.info("Download completed.")
         except InvalidTag:
             # remove unverified decrypted bytes
             os.remove(file_path)
@@ -200,10 +199,10 @@ class DRACOONDownloads:
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
             os.remove(file_path)
+            self.logger.error("Download failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err, is_xml=True, debug_content=False)
-   
-        end_file = folder.joinpath(file_name)
-            
+            return None
+
         file_path.rename(end_file)
             
     def generate_temporary_filename(self) -> str:

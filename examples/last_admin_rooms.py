@@ -4,14 +4,11 @@
 
 """
 
-import argparse
-import sys
 from typing import List
 from dracoon import DRACOON, OAuth2ConnectionType
 import asyncio
 import csv
 
-from dracoon.eventlog.responses import AuditNodeInfo, AuditNodeResponse, AuditUserPermission
 
 # client_id = 'XXXXXXXXXXXXXXXX'
 # client_secret = 'XXXXXXXXXXXXXXXX'
@@ -62,7 +59,6 @@ async def main():
     for managers in all_room_managers:
         if len(managers.auditUserPermissionList) ==1:
             for user in managers.auditUserPermissionList:
-                parentId = managers.nodeParentId
                 parentNodePath = managers.nodeParentPath
 
                 room_list = []

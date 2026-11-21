@@ -7,13 +7,11 @@ Documentation: https://dracoon.team/api/swagger-ui/index.html?configUrl=/api/spe
 
 """
 
-from typing import List
-import httpx
+from typing import List, Optional
 import logging
 import urllib.parse
-from tenacity import retry
 
-from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
+from dracoon.client import DRACOONClient
 from dracoon.crypto.models import FileKey, UserKeyPairContainer
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .models import CreateFileRequest, CreateShare, Expiration, SendShare, UpdateFileRequest, UpdateFileRequests, UpdateShare, UpdateShares
@@ -50,12 +48,8 @@ class DRACOONShares:
             self.logger.error("DRACOON client error: no connection. ")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
-    @retry(**RETRY_CONFIG)
-    async def get_shares(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> DownloadShareList:
+    async def get_shares(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> Optional[DownloadShareList]:
         """ list (all) shares visible as authenticated user """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
         
@@ -66,40 +60,29 @@ class DRACOONShares:
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 
 
-        try:
-            res = await self.dracoon.http.get(api_url)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Getting shares failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved shares.")
         return DownloadShareList(**res.json())
 
-    @retry(**RETRY_CONFIG)
-    async def create_share(self, share: CreateShare, raise_on_err: bool = False) -> DownloadShare:
+    async def create_share(self, share: CreateShare, raise_on_err: bool = False) -> Optional[DownloadShare]:
         """ create a new share """
         payload = share.model_dump(exclude_unset=True)
-
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/downloads'
+        api_url = self.api_url + '/downloads'
 
-        try:
-            res = await self.dracoon.http.post(api_url, json=payload)
+        res = await self.dracoon.request('POST', api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Creating share failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
 
         self.logger.info("Created share.")
         return DownloadShare(**res.json())
@@ -127,90 +110,67 @@ class DRACOONShares:
 
         return CreateShare(**share)
 
-    @retry(**RETRY_CONFIG)
     async def delete_shares(self, share_list: List[int], raise_on_err: bool = False) -> None:
         """ delete a list of shares (by ids) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
         payload = {
             "shareIds": share_list
         }
-        api_url = self.api_url + f'/downloads'
+        api_url = self.api_url + '/downloads'
 
-        try:
-            res = await self.dracoon.http.request(method='DELETE', url=api_url, json=payload, headers=self.dracoon.http.headers)
+        res = await self.dracoon.request('DELETE', url=api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Deleting shares failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Deleted share.")
         return None
 
-    @retry(**RETRY_CONFIG)
-    async def get_share(self, share_id: int, raise_on_err: bool = False) -> DownloadShare:
+    async def get_share(self, share_id: int, raise_on_err: bool = False) -> Optional[DownloadShare]:
         """ get information of a specific share (by id) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
         api_url = self.api_url + f'/downloads/{str(share_id)}'
 
-        try:
-            res = await self.dracoon.http.get(api_url)
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Getting share failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved share.")
         return DownloadShare(**res.json())
 
-    @retry(**RETRY_CONFIG)
     async def update_shares(self, shares_update: UpdateShares, raise_on_err: bool = False) -> None:
         """ bulk update specific shares (by ids) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/downloads'
+        api_url = self.api_url + '/downloads'
 
         payload = shares_update.model_dump(exclude_unset=True)
 
-        try:
-            res = await self.dracoon.http.put(url=api_url, json=payload)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('PUT', url=api_url, json=payload, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Updating shares failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Updated shares.")
         return None
     
     def make_shares_update(self, shares_list = List[int], expiration: Expiration = None, 
                           show_creator_name: bool = None, show_creator_login: bool = None, 
-                          max_downloads: int = None, reset_max_downloads: bool = True) -> UpdateShares:
+                          max_downloads: int = None, reset_max_downloads: bool = None) -> UpdateShares:
 
         """ make a shares update payload required for update_shares() """
         shares_update = {
 
-            "objetIds": shares_list
+            "objectIds": shares_list
 
             }
 
@@ -250,12 +210,8 @@ class DRACOONShares:
 
 
 
-    @retry(**RETRY_CONFIG)
-    async def update_share(self, share_id: int, share_update: UpdateShare, raise_on_err: bool = False) -> DownloadShare:
+    async def update_share(self, share_id: int, share_update: UpdateShare, raise_on_err: bool = False) -> Optional[DownloadShare]:
         """ update a specific share (by id) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
@@ -263,76 +219,52 @@ class DRACOONShares:
 
         payload = share_update.model_dump(exclude_unset=True)
 
-        try:
-            res = await self.dracoon.http.put(url=api_url, json=payload)
+        res = await self.dracoon.request('PUT', url=api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Updating share failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
 
         self.logger.info("Updated share.")
         return DownloadShare(**res.json())
 
-    @retry(**RETRY_CONFIG)
     async def delete_share(self, share_id: int, raise_on_err: bool = False) -> None:
         """ delete a specific share (by id) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
         api_url = self.api_url + f'/downloads/{str(share_id)}'
 
-        try:
-            res = await self.dracoon.http.delete(api_url)
+        res = await self.dracoon.request('DELETE', api_url, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Deleting share failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Deleted share.")
         return None
 
-    @retry(**RETRY_CONFIG)
     async def mail_share(self, share_id: int, send_share: SendShare, raise_on_err: bool = False) -> None:
         """ send a specific share via email (by id) """
         payload = send_share.model_dump(exclude_unset=True)
-
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         if self.raise_on_err:
             raise_on_err = True
 
         api_url = self.api_url + f'/downloads/{str(share_id)}/email'
 
-        try:
-            res = await self.dracoon.http.post(api_url, json=payload)
+        res = await self.dracoon.request('POST', api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Mailing share failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Mailed share.")
         return None
 
 
-    @retry(**RETRY_CONFIG)
-    async def get_file_requests(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> UploadShareList:
+    async def get_file_requests(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> Optional[UploadShareList]:
         """ list all file requests visible as authenticated user """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
         
@@ -343,41 +275,29 @@ class DRACOONShares:
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 
 
-        try:
-            res = await self.dracoon.http.get(api_url)
-          
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Getting file request failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved file requests.")
         return UploadShareList(**res.json())
 
-    @retry(**RETRY_CONFIG)
-    async def create_file_request(self, file_request: CreateFileRequest, raise_on_err: bool = False) -> UploadShare:
+    async def create_file_request(self, file_request: CreateFileRequest, raise_on_err: bool = False) -> Optional[UploadShare]:
         """ create a new file request """
         payload = file_request.model_dump(exclude_unset=True)
-
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/uploads'
+        api_url = self.api_url + '/uploads'
 
-        try:
-            res = await self.dracoon.http.post(api_url, json=payload)
+        res = await self.dracoon.request('POST', api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Creating file request failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Created file request.")
         return UploadShare(**res.json())
@@ -393,105 +313,81 @@ class DRACOONShares:
         if name: file_request["name"] = name
         if password: file_request["password"] = password
         if expiration: file_request["expiration"] = expiration
-        if file_expiration: file_request["fileExpiryPeriod"] = file_expiration
+        if file_expiration: file_request["filesExpiryPeriod"] = file_expiration
         if notes: file_request["notes"] = notes
         if internal_notes: file_request["internalNotes"] = internal_notes
         if show_creator is not None: file_request["showCreatorName"] = show_creator
         if show_creator_login is not None: file_request["showCreatorUsername"] = show_creator_login
         if max_slots: file_request["maxSlots"] = max_slots
         if max_size: file_request["maxSize"] = max_size
-        if language: file_request["receiverLangauge"] = language
+        if language: file_request["receiverLanguage"] = language
         if show_uploaded_files is not None: file_request["showUploadedFiles"] = show_uploaded_files
         if sms_recipients: file_request["textMessageRecipients"] = sms_recipients
 
         return CreateFileRequest(**file_request)
 
-    @retry(**RETRY_CONFIG)
     async def delete_file_requests(self, file_request_list: List[int], raise_on_err: bool = False) -> None:
         """ delete a list of shares (by ids) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
         payload = {
             "shareIds": file_request_list
         }
-        api_url = self.api_url + f'/uploads'
+        api_url = self.api_url + '/uploads'
 
-        try:
-            res = await self.dracoon.http.request(method='DELETE', url=api_url, json=payload, headers=self.dracoon.http.headers)
+        res = await self.dracoon.request('DELETE', url=api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Deleting file requests failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Deleted file requests.")
         return None
 
-    @retry(**RETRY_CONFIG)
-    async def get_file_request(self, file_request_id: int, raise_on_err: bool = False) -> UploadShare:
+    async def get_file_request(self, file_request_id: int, raise_on_err: bool = False) -> Optional[UploadShare]:
         """ get information of a specific file request (by id) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
         api_url = self.api_url + f'/uploads/{str(file_request_id)}'
 
-        try:
-            res = await self.dracoon.http.get(api_url)
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Getting file request failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved file request.")
         return UploadShare(**res.json())
 
-    @retry(**RETRY_CONFIG)
     async def update_file_requests(self, file_requests_update: UpdateFileRequests, raise_on_err: bool = False) -> None:
         """ bulk update specifics file requests (by ids) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/uploads'
+        api_url = self.api_url + '/uploads'
 
         payload = file_requests_update.model_dump(exclude_unset=True)
 
-        try:
-            res = await self.dracoon.http.put(url=api_url, json=payload)
+        res = await self.dracoon.request('PUT', url=api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Updating file requests failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Updated file request.")
         return None
 
     def make_file_requests_update(self, file_requests_list = List[int], expiration: Expiration = None, file_expiration: int = None,
                           show_creator_name: bool = None, show_creator_login: bool = None, 
-                          max_slots: int = None, max_size: int = None, show_uploaded_files: bool = None, reset_max_size: bool = True, 
+                          max_slots: int = None, max_size: int = None, show_uploaded_files: bool = None, reset_max_size: bool = None, 
                           reset_max_slots: bool = None, reset_file_expiration: bool = None, raise_on_err: bool = False) -> UpdateFileRequests:
 
         """ make a file_requests update payload required for update_file_requests() """
         file_requests_update = {
 
-            "objetIds": file_requests_list
+            "objectIds": file_requests_list
 
             }
 
@@ -502,8 +398,8 @@ class DRACOONShares:
         if show_creator_name is not None: file_requests_update["showCreatorName"] = show_creator_name
         if max_slots: file_requests_update["maxSlots"] = max_slots
         if max_size: file_requests_update["maxSize"] = max_size
-        if reset_max_slots is not None: file_requests_update["resetSlots"] = reset_max_slots
-        if reset_max_size is not None: file_requests_update["resetSize"] = reset_max_size
+        if reset_max_slots is not None: file_requests_update["resetMaxSlots"] = reset_max_slots
+        if reset_max_size is not None: file_requests_update["resetMaxSize"] = reset_max_size
         if show_uploaded_files is not None: file_requests_update["showUploadedFiles"] = show_uploaded_files
 
         return UpdateFileRequests(**file_requests_update)
@@ -526,20 +422,16 @@ class DRACOONShares:
         if show_creator_login is not None: file_request["showCreatorUsername"] = show_creator_login
         if max_slots: file_request["maxSlots"] = max_slots
         if max_size: file_request["maxSize"] = max_size
-        if reset_max_slots is not None: file_request["resetSlots"] = reset_max_slots
-        if reset_max_size is not None: file_request["resetSize"] = reset_max_size
-        if language: file_request["receiverLangauge"] = language
+        if reset_max_slots is not None: file_request["resetMaxSlots"] = reset_max_slots
+        if reset_max_size is not None: file_request["resetMaxSize"] = reset_max_size
+        if language: file_request["receiverLanguage"] = language
         if show_uploaded_files is not None: file_request["showUploadedFiles"] = show_uploaded_files
         if sms_recipients: file_request["textMessageRecipients"] = sms_recipients
 
         return UpdateFileRequest(**file_request)
 
-    @retry(**RETRY_CONFIG)
-    async def update_file_request(self, file_request_id: int, file_request_update: UpdateFileRequest, raise_on_err: bool = False) -> UploadShare:
+    async def update_file_request(self, file_request_id: int, file_request_update: UpdateFileRequest, raise_on_err: bool = False) -> Optional[UploadShare]:
         """ update a specific file request (by id) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
@@ -547,65 +439,45 @@ class DRACOONShares:
 
         payload = file_request_update.model_dump(exclude_unset=True)
 
-        try:
-            res = await self.dracoon.http.put(url=api_url, json=payload)
+        res = await self.dracoon.request('PUT', url=api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Updating file request failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Updated file request.")
         return UploadShare(**res.json())
 
-    @retry(**RETRY_CONFIG)
     async def delete_file_request(self, file_request_id: int, raise_on_err: bool = False) -> None:
         """ delete a specific file request (by id) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
         api_url = self.api_url + f'/uploads/{str(file_request_id)}'
 
-        try:
-            res = await self.dracoon.http.delete(api_url)
+        res = await self.dracoon.request('DELETE', api_url, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Deleting file request failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Deleted file request.")
         return None
 
-    @retry(**RETRY_CONFIG)
     async def mail_file_request(self, file_request_id: int, send_file_request: SendShare, raise_on_err: bool = False) -> None:
         """ send a specific file request via email (by id) """
         payload = send_file_request.model_dump(exclude_unset=True)
-
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         if self.raise_on_err:
             raise_on_err = True
 
         api_url = self.api_url + f'/uploads/{str(file_request_id)}/email'
 
-        try:
-            res = await self.dracoon.http.post(api_url, json=payload)
+        res = await self.dracoon.request('POST', api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Mailing file request failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Mailed file request.")
         return None

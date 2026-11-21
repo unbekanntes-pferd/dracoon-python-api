@@ -213,7 +213,7 @@ async def test_main():
     await converter.connect(username=username, password=password)
     
     # remove users from potentially failed ops
-    await converter.unseed_users(auth_method='active_directory', name_pattern=f"test_user_")
+    await converter.unseed_users(auth_method='active_directory', name_pattern="test_user_")
     # create 3 AD users
     await converter.seed_users(count=3)
     # convert them to OIDC - optionally enforce or remove MFA

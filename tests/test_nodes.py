@@ -8,7 +8,7 @@ from datetime import datetime
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.nodes import DRACOONNodes
 from dracoon.nodes.models import NodeType
-from dracoon.crypto.models import FileKeyVersion
+from tests.adapter_harness import make_client
 
 CLIENT_ID = 'client_id'
 CLIENT_SECRET = 'client_secret'
@@ -464,13 +464,52 @@ class TestAsyncDRACOONNodes(unittest.IsolatedAsyncioTestCase):
         assert len(nodes.items) == 1
         node = nodes.items[0]
         self.assert_node(node)
-    
+
+    @respx.mock
+    async def test_get_node_from_path(self):
+        # path -> (search_string, parent path filter, depth_level)
+        cases = {
+            '/room/': ('room', 'parentPath:eq:/', '1'),
+            '/room/sub/': ('sub', 'parentPath:eq:/room/', '2'),
+            '/room/file.txt': ('file.txt', 'parentPath:eq:/room/', '2'),
+            '/a/b/c/my file.txt': ('my file.txt', 'parentPath:eq:/a/b/c/', '4'),
+        }
+        search_mock = respx.get(f'{BASE_URL}/api/v4/nodes/search').respond(200, json=self.nodes_json)
+        for path, (search_string, filter_str, depth_level) in cases.items():
+            with self.subTest(path=path):
+                node = await self.nodes.get_node_from_path(path=path)
+                params = search_mock.calls.last.request.url.params
+                assert params['search_string'] == search_string
+                assert params['filter'] == filter_str
+                assert params['depth_level'] == depth_level
+                self.assert_node(node)
+
+    @respx.mock
+    async def test_get_node_from_path_with_filter(self):
+        search_mock = respx.get(f'{BASE_URL}/api/v4/nodes/search').respond(200, json=self.nodes_json)
+        await self.nodes.get_node_from_path(path='/room/file.txt', filter='type:eq:file')
+        assert search_mock.calls.last.request.url.params['filter'] == 'parentPath:eq:/room/|type:eq:file'
+
+    @respx.mock
+    async def test_get_node_from_path_not_found(self):
+        respx.get(f'{BASE_URL}/api/v4/nodes/search').respond(200, json=self.search_empty_json)
+        node = await self.nodes.get_node_from_path(path='/room/missing.txt')
+        assert node is None
 
 
+class TestNodeMakers(unittest.TestCase):
+    """ payload makers must not drop fields (pydantic ignores unknown keys) """
 
-        
+    def setUp(self):
+        self.nodes = DRACOONNodes(make_client())
 
-
-
-
-    
+    def test_modification_dates(self):
+        payloads = [
+            self.nodes.make_folder(name='folder', parent_id=1, modified_date=DEFAULT_DATE),
+            self.nodes.make_folder_update(modified_date=DEFAULT_DATE),
+            self.nodes.make_room(name='room', modified_date=DEFAULT_DATE),
+            self.nodes.make_room_update(modified_date=DEFAULT_DATE),
+        ]
+        for payload in payloads:
+            with self.subTest(payload=type(payload).__name__):
+                self.assertIn('timestampModification', payload.model_dump(exclude_unset=True))

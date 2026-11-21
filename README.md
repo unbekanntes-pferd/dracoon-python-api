@@ -38,12 +38,12 @@ https://dracoon.team/api/
 
 ### Built With
 
-* [Python 3.9.0](https://www.python.org/)
+* [Python 3.10+](https://www.python.org/)
 * [httpx module](https://www.python-httpx.org/)
 * [cryptography](https://cryptography.io/en/latest/)
 * [pydantic](https://pydantic-docs.helpmanual.io/)
 
-[List all dependencies](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/requirements.txt)
+[List all dependencies](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/pyproject.toml)
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -95,7 +95,7 @@ You can additionally configure the logs for any script using the following optio
 * _log_stream_: default is set to False – when set to True, will output the logs to console / terminal (stderr)
 * _log_level_: default is set to logging.INFO – if required, can be changed to e.g. logging.DEBUG (this will contain senstive information e.g. names of created objects!). In order to use the log level, import logging module
 * _log_file_: default is set to './dracoon.log' (based on cwd of the running script!) – you can use any path with write access to log
-* _raise_on_err_: default is set to False – if set to True, any HTTP error (4xx or higher) will raise an error and stop the script / application
+* _raise_on_err_: default is set to False – if set to True, any HTTP error (4xx or higher) will raise an error and stop the script / application (see [Error handling](#error-handling))
 
 Full parameters:
 ```Python
@@ -494,6 +494,21 @@ dracoon = DRACOON(base_url=base_url, client_id=client_id, client_secret=client_s
 
 ```
 
+Without raise_on_err, a method returns `None` on an HTTP error and logs the error – check the result before using it:
+
+```Python
+
+user = await dracoon.users.get_user(user_id=1)
+if user is None:
+  print("User not found or not accessible")
+
+```
+
+Behaviour in both modes:
+* Transient errors are retried (up to 5 attempts): HTTP 429, 502, 503, 504 and connection errors. HTTP 500 is not retried.
+* Connection errors (`dracoon.errors.ConnectionError`) are always raised.
+* Uploads retry a failed chunk (or S3 part) only; on final failure the upload is cancelled and the error is raised.
+
 Example of catching errors:
 
 ```Python
@@ -520,6 +535,30 @@ _For examples, check out the example files:_<br>
 * [Set a new keypair](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/create_new_keypair.py)
 * [Upload file](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/upload.py)
 * [Download files](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/download.py)
+
+<!-- CONTRIBUTING -->
+## Contributing
+
+The project is managed with [uv](https://docs.astral.sh/uv/).
+
+```bash
+# install dependencies (incl. dev group) into .venv
+uv sync
+
+# run unit tests
+uv run pytest
+
+# lint
+uv run ruff check .
+
+# run E2E tests against a DRACOON instance (requires .env - see .env.example)
+# each run creates its own top level rooms and removes them afterwards - use a dedicated test user
+uv run pytest tests/e2e
+
+# build and publish
+uv build
+uv publish
+```
 
 <!-- ROADMAP -->
 ## Roadmap

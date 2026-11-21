@@ -1,15 +1,12 @@
 
 
 import logging
-from typing import List
-import httpx
-from tenacity import retry
+from typing import List, Optional
 
 from .responses import RoleGroupList, RoleUserList
 from .models import GroupIds, UserIds
 from dracoon.user.responses import RoleList
-from dracoon.client import RETRY_CONFIG, DRACOONClient
-from dracoon.client.models import OAuth2ConnectionType
+from dracoon.client import DRACOONClient
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
 
 
@@ -42,53 +39,35 @@ class DRACOONRoles:
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
         
         
-    @retry(**RETRY_CONFIG)
-    async def get_roles(self, raise_on_err: bool = False) -> RoleList:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
+    async def get_roles(self, raise_on_err: bool = False) -> Optional[RoleList]:
         if self.raise_on_err:
             raise_on_err = True
         
         api_url = self.api_url
 
-        try:
-            res = await self.dracoon.http.get(api_url)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Getting roles failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         return RoleList(**res.json())
 
-    @retry(**RETRY_CONFIG)
-    async def get_groups_with_role(self, role_id: int, raise_on_err: bool = False) -> RoleGroupList:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
+    async def get_groups_with_role(self, role_id: int, raise_on_err: bool = False) -> Optional[RoleGroupList]:
         if self.raise_on_err:
             raise_on_err = True
         
         api_url = self.api_url + '/' + str(role_id) + '/groups'
 
-        try:
-            res = await self.dracoon.http.get(api_url)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Getting roles failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         return RoleGroupList(**res.json())
 
-    @retry(**RETRY_CONFIG)
-    async def assign_groups_to_role(self, role_id: int, groups: GroupIds, raise_on_err: bool = False) -> RoleGroupList:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
+    async def assign_groups_to_role(self, role_id: int, groups: GroupIds, raise_on_err: bool = False) -> Optional[RoleGroupList]:
         if self.raise_on_err:
             raise_on_err = True
         
@@ -96,23 +75,16 @@ class DRACOONRoles:
         
         payload = groups.model_dump(exclude_unset=True)
 
-        try:
-            res = await self.dracoon.http.post(api_url, json=payload)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('POST', api_url, json=payload, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Assigning role failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         return RoleGroupList(**res.json())
         
 
-    @retry(**RETRY_CONFIG)
-    async def remove_groups_from_role(self, role_id: int, groups: GroupIds, raise_on_err: bool = False) -> RoleGroupList:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
+    async def remove_groups_from_role(self, role_id: int, groups: GroupIds, raise_on_err: bool = False) -> Optional[RoleGroupList]:
         if self.raise_on_err:
             raise_on_err = True
         
@@ -120,43 +92,29 @@ class DRACOONRoles:
         
         payload = groups.model_dump(exclude_unset=True)
 
-        try:
-            res = await self.dracoon.http.request(method='DELETE', url=api_url, json=payload, headers=self.dracoon.http.headers)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('DELETE', url=api_url, json=payload, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Assigning role failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         return RoleGroupList(**res.json())
             
-    @retry(**RETRY_CONFIG)
-    async def get_users_with_role(self, role_id: int, raise_on_err: bool = False) -> RoleUserList:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
+    async def get_users_with_role(self, role_id: int, raise_on_err: bool = False) -> Optional[RoleUserList]:
         if self.raise_on_err:
             raise_on_err = True
         
         api_url = self.api_url + '/' + str(role_id) + '/users'
 
-        try:
-            res = await self.dracoon.http.get(api_url)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Getting roles failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         return RoleUserList(**res.json())
 
-    @retry(**RETRY_CONFIG)
-    async def assign_users_to_role(self, role_id: int, users: UserIds, raise_on_err: bool = False) -> RoleUserList:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
+    async def assign_users_to_role(self, role_id: int, users: UserIds, raise_on_err: bool = False) -> Optional[RoleUserList]:
         if self.raise_on_err:
             raise_on_err = True
         
@@ -164,22 +122,15 @@ class DRACOONRoles:
         
         payload = users.model_dump(exclude_unset=True)
 
-        try:
-            res = await self.dracoon.http.post(api_url, json=payload)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('POST', api_url, json=payload, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Assigning role failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         return RoleUserList(**res.json())
 
-    @retry(**RETRY_CONFIG)
-    async def remove_users_from_role(self, role_id: int, users: UserIds, raise_on_err: bool = False) -> RoleUserList:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
+    async def remove_users_from_role(self, role_id: int, users: UserIds, raise_on_err: bool = False) -> Optional[RoleUserList]:
         if self.raise_on_err:
             raise_on_err = True
         
@@ -187,14 +138,11 @@ class DRACOONRoles:
         
         payload = users.model_dump(exclude_unset=True)
 
-        try:
-            res = await self.dracoon.http.request(method='DELETE', url=api_url, json=payload, headers=self.dracoon.http.headers)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('DELETE', url=api_url, json=payload, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Assigning role failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         return RoleUserList(**res.json())
     

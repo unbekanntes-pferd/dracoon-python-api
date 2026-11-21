@@ -11,15 +11,12 @@ Please note: maximum 500 items are returned in GET requests
 
 """
 
-
-from typing import List
-import httpx
+from typing import List, Optional
 import logging
 
 from datetime import datetime
-from tenacity import retry
 
-from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
+from dracoon.client import DRACOONClient
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .models import CreateReport, ReportFilter, ReportFormat, ReportSubType, ReportType
 from .responses import ReportList
@@ -55,28 +52,20 @@ class DRACOONReports:
                 message="DRACOON client must be connected: client.connect()"
             )
 
-    @retry(**RETRY_CONFIG)
     async def create_report(
         self, report: CreateReport, raise_on_err: bool = False
     ) -> None:
         """create a new report"""
         payload = report.model_dump(exclude_unset=True)
 
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
-        try:
-            res = await self.dracoon.http.post(self.api_url, json=payload)
+        res = await self.dracoon.request('POST', self.api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Creating report failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
 
         self.logger.info("Created report.")
         return None
@@ -132,7 +121,6 @@ class DRACOONReports:
 
         return ReportFilter(**filter)
 
-    @retry(**RETRY_CONFIG)
     async def get_reports(
         self,
         name: str = None,
@@ -145,11 +133,8 @@ class DRACOONReports:
         limit: int = None,
         sort: str = None,
         raise_on_err: bool = False,
-    ) -> ReportList:
+    ) -> Optional[ReportList]:
         """list (all) reports"""
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
@@ -171,68 +156,45 @@ class DRACOONReports:
         if state != None:
             api_url += f"&state={state}"
 
-        try:
-            res = await self.dracoon.http.get(self.api_url)
+        res = await self.dracoon.request('GET', self.api_url, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Getting reports failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
 
         self.logger.info("Retrieved reports.")
         return ReportList(**res.json())
 
-    @retry(**RETRY_CONFIG)
     async def delete_reports(
         self, report_list: List[int], raise_on_err: bool = False
     ) -> None:
         """delete a list of reports (by ids)"""
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
         payload = {"ids": report_list}
 
-        try:
-            res = await self.dracoon.http.request(
-                method="DELETE",
-                url=self.api_url,
-                json=payload,
-                headers=self.dracoon.http.headers,
-            )
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request("DELETE", self.api_url, json=payload, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Deleting reports failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
 
         self.logger.info("Deleted reports.")
         return None
 
-    @retry(**RETRY_CONFIG)
     async def delete_report(self, report_id: int, raise_on_err: bool = False) -> None:
         """delete a specific report (by id)"""
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
         api_url = self.api_url + f"/{str(report_id)}"
 
-        try:
-            res = await self.dracoon.http.delete(api_url)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('DELETE', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Deleting report failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
 
         self.logger.info("Deleted report.")
         return None

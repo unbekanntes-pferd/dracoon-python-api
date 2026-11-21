@@ -7,6 +7,7 @@ Example script showing the new async API: create rooms for users with given inte
 
 
 from dracoon import DRACOON
+from dracoon.nodes.models import UpdateRoomUsers
 import asyncio
 
 async def main():
@@ -21,7 +22,7 @@ async def main():
     print(dracoon.get_code_url())
     auth_code = input("Please enter auth code: ")
 
-    connection = await dracoon.connect(auth_code=auth_code)
+    await dracoon.connect(auth_code=auth_code)
     
     # filter for users with specific domain
     user_filter = 'isGranted:eq:any|user:cn:test_oct_'
@@ -63,7 +64,6 @@ async def main():
             if room.name == f"{user['user'].userInfo.id}_{user['user'].userInfo.firstName}_{user['user'].userInfo.lastName}":
                 user["hasRoom"] = True
 
-    room_tasks = []
         
     # create room for user if no room present
     for user in user_list:
@@ -89,14 +89,14 @@ async def main():
             in_res = dracoon.nodes.create_folder(in_folder)
             out_res = dracoon.nodes.create_folder(out_folder)
 
-            folders = await asyncio.gather(in_res, out_res)
+            await asyncio.gather(in_res, out_res)
             
             # remove admin perms for admin user
             no_perm = dracoon.nodes.make_permissions(False, False, False, False, False, False, False, False, False, False)
             perms_update = dracoon.nodes.make_permission_update(id=dracoon.user_info.id, permission=no_perm)
-            update = {"items": [perms_update]}
+            update = UpdateRoomUsers(items=[perms_update])
 
-            remove_perms = await dracoon.nodes.update_room_users(room_id=room_res.id, users_update=update)
+            await dracoon.nodes.update_room_users(room_id=room_res.id, users_update=update)
 
 
 if __name__ == '__main__':

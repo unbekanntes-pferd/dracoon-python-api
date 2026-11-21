@@ -88,14 +88,14 @@ class CreateFolder(BaseModel):
     name: str
     notes: Optional[str] = None
     timestampCreation: Optional[datetime] = None
-    timestampModificiation: Optional[datetime] = None
+    timestampModification: Optional[datetime] = None
 
 # required payload for PUT /nodes/folders/{folder_id}
 class UpdateFolder(BaseModel):
     name: Optional[str] = None
     notes: Optional[str] = None
     timestampCreation: Optional[str] = None
-    timestampModificiation: Optional[str] = None
+    timestampModification: Optional[str] = None
 
 # required payload for POST /nodes/rooms
 class CreateRoom(BaseModel):
@@ -111,7 +111,7 @@ class CreateRoom(BaseModel):
     adminIds: Optional[List[int]] = None
     classification: Optional[int] = None
     timestampCreation: Optional[str] = None
-    timestampModificiation: Optional[str] = None
+    timestampModification: Optional[str] = None
 
 # required payload for PUT /nodes/rooms/{room_id}
 class UpdateRoom(BaseModel):
@@ -119,7 +119,7 @@ class UpdateRoom(BaseModel):
     quota: Optional[int] = None
     notes: Optional[str] = None
     timestampCreation: Optional[str] = None
-    timestampModificiation: Optional[str] = None
+    timestampModification: Optional[str] = None
 
 # required payload for PUT /nodes/rooms/{room_id}/config
 class ConfigRoom(BaseModel):
@@ -313,7 +313,6 @@ class Callback(Protocol):
         
 class TransferJob:
     """ object representing a single transfer (up- / download) """
-    progress = 0
     transferred = 0
     total = 0
     

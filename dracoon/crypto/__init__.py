@@ -23,7 +23,7 @@ import base64
 import logging 
 from typing import Tuple
 
-from pydantic import validate_arguments
+from pydantic import validate_call
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.ciphers import (Cipher, algorithms, modes)
@@ -36,7 +36,7 @@ from .models import (FileKey, FileKeyVersion, PlainFileKey, PlainFileKeyVersion,
 
 logger = logging.getLogger('dracoon.crypto')
 
-@validate_arguments
+@validate_call
 def encrypt_private_key(secret: str, plain_key: PlainUserKeyPairContainer) -> UserKeyPairContainer:
     """ encrypt a private key (requires a plain user keypair container: create_plain_user_keypair()) """
     logger.info("Encrypting private key - version: %s", plain_key.privateKeyContainer.version)
@@ -62,7 +62,7 @@ def encrypt_private_key(secret: str, plain_key: PlainUserKeyPairContainer) -> Us
         }
     })
 
-@validate_arguments
+@validate_call
 def decrypt_private_key(secret: str, keypair: UserKeyPairContainer) -> PlainUserKeyPairContainer:
     """ decrypt a private key (requires secret). Returns a plain user keypair """
     logger.info("Decrypting private key - version: %s", keypair.privateKeyContainer.version)
@@ -89,7 +89,7 @@ def decrypt_private_key(secret: str, keypair: UserKeyPairContainer) -> PlainUser
     })
 
 
-@validate_arguments
+@validate_call
 def create_plain_userkeypair(version: UserKeyPairVersion) -> PlainUserKeyPairContainer:
     """ create a new RSA plain keypair – needs to be encrypted with encrypt_private_key() """
     
@@ -148,7 +148,7 @@ def get_file_key_version_public(public_key: PublicKeyContainer) -> FileKeyVersio
         raise InvalidKeypairVersionError(message='Invalid keypair version')
 
 
-@validate_arguments
+@validate_call
 def create_file_key(version: PlainFileKeyVersion = PlainFileKeyVersion.AES256GCM) -> PlainFileKey:
     """ create a plain file key (AES 256) """
 
@@ -188,8 +188,8 @@ def encrypt_file_key_public(plain_file_key: PlainFileKey, public_key: PublicKeyC
 
     # use SHA1 MGF1 and SHA256 hash
     if public_key.version == UserKeyPairVersion.RSA2048.value:
-        encrypted_key = public_key_pem.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                                                                                                     algorithm=hashes.SHA1(),
+        encrypted_key = public_key_pem.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA1()),
+                                                                                                     algorithm=hashes.SHA256(),
                                                                                                      label=None))
     # use SHA256 (hash and MGF1)
     elif public_key.version == UserKeyPairVersion.RSA4096.value:
@@ -226,8 +226,8 @@ def encrypt_file_key(plain_file_key: PlainFileKey, keypair: PlainUserKeyPairCont
 
     # use SHA1 MGF1 and SHA256 hash
     if keypair.publicKeyContainer.version == UserKeyPairVersion.RSA2048.value:
-        encrypted_key = public_key.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                                                                                                 algorithm=hashes.SHA1(),
+        encrypted_key = public_key.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA1()),
+                                                                                                 algorithm=hashes.SHA256(),
                                                                                                  label=None))
     # use SHA256 (hash and MGF1)
     elif keypair.publicKeyContainer.version == UserKeyPairVersion.RSA4096.value:
@@ -252,14 +252,22 @@ def decrypt_file_key(file_key: FileKey, keypair: PlainUserKeyPairContainer) -> P
     private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(
         data=private_key_pem.encode('ascii'), password=None)
 
-    file_key_version = get_file_key_version(keypair)
+    # raises on invalid keypair versions
+    get_file_key_version(keypair)
 
     plain_key = None
 
     if keypair.publicKeyContainer.version == UserKeyPairVersion.RSA2048.value:
-        plain_key = private_key.decrypt(ciphertext=key, padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                                                                                  algorithm=hashes.SHA1(),
-                                                                                  label=None))
+        try:
+            plain_key = private_key.decrypt(ciphertext=key, padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA1()),
+                                                                                      algorithm=hashes.SHA256(),
+                                                                                      label=None))
+        # file keys encrypted by dracoon < 1.14.0 used swapped parameters (SHA1 hash and SHA256 MGF1)
+        except ValueError:
+            logger.warning("Decrypting file key with legacy parameters (encrypted by dracoon < 1.14.0).")
+            plain_key = private_key.decrypt(ciphertext=key, padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                                                                                      algorithm=hashes.SHA1(),
+                                                                                      label=None))
     # use SHA256 (hash and MGF1)
     elif keypair.publicKeyContainer.version == UserKeyPairVersion.RSA4096.value:
         plain_key = private_key.decrypt(ciphertext=key, padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -300,7 +308,7 @@ def encrypt_bytes(plain_data: bytes, plain_file_key: PlainFileKey) -> Tuple[byte
     """ encrypt bytes with given plain file key (on the fly) """
     logger.info("Encrypting bytes with version: %s", plain_file_key.version)
 
-    if not bytes:
+    if plain_data is None:
         raise CryptoMissingDataError(message='No data to process.')
 
     key = base64.b64decode(plain_file_key.key)
@@ -341,7 +349,7 @@ class FileEncryptionCipher:
         if not plain_file_key.version or not plain_file_key.key or not plain_file_key.iv:
             logger.critical("Invalid file key format (lack of iv or key).")
             raise InvalidFileKeyError(message="Invalid file key")
-        if plain_file_key.version != PlainFileKeyVersion.AES256GCM.value and plain_file_key.version != PlainFileKeyVersion.AES256GCM.value:
+        if plain_file_key.version != PlainFileKeyVersion.AES256GCM.value:
             logger.critical("Invalid / unknown file key version.")
             raise InvalidFileKeyError(message="Invalid file key version")
         
@@ -395,7 +403,7 @@ class FileDecryptionCipher:
         if not plain_file_key.version or not plain_file_key.key or not plain_file_key.iv:
             logger.critical("Invalid file key format (lack of iv or key).")
             raise InvalidFileKeyError(message="Invalid file key")
-        if plain_file_key.version != PlainFileKeyVersion.AES256GCM.value and plain_file_key.version != PlainFileKeyVersion.AES256GCM.value:
+        if plain_file_key.version != PlainFileKeyVersion.AES256GCM.value:
             logger.critical("Invalid / unknown file key version.")
             raise InvalidFileKeyError(message="Invalid file key version")
         self.plain_file_key = plain_file_key

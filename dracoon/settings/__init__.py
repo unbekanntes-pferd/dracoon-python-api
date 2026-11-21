@@ -12,13 +12,11 @@ Please note: maximum 500 items are returned in GET requests
 
 """
 
-from typing import List
-import httpx
+from typing import List, Optional
 import logging
 import urllib.parse
-from tenacity import retry
 
-from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
+from dracoon.client import DRACOONClient
 from dracoon.errors import InvalidArgumentError, InvalidClientError, ClientDisconnectedError
 from .models import CreateWebhook, UpdateSettings, UpdateWebhook
 from .responses import EventTypeList, WebhookList, Webhook, CustomerSettingsResponse
@@ -50,48 +48,32 @@ class DRACOONSettings:
             self.logger.error("DRACOON client error: no connection. ")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
-    @retry(**RETRY_CONFIG)
-    async def get_settings(self, raise_on_err: bool = False) -> CustomerSettingsResponse:
+    async def get_settings(self, raise_on_err: bool = False) -> Optional[CustomerSettingsResponse]:
         """ list customer settings (home rooms) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
-        try:
-            res = await self.dracoon.http.get(self.api_url)
+        res = await self.dracoon.request('GET', self.api_url, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Getting settings failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved customer settings.")
         return CustomerSettingsResponse(**res.json())
 
-    @retry(**RETRY_CONFIG)
-    async def update_settings(self, settings_update: UpdateSettings, raise_on_err: bool = False) -> CustomerSettingsResponse:
+    async def update_settings(self, settings_update: UpdateSettings, raise_on_err: bool = False) -> Optional[CustomerSettingsResponse]:
         """ update customer settings (home rooms) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
-        payload = settings_update.dict(exclude_unset=True)
+        payload = settings_update.model_dump(exclude_unset=True)
 
-        try:
-            res = await self.dracoon.http.put(url=self.api_url, json=payload)
+        res = await self.dracoon.request('PUT', url=self.api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Updating settings failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Updated customer settings.")
         return CustomerSettingsResponse(**res.json())
@@ -109,12 +91,8 @@ class DRACOONSettings:
 
         return UpdateSettings(**settings_update)
 
-    @retry(**RETRY_CONFIG)
-    async def get_webhooks(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> WebhookList:
+    async def get_webhooks(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err: bool = False) -> Optional[WebhookList]:
         """ list (all) webhooks """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
         
@@ -125,40 +103,29 @@ class DRACOONSettings:
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 
 
-        try:
-            res = await self.dracoon.http.get(api_url)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Getting webhooks failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved webhooks.")
         return WebhookList(**res.json())
 
 
-    @retry(**RETRY_CONFIG)
-    async def create_webhook(self, hook: CreateWebhook, raise_on_err: bool = False) -> Webhook:
+    async def create_webhook(self, hook: CreateWebhook, raise_on_err: bool = False) -> Optional[Webhook]:
         """ creates a new webhook """
         payload = hook.model_dump(exclude_unset=True)
-
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/webhooks'
-        try:
-            res = await self.dracoon.http.post(api_url, json=payload)
+        api_url = self.api_url + '/webhooks'
+        res = await self.dracoon.request('POST', api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Creating webhook failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Created webhook.")
         return Webhook(**res.json())
@@ -193,98 +160,67 @@ class DRACOONSettings:
         return UpdateWebhook(**webhook)
 
 
-    @retry(**RETRY_CONFIG)
-    async def get_webhook(self, hook_id: int, raise_on_err: bool = False) -> Webhook:
+    async def get_webhook(self, hook_id: int, raise_on_err: bool = False) -> Optional[Webhook]:
         """ get webhook details for specific user (by id) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
         api_url = self.api_url + f'/webhooks/{str(hook_id)}'
 
-        try:
-            res = await self.dracoon.http.get(api_url)
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Getting webhook failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved webhook.")
         return Webhook(**res.json())
 
-    @retry(**RETRY_CONFIG)
-    async def update_webhook(self, hook_id: int, hook_update: UpdateWebhook, raise_on_err: bool = False) -> Webhook:
+    async def update_webhook(self, hook_id: int, hook_update: UpdateWebhook, raise_on_err: bool = False) -> Optional[Webhook]:
 
         payload = hook_update.model_dump(exclude_unset=True)
-
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
 
         if self.raise_on_err:
             raise_on_err = True
 
         api_url = self.api_url + f'/webhooks/{str(hook_id)}'
 
-        try:
-            res = await self.dracoon.http.put(api_url, json=payload)
+        res = await self.dracoon.request('PUT', api_url, json=payload, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Updating webhook failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Updated webhook.")
         return Webhook(**res.json())
 
 
-    @retry(**RETRY_CONFIG)
     async def delete_webhook(self, hook_id: int, raise_on_err: bool = False) -> None:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
 
         api_url = self.api_url + f'/webhooks/{str(hook_id)}'
 
-        try:
-            res = await self.dracoon.http.delete(api_url)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('DELETE', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Deleting webhook failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         self.logger.info("Deleted webhook.")
         return None
     
-    @retry(**RETRY_CONFIG)
-    async def get_webhook_event_types(self, raise_on_err: bool = False) -> EventTypeList:
-
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
+    async def get_webhook_event_types(self, raise_on_err: bool = False) -> Optional[EventTypeList]:
 
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/webhooks/event_types'
+        api_url = self.api_url + '/webhooks/event_types'
 
-        try:
-            res = await self.dracoon.http.get(api_url)
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Getting webhook event types failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved webhook event types.")
         return EventTypeList(**res.json())

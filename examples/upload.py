@@ -23,7 +23,7 @@ async def main():
 
     secret ='VerySecret1234!' # use getpass to prompt for decryption password
 
-    plain_keypair = await dracoon.get_keypair(secret) # leave out if unencrypted target parent
+    await dracoon.get_keypair(secret) # leave out if unencrypted target parent
 
     target = '/DEMO/XYZ/' # encrypted nodes supported
 
@@ -34,7 +34,7 @@ async def main():
     files = [file_small, file_medium, file_large]
 
     for file in files:
-        await dracoon.upload(file_path=file, target_path=target, =True)
+        await dracoon.upload(file_path=file, target_path=target)
 
     await dracoon.logout()
 

@@ -46,6 +46,7 @@ class UpdateShare(BaseModel):
     defaultCountry: Optional[str] = None
     resetPassword: Optional[bool] = None
     receiverLanguage: Optional[str] = None
+    textMessageRecipients: Optional[List[str]] = None
 
 # required payload for POST /shares/downloads/{share_id}/email and /shares/loads/{share_id}/email 
 class SendShare(BaseModel):
@@ -72,7 +73,7 @@ class CreateFileRequest(BaseModel):
 
 # required payload for PUT /shares/uploads
 class UpdateFileRequests(BaseModel):
-    expiration: Optional[Expiration]
+    expiration: Optional[Expiration] = None
     showCreatorName: Optional[bool] = None
     showCreatorUsername: Optional[bool] = None
     showUploadedFiles: Optional[bool] = None
@@ -80,6 +81,8 @@ class UpdateFileRequests(BaseModel):
     maxSize: Optional[int] = None
     filesExpiryPeriod: Optional[int] = None
     resetFilesExpiryPeriod: Optional[bool] = None
+    resetMaxSlots: Optional[bool] = None
+    resetMaxSize: Optional[bool] = None
     objectIds: List[int]
 
 # required payload for PUT /shares/uploads/{share_id}

@@ -7,7 +7,6 @@ from datetime import datetime
 
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.user import DRACOONUser
-from dracoon.crypto import create_plain_userkeypair, encrypt_private_key
 from dracoon.crypto.models import UserKeyPairVersion
 
 CLIENT_ID = 'client_id'

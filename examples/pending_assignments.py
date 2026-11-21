@@ -8,7 +8,7 @@ Example script showing the new async API with processing all pending assignments
 from dracoon import DRACOON
 import asyncio
 
-from dracoon.nodes_models import ProcessRoomPendingUsers
+from dracoon.nodes.models import ProcessRoomPendingUsers
 
 async def main():
     baseURL = 'https://dracoon.team'
@@ -45,7 +45,7 @@ async def main():
     payload = ProcessRoomPendingUsers(**assignments)
 
     # send request
-    pending_processed = await dracoon.nodes.process_pending_assignments(payload)
+    await dracoon.nodes.process_pending_assignments(payload)
 
     await dracoon.logout()
 

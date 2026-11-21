@@ -153,5 +153,6 @@ class TestAsyncDRACOONGroups(unittest.IsolatedAsyncioTestCase):
         group_id = 1
         group_mock = respx.delete(
             f'{BASE_URL}/api/v4/groups/{group_id}').respond(204)
-        group = await self.groups.delete_group(group_id)
+        result = await self.groups.delete_group(group_id)
         assert group_mock.called
+        assert result is None

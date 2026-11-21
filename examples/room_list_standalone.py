@@ -108,7 +108,7 @@ async def main():
   try:
     create_csv(permissions=node_info_list, path=path)
   except ValueError:
-    print(f"Creating CSV failed - no content.")
+    print("Creating CSV failed - no content.")
 
   
 if __name__ == '__main__':
