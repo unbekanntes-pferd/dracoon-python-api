@@ -3,7 +3,7 @@ name = "dracoon"
 version = "1.14.0"
 description = "DRACOON API wrapper in Python"
 authors = [{ name = "Octavio Simone", email = "o.simone@dracoon.com" }]
-license = "MIT"
+license = "Apache-2.0"
 license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.10"
