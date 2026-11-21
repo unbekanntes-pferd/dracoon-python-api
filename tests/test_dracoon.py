@@ -5,9 +5,13 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
+import json
+
 import httpx
+import respx
 
 from dracoon import DRACOON
+from dracoon.client import OAuth2ConnectionType
 from dracoon.client.models import DRACOONConnection
 from dracoon.nodes import DRACOONNodes, MIN_CHUNK_SIZE
 from dracoon.nodes.models import Node, NodeType
@@ -16,7 +20,7 @@ from dracoon.downloads import DRACOONDownloads
 from dracoon.user import DRACOONUser
 from dracoon.crypto import create_plain_userkeypair, encrypt_private_key
 from dracoon.crypto.models import FileKey, UserKeyPairVersion
-from dracoon.errors import (CryptoMissingKeypairError, CryptoMissingFileKeyError, DRACOONCryptoError, HTTPNotFoundError,
+from dracoon.errors import (CryptoMissingKeypairError, CryptoMissingFileKeyError, DRACOONCryptoError, HTTPNotFoundError, HTTPForbiddenError,
                             InvalidPathError, ClientDisconnectedError)
 
 BASE_URL = 'https://dracoon.team'
@@ -194,6 +198,16 @@ class TestAsyncDRACOON(unittest.IsolatedAsyncioTestCase):
 
         self.dracoon.client.connection = DRACOONConnection(datetime.now() - timedelta(hours=2), 'access_token', 3600, 'refresh_token')
         assert await self.dracoon.valid_access_token() is False
+
+    @respx.mock
+    async def test_connect_full_info_http_error(self):
+        # instance information is required (e.g. S3 for uploads) - failures raise a typed error
+        with open('tests/responses/auth/auth_ok.json', 'r') as json_file:
+            respx.post(f'{BASE_URL}/oauth/token').respond(200, json=json.load(json_file))
+        respx.route(url__startswith=f'{BASE_URL}/api/v4').respond(403, json={"code": 403, "message": "Forbidden"})
+
+        with self.assertRaises(HTTPForbiddenError):
+            await self.dracoon.connect(connection_type=OAuth2ConnectionType.password_flow, username='user', password='password')
 
     # keypair
 

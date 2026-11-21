@@ -125,14 +125,15 @@ class DRACOON:
         self.logger.info("Initialized DRACOON adapters.")
         
         if full_info:
-            user_info_res = self.user.get_account_information()
-            system_info_res = self.public.get_system_info()
-            oidc_auth_info_res = self.public.get_auth_openid_info()
-            ad_auth_info_res = self.public.get_auth_ad_info()
+            # instance information is required (e.g. S3 storage for uploads) - errors are raised
+            user_info_res = self.user.get_account_information(raise_on_err=True)
+            system_info_res = self.public.get_system_info(raise_on_err=True)
+            oidc_auth_info_res = self.public.get_auth_openid_info(raise_on_err=True)
+            ad_auth_info_res = self.public.get_auth_ad_info(raise_on_err=True)
             
-            system_defaults = self.config.get_system_defaults()
-            infrastructure_policies = self.config.get_infrastructure_properties()
-            general_settings = self.config.get_general_settings()
+            system_defaults = self.config.get_system_defaults(raise_on_err=True)
+            infrastructure_policies = self.config.get_infrastructure_properties(raise_on_err=True)
+            general_settings = self.config.get_general_settings(raise_on_err=True)
             self.logger.debug("Getting DRACOON instance information...")
 
             reqs = await asyncio.gather(user_info_res, system_info_res, oidc_auth_info_res, ad_auth_info_res, system_defaults, infrastructure_policies, general_settings)
