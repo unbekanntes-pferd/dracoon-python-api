@@ -30,7 +30,7 @@ from dracoon.crypto import FileEncryptionCipher, decrypt_file_key, encrypt_bytes
 from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer, UserKeyPairContainer
 from dracoon.groups.models import Expiration
 from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
-from dracoon.errors import (InvalidClientError, ClientDisconnectedError, InvalidFileError, InvalidArgumentError)
+from dracoon.errors import (InvalidClientError, ClientDisconnectedError, InvalidFileError, InvalidArgumentError, UploadTimeoutError)
 from dracoon.uploads.models import UploadChannelResponse
 from .models import (Callback, CompleteS3Upload, CompleteUpload, ConfigRoom, CreateFolder, CreateRoom, CreateUploadChannel, EncryptRoom, FileVersionList, 
                      GetS3Urls, LogEventList, MissingKeysResponse, Node, NodeItem, Permissions, ProcessRoomPendingUsers, S3Part, 
@@ -48,6 +48,9 @@ CHUNK_SIZE = 33554432
 MIN_CHUNK_SIZE = 5242880
 MAX_CHUNKS = 9999
 POLL_WAIT = 0.1
+# max wait between S3 upload status requests and max total wait for S3 upload completion (seconds)
+POLL_WAIT_MAX = 5
+POLL_TIMEOUT = 3600
 FILE_KEY_LIMIT = 50
 
 class DRACOONNodes:
@@ -655,6 +658,7 @@ class DRACOONNodes:
             return 
         
         time  = POLL_WAIT
+        deadline = asyncio.get_running_loop().time() + POLL_TIMEOUT
         
         while True:
             upload_status = await self.check_s3_upload(upload_id=upload_channel.uploadId, raise_on_err=raise_on_err)
@@ -662,10 +666,14 @@ class DRACOONNodes:
                 break
             if upload_status.status == S3Status.error.value:
                 break
+            if asyncio.get_running_loop().time() >= deadline:
+                self.logger.critical("S3 upload not finished within %s seconds.", POLL_TIMEOUT)
+                err = UploadTimeoutError(message=f'S3 upload {upload_channel.uploadId} not finished within {POLL_TIMEOUT} seconds.')
+                await self.dracoon.handle_generic_error(err)
             # wait until next request
             await asyncio.sleep(time)
-            # increase wait 
-            time *= 2
+            # increase wait (capped)
+            time = min(time * 2, POLL_WAIT_MAX)
             
         return upload_status
     
@@ -816,7 +824,8 @@ class DRACOONNodes:
         if upload is not None:         
             return 
         
-        time  = POLL_WAIT 
+        time  = POLL_WAIT
+        deadline = asyncio.get_running_loop().time() + POLL_TIMEOUT
         
         while True:
             upload_status = await self.check_s3_upload(upload_id=upload_channel.uploadId, raise_on_err=raise_on_err)
@@ -851,10 +860,14 @@ class DRACOONNodes:
                 break
             if upload_status.status == S3Status.error.value:
                 break
+            if asyncio.get_running_loop().time() >= deadline:
+                self.logger.critical("S3 upload not finished within %s seconds.", POLL_TIMEOUT)
+                err = UploadTimeoutError(message=f'S3 upload {upload_channel.uploadId} not finished within {POLL_TIMEOUT} seconds.')
+                await self.dracoon.handle_generic_error(err)
             # wait until next request
             await asyncio.sleep(time)
-            # increase wait 
-            time *= 2
+            # increase wait (capped)
+            time = min(time * 2, POLL_WAIT_MAX)
             
         return upload_status
     

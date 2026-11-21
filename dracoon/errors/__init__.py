@@ -158,6 +158,17 @@ class ConnectionError(DRACOONClientError):
         super().__init__(message)
 
 
+class UploadTimeoutError(DRACOONClientError):
+    """
+    Exception raised in dracoon.nodes
+    Upload not finished within timeout (S3 upload status polling)
+    """
+
+    def __init__(self, message: str = "Upload not finished within timeout."):
+
+        super().__init__(message)
+
+
 class InvalidArgumentError(DRACOONValidationError):
     """
     Exception raised in dracoon modules

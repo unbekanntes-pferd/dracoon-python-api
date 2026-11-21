@@ -3,7 +3,7 @@ import json
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import respx
@@ -14,6 +14,7 @@ from dracoon.nodes import DRACOONNodes
 from dracoon.nodes.responses import CreateFileUploadResponse
 from dracoon.crypto import create_plain_userkeypair, decrypt_file_key, decrypt_bytes
 from dracoon.crypto.models import FileKey, UserKeyPairVersion
+from dracoon.errors import UploadTimeoutError
 
 CLIENT_ID = 'client_id'
 CLIENT_SECRET = 'client_secret'
@@ -301,6 +302,25 @@ class TestAsyncDRACOONUploads(unittest.IsolatedAsyncioTestCase):
         assert upload_status.status == 'done'
         assert upload_status.node.id == NODE_ID
         assert callback.transferred == FILE_SIZE
+
+    @respx.mock
+    async def test_upload_s3_polling_wait_is_capped(self):
+        self.mock_s3_upload(status_responses=[self.upload_status_pending_json] * 8 + [self.upload_status_json])
+
+        with patch('dracoon.nodes.asyncio.sleep', new_callable=AsyncMock) as sleep_mock:
+            upload_status = await self.nodes.upload_s3_unencrypted(file_path=str(self.file_path), upload_channel=self.upload_channel)
+
+        waits = [call.args[0] for call in sleep_mock.call_args_list]
+        assert waits == [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 5, 5]
+        assert upload_status.status == 'done'
+
+    @respx.mock
+    async def test_upload_s3_polling_timeout(self):
+        self.mock_s3_upload(status_responses=[self.upload_status_pending_json])
+
+        with patch('dracoon.nodes.POLL_TIMEOUT', 0):
+            with self.assertRaises(UploadTimeoutError):
+                await self.nodes.upload_s3_unencrypted(file_path=str(self.file_path), upload_channel=self.upload_channel)
 
     @respx.mock
     async def test_upload_s3_encrypted_multipart(self):
