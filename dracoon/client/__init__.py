@@ -14,6 +14,7 @@ import logging
 import urllib.parse
 
 from datetime import datetime
+from importlib import metadata
 
 import httpx
 from tenacity import retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -24,7 +25,11 @@ from dracoon.errors import (HTTPTooManyRequestsError, MissingCredentialsError, H
                             HTTPUnknownError, HTTPServerError, ConnectionError)
 
 # constants for client config
-USER_AGENT = 'dracoon-python-1.13.0'
+try:
+    DRACOON_PYTHON_VERSION = metadata.version('dracoon')
+except metadata.PackageNotFoundError:
+    DRACOON_PYTHON_VERSION = 'unknown'
+USER_AGENT = f'dracoon-python-{DRACOON_PYTHON_VERSION}'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=30, read=30)
 # HTTP 500 (HTTPUnknownError) is deliberately not retried: DRACOON responds with 500 under load (e.g. large DB queries) - retries make it worse
 RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type((HTTPTooManyRequestsError, HTTPServerError, ConnectionError)),

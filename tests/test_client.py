@@ -3,6 +3,7 @@ import asyncio
 import base64
 import json
 from datetime import datetime, timedelta
+from importlib import metadata
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
@@ -41,6 +42,11 @@ class TestDRACOONClient(unittest.TestCase):
         self.assertEqual(dracoon.client_id, 'my_test_client')
         self.assertEqual(dracoon.client_secret, 'my_test_secret')
         self.assertFalse(dracoon.connected)
+
+    def test_client_user_agent(self):
+        dracoon = DRACOONClient(base_url='https://foo.bar')
+
+        self.assertEqual(dracoon.http.headers['User-Agent'], f"dracoon-python-{metadata.version('dracoon')}")
 
     def test_client_redirect_uri(self):
         dracoon_custom_redirect = DRACOONClient(base_url='https://foo.bar', redirect_uri='https://bar.foo/callback')
