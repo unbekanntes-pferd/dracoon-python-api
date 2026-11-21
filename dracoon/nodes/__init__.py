@@ -338,19 +338,18 @@ class DRACOONNodes:
     
             with open(file, 'rb') as f:
                 
-                index = 0
                 offset = 0
                                          
                 for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, callback_fn=callback_fn):
                                           
                     upload_url = upload_channel.uploadUrl
-                    content_range = f'bytes {index}-{offset}/{filesize}'
+                    content_range = f'bytes {offset}-{offset + len(chunk) - 1}/{filesize}'
                     
                     upload_file = {
                     'file': chunk
                         }
                     
-                    index = offset 
+                    offset += len(chunk)
                     
                     try:        
 
@@ -423,7 +422,6 @@ class DRACOONNodes:
             
             with open(file, 'rb') as f:
                 
-                index = 0
                 offset = 0
                 
                 plain_file_key = create_file_key()
@@ -433,7 +431,6 @@ class DRACOONNodes:
                 for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, callback_fn=callback_fn):
                                           
                     upload_url = upload_channel.uploadUrl
-                    content_range = f'bytes {index}-{offset}/{filesize}'
                 
                     # if not las chunk
                     if filesize - offset > chunksize:
@@ -445,8 +442,8 @@ class DRACOONNodes:
                         last_chunk, plain_file_key = dracoon_cipher.finalize() 
                         enc_chunk += last_chunk
                                                 
-                    offset = index + len(enc_chunk)
-                    index = offset
+                    content_range = f'bytes {offset}-{offset + len(enc_chunk) - 1}/{filesize}'
+                    offset += len(enc_chunk)
                     
                     upload_file = {
                     'file': enc_chunk

@@ -188,10 +188,8 @@ class TestAsyncDRACOONUploads(unittest.IsolatedAsyncioTestCase):
         assert node.id == NODE_ID
         assert callback.transferred == FILE_SIZE
 
-    @unittest.expectedFailure
     @respx.mock
     async def test_upload_unencrypted_chunked_content_range(self):
-        # known bug: offset is never advanced - every chunk is sent with 'bytes 0-0/<size>'
         upload_mock, _ = self.mock_proxy_upload()
 
         await self.nodes.upload_unencrypted(file_path=str(self.file_path), upload_channel=self.upload_channel, chunksize=CHUNK_SIZE)
@@ -238,6 +236,17 @@ class TestAsyncDRACOONUploads(unittest.IsolatedAsyncioTestCase):
         assert upload_mock.call_count == 4
         enc_data = b''.join(multipart_file(call.request) for call in upload_mock.calls)
         self.assert_decrypts_to_data(enc_data, json.loads(complete_mock.calls.last.request.content)["fileKey"])
+
+    @respx.mock
+    async def test_upload_encrypted_chunked_content_range(self):
+        upload_mock, _ = self.mock_proxy_upload()
+        respx.get(f'{API_URL}/nodes/missingFileKeys').respond(200, json=self.missing_keys_empty_json)
+
+        await self.nodes.upload_encrypted(file_path=str(self.file_path), upload_channel=self.upload_channel,
+                                          plain_keypair=self.plain_keypair, chunksize=CHUNK_SIZE)
+
+        content_ranges = [call.request.headers['Content-Range'] for call in upload_mock.calls]
+        assert content_ranges == ['bytes 0-255/1000', 'bytes 256-511/1000', 'bytes 512-767/1000', 'bytes 768-999/1000']
 
     @respx.mock
     async def test_upload_encrypted_distributes_missing_file_keys(self):
