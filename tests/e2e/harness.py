@@ -1,27 +1,29 @@
 """
 E2E harness: isolated, self-cleaning tests against a real DRACOON instance.
 
+Test run
+ - a top level room per run (e2e-run-<id>), created on first use - all nodes are created inside
+ - encrypted tests: the e2e user gets a new keypair with a random secret and an encrypted top level room
+   (e2e-run-<id>-crypto) - use a dedicated test user, its keypair is replaced
+ - the rooms are deleted (and removed from the recycle bin) at the end of the run, also if tests failed (conftest.py)
+
 Isolation
- - every test connects on its own and works in its own nodes / users / groups with unique names
-   (e2e-<test>-<uuid>) - tests share no state and can run in parallel (pytest -n auto)
- - files and folders are created in a folder per test inside E2E_ROOM_ID, rooms as sub rooms of E2E_ROOM_ID
+ - every test connects on its own and works in its own folders / rooms / users / groups with unique names
+   (e2e-<test>-<uuid>) - tests share no state
 
 Cleanup
  - everything created via the helpers is deleted after the test (also on failure), in reverse order
- - deleted nodes end up in the recycle bin of E2E_ROOM_ID - use a room with a short retention period
-
-Encryption
- - the e2e user gets a new keypair with a random secret per test run (conftest.py) - use a dedicated test user
 
 Configuration (environment or .env, see .env.example) - tests are skipped if it is missing
 """
+import asyncio
 import os
 import secrets
 import tempfile
 import unittest
 import uuid
 from pathlib import Path
-from typing import Optional, Union
+from typing import Callable, List, Optional, Union
 
 import dotenv
 
@@ -36,9 +38,8 @@ from dracoon.user.responses import UserData
 
 dotenv.load_dotenv()
 
-REQUIRED = ('E2E_BASE_URL', 'E2E_USER_NAME', 'E2E_PASSWORD', 'E2E_ROOM_ID')
-# set per test run by conftest.py - not configurable
-CRYPTO_SECRET = 'E2E_CRYPTO_SECRET'
+REQUIRED = ('E2E_BASE_URL', 'E2E_USER_NAME', 'E2E_PASSWORD')
+RUN_ID = uuid.uuid4().hex[:8]
 
 
 def env(name: str, default: str = None) -> Optional[str]:
@@ -49,10 +50,6 @@ def missing_config() -> list:
     return [name for name in REQUIRED if not env(name)]
 
 
-def crypto_configured() -> bool:
-    return not missing_config() and env('E2E_CRYPTO_ROOM_ID') is not None
-
-
 async def connect() -> DRACOON:
     dracoon = DRACOON(base_url=env('E2E_BASE_URL'), client_id=env('CLIENT_ID', 'dracoon_legacy_scripting'),
                       client_secret=env('CLIENT_SECRET', ''), raise_on_err=True)
@@ -60,20 +57,87 @@ async def connect() -> DRACOON:
     return dracoon
 
 
-async def reset_keypair() -> str:
-    """ replace the e2e user's keypair(s) with a new one protected by a random secret - returns the secret """
-    secret = secrets.token_urlsafe(24)
-    dracoon = await connect()
-    try:
-        for version in UserKeyPairVersion:
+class TestRun:
+    """ per run resources - created once on first use (outside of a running event loop), removed by cleanup() """
+
+    def __init__(self):
+        self.rooms: List[Node] = []
+        self.resources = {}
+
+    def get(self, name: str, factory: Callable):
+        """ create a resource once - a failed setup fails every test that needs it """
+        if name not in self.resources:
             try:
-                await dracoon.user.delete_user_keypair(version=version)
-            except HTTPNotFoundError:
-                pass
-        await dracoon.user.set_user_keypair(secret=secret)
-    finally:
-        await dracoon.logout()
-    return secret
+                self.resources[name] = asyncio.run(factory())
+            except Exception as error:
+                self.resources[name] = error
+        resource = self.resources[name]
+        if isinstance(resource, Exception):
+            raise RuntimeError(f'E2E test run setup failed ({name}): {resource!r}') from resource
+        return resource
+
+    def room_id(self) -> int:
+        return self.get('room', self._create_room)
+
+    def crypto(self) -> tuple:
+        """ (encrypted room id, keypair secret) """
+        return self.get('crypto', self._create_crypto_room)
+
+    async def _create_room(self, encrypted: bool = False) -> int:
+        dracoon = await connect()
+        try:
+            name = f'e2e-run-{RUN_ID}-crypto' if encrypted else f'e2e-run-{RUN_ID}'
+            room = dracoon.nodes.make_room(name=name, inherit_perms=False, admin_ids=[dracoon.user_info.id])
+            node = await dracoon.nodes.create_room(room=room)
+            self.rooms.append(node)
+            if encrypted:
+                await dracoon.nodes.encrypt_room(room_id=node.id, encrypt_room=dracoon.nodes.make_encrypt_room(is_encrypted=True))
+            return node.id
+        finally:
+            await dracoon.logout()
+
+    async def _create_crypto_room(self) -> tuple:
+        # the room admin needs a keypair to encrypt the room
+        secret = await self._reset_keypair()
+        return await self._create_room(encrypted=True), secret
+
+    @staticmethod
+    async def _reset_keypair() -> str:
+        """ replace the e2e user's keypair(s) with a new one protected by a random secret """
+        secret = secrets.token_urlsafe(24)
+        dracoon = await connect()
+        try:
+            for version in UserKeyPairVersion:
+                try:
+                    await dracoon.user.delete_user_keypair(version=version)
+                except HTTPNotFoundError:
+                    pass
+            await dracoon.user.set_user_keypair(secret=secret)
+        finally:
+            await dracoon.logout()
+        return secret
+
+    async def cleanup(self) -> List[str]:
+        """ delete the run rooms and remove them from the recycle bin - returns errors """
+        errors = []
+        if not self.rooms:
+            return errors
+        dracoon = await connect()
+        try:
+            for room in self.rooms:
+                try:
+                    await dracoon.nodes.delete_node(node_id=room.id)
+                    deleted = await dracoon.nodes.get_node_versions(parent_id=0, name=room.name, type='room')
+                    await dracoon.nodes.empty_recyclebin(node_list=[item.id for item in deleted.items])
+                except Exception as error:
+                    errors.append(f'{room.name} ({room.id}): {error!r}')
+        finally:
+            await dracoon.logout()
+        self.rooms.clear()
+        return errors
+
+
+test_run = TestRun()
 
 
 class E2ETestCase(unittest.IsolatedAsyncioTestCase):
@@ -83,9 +147,9 @@ class E2ETestCase(unittest.IsolatedAsyncioTestCase):
         missing = missing_config()
         if missing:
             raise unittest.SkipTest(f"E2E configuration missing: {', '.join(missing)}")
+        cls.room_id = test_run.room_id()
 
     async def asyncSetUp(self) -> None:
-        self.room_id = int(env('E2E_ROOM_ID'))
         self.dracoon = await connect()
         # cleanups run in reverse order - logout last
         self.addAsyncCleanup(self.dracoon.logout)
@@ -110,14 +174,14 @@ class E2ETestCase(unittest.IsolatedAsyncioTestCase):
     # nodes
 
     async def create_folder(self, parent_id: int = None, name: str = None) -> Node:
-        """ folder in the test room (default) - deleted after the test """
+        """ folder in the run room (default) - deleted after the test """
         folder = self.dracoon.nodes.make_folder(name=name or self.unique_name(), parent_id=parent_id or self.room_id)
         node = await self.dracoon.nodes.create_folder(folder=folder)
         self.defer(self.dracoon.nodes.delete_node, node_id=node.id)
         return node
 
     async def create_room(self, **kwargs) -> Node:
-        """ sub room of the test room - deleted after the test """
+        """ sub room of the run room - deleted after the test """
         kwargs.setdefault('inherit_perms', True)
         room = self.dracoon.nodes.make_room(name=self.unique_name(), parent_id=self.room_id, **kwargs)
         node = await self.dracoon.nodes.create_room(room=room)
@@ -168,18 +232,14 @@ class E2ETestCase(unittest.IsolatedAsyncioTestCase):
 
 
 class E2ECryptoTestCase(E2ETestCase):
-    """ encrypted room tests: E2E_CRYPTO_ROOM_ID (encrypted room) - keypair secret per test run (conftest.py) """
+    """ encrypted room tests: encrypted run room, keypair with a random secret per run """
 
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        if not env('E2E_CRYPTO_ROOM_ID'):
-            raise unittest.SkipTest('E2E crypto configuration missing: E2E_CRYPTO_ROOM_ID')
-        if not env(CRYPTO_SECRET):
-            raise unittest.SkipTest('No keypair for this test run - run tests/e2e with pytest (conftest.py)')
+        cls.crypto_room_id, cls.crypto_secret = test_run.crypto()
 
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()
-        self.crypto_room_id = int(env('E2E_CRYPTO_ROOM_ID'))
-        # the keypair is shared user state - created once per test run, only read in tests
-        await self.dracoon.get_keypair(secret=env(CRYPTO_SECRET))
+        # the keypair is shared user state - created once per run, only read in tests
+        await self.dracoon.get_keypair(secret=self.crypto_secret)

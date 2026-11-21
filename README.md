@@ -548,9 +548,9 @@ uv sync
 # run unit tests
 uv run pytest
 
-# run E2E tests against a DRACOON instance (requires .env - see .env.example), in parallel
-# each test works on its own data (folders in E2E_ROOM_ID, users, groups) and deletes it afterwards
-uv run pytest tests/e2e -n auto
+# run E2E tests against a DRACOON instance (requires .env - see .env.example)
+# each run creates its own top level rooms and removes them afterwards - use a dedicated test user
+uv run pytest tests/e2e
 
 # build and publish
 uv build
