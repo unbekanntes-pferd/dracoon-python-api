@@ -117,11 +117,9 @@ class TestAsyncDRACOONDownloads(unittest.IsolatedAsyncioTestCase):
         # unverified plain bytes must not be left on disk
         assert list(self.target_path.iterdir()) == []
 
-    @unittest.expectedFailure
     @respx.mock
     async def test_download_encrypted_existing_file(self):
-        # known bug: conflict check runs on the temporary file name - an existing file is silently overwritten
-        respx.get(DOWNLOAD_URL).respond(200, content=self.enc_data)
+        download_mock = respx.get(DOWNLOAD_URL).respond(200, content=self.enc_data)
         self.target_path.joinpath('test.bin').write_bytes(b'existing')
 
         with self.assertRaises(FileConflictError):
@@ -129,6 +127,20 @@ class TestAsyncDRACOONDownloads(unittest.IsolatedAsyncioTestCase):
                                                     plain_keypair=self.plain_keypair, file_key=self.file_key)
 
         assert self.target_path.joinpath('test.bin').read_bytes() == b'existing'
+        assert [file.name for file in self.target_path.iterdir()] == ['test.bin']
+        assert not download_mock.called
+        # validation errors must not end the session
+        assert self.dracoon.connection is not None
+
+    async def test_download_encrypted_target_not_a_folder(self):
+        target_file = self.target_path.joinpath('not_a_folder')
+        target_file.write_bytes(b'')
+
+        with self.assertRaises(InvalidPathError):
+            await self.downloads.download_encrypted(download_url=DOWNLOAD_URL, target_path=str(target_file), node_info=self.node,
+                                                    plain_keypair=self.plain_keypair, file_key=self.file_key)
+
+        assert self.dracoon.connection is not None
 
 
 if __name__ == '__main__':
