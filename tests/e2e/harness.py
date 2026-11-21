@@ -109,9 +109,10 @@ class TestRun:
         try:
             for version in UserKeyPairVersion:
                 try:
-                    await dracoon.user.delete_user_keypair(version=version)
+                    await dracoon.user.get_user_keypair(version=version)
                 except HTTPNotFoundError:
-                    pass
+                    continue
+                await dracoon.user.delete_user_keypair(version=version)
             await dracoon.user.set_user_keypair(secret=secret)
         finally:
             await dracoon.logout()
