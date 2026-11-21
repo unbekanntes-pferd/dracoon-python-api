@@ -26,6 +26,7 @@ from dracoon.errors import (HTTPTooManyRequestsError, MissingCredentialsError, H
 # constants for client config
 USER_AGENT = 'dracoon-python-1.13.0'
 DEFAULT_TIMEOUT_CONFIG = httpx.Timeout(10, connect=30, read=30)
+# HTTP 500 (HTTPUnknownError) is deliberately not retried: DRACOON responds with 500 under load (e.g. large DB queries) - retries make it worse
 RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type((HTTPTooManyRequestsError, HTTPServerError, ConnectionError)),
                            stop=stop_after_attempt(5),
                            wait=wait_exponential(multiplier=1.2, min=5, max=15),
@@ -334,6 +335,7 @@ class DRACOONClient:
             raise HTTPPreconditionsFailedError(error=err)
         if err.response.status_code == 429:
             raise HTTPTooManyRequestsError(error=err)
+        # 500 is not an HTTPServerError on purpose - not retried (see RETRY_CONFIG_BASE)
         if err.response.status_code == 500:
             raise HTTPUnknownError(error=err)
         if err.response.status_code > 500 and err.response.status_code < 600:

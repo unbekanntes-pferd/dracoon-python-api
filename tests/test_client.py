@@ -283,6 +283,20 @@ class TestAsyncDRACOONClient(unittest.IsolatedAsyncioTestCase):
         assert node.id == 2
         assert node_mock.call_count == 2
 
+    @respx.mock
+    async def test_no_retry_on_internal_server_error(self):
+        # deliberate: DRACOON returns 500 under load - retries would add more load
+        self.client.raise_on_err = True
+        self.set_connection(datetime.now())
+        node_mock = respx.get(f'{BASE_URL}/api/v4/nodes/2').respond(500)
+        nodes = DRACOONNodes(self.client)
+
+        with patch.object(DRACOONNodes.get_node.retry, 'wait', wait_none()):
+            with self.assertRaises(HTTPUnknownError):
+                await nodes.get_node(node_id=2)
+
+        assert node_mock.call_count == 1
+
 
 if __name__ == '__main__':
     unittest.main()
