@@ -239,6 +239,33 @@ class TestAsyncDRACOONUploads(unittest.IsolatedAsyncioTestCase):
         self.assert_decrypts_to_data(enc_data, json.loads(complete_mock.calls.last.request.content)["fileKey"])
 
     @respx.mock
+    async def test_upload_encrypted_distributes_all_missing_file_key_pages(self):
+        _, complete_mock = self.mock_proxy_upload()
+        get_file_key = lambda: json.loads(complete_mock.calls.last.request.content)["fileKey"]
+        user_ids = list(range(100, 160))
+        public_key = self.recipient_keypair.publicKeyContainer.model_dump()
+
+        def missing_keys(request: httpx.Request) -> httpx.Response:
+            offset, limit = int(request.url.params['offset']), int(request.url.params['limit'])
+            page = user_ids[offset:offset + limit]
+            return httpx.Response(200, json={
+                "range": {"offset": offset, "limit": limit, "total": len(user_ids)},
+                "items": [{"userId": user_id, "fileId": NODE_ID} for user_id in page],
+                "users": [{"id": user_id, "publicKeyContainer": public_key} for user_id in page],
+                "files": [{"id": NODE_ID, "fileKeyContainer": get_file_key()}]
+            })
+
+        missing_keys_mock = respx.get(f'{API_URL}/nodes/missingFileKeys').mock(side_effect=missing_keys)
+        set_keys_mock = respx.post(f'{API_URL}/nodes/files/keys').respond(204)
+
+        await self.nodes.upload_encrypted(file_path=str(self.file_path), upload_channel=self.upload_channel, plain_keypair=self.plain_keypair)
+
+        assert [call.request.url.params['offset'] for call in missing_keys_mock.calls] == ['0', '50']
+        batches = [json.loads(call.request.content)["items"] for call in set_keys_mock.calls]
+        assert [len(batch) for batch in batches] == [50, 10]
+        assert sorted(item["userId"] for batch in batches for item in batch) == user_ids
+
+    @respx.mock
     async def test_upload_encrypted_chunked_content_range(self):
         upload_mock, _ = self.mock_proxy_upload()
         respx.get(f'{API_URL}/nodes/missingFileKeys').respond(200, json=self.missing_keys_empty_json)
