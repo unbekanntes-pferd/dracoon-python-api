@@ -15,9 +15,8 @@ from typing import List, Optional
 import logging
 
 from datetime import datetime
-from tenacity import retry
 
-from dracoon.client import DRACOONClient, RETRY_CONFIG
+from dracoon.client import DRACOONClient
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .models import CreateReport, ReportFilter, ReportFormat, ReportSubType, ReportType
 from .responses import ReportList
@@ -166,7 +165,6 @@ class DRACOONReports:
         self.logger.info("Retrieved reports.")
         return ReportList(**res.json())
 
-    @retry(**RETRY_CONFIG)
     async def delete_reports(
         self, report_list: List[int], raise_on_err: bool = False
     ) -> None:

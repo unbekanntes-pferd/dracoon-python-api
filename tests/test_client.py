@@ -468,6 +468,16 @@ class TestAsyncDRACOONClientRequest(unittest.IsolatedAsyncioTestCase):
         assert route.called
         assert not token_mock.called
 
+    def test_adapters_do_not_retry_on_their_own(self):
+        # retries happen in DRACOONClient.request() only - nested retries multiply attempts
+        from tests.adapter_harness import adapter_methods, make_client
+        client = make_client()
+        for name, method, _ in adapter_methods(client):
+            if name.startswith('DRACOONNodes.'):
+                continue
+            with self.subTest(method=name):
+                assert not hasattr(method, 'retry'), f'{name} has its own retry decorator'
+
     @respx.mock
     async def test_request_custom_http_client(self):
         respx.put(self.url).respond(200)

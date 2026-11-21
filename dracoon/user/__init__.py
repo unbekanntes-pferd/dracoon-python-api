@@ -17,9 +17,8 @@ All requests with bodies use generic params variable to pass JSON body
 
 from typing import Optional
 import logging
-from tenacity import retry
 
-from dracoon.client import DRACOONClient, RETRY_CONFIG
+from dracoon.client import DRACOONClient
 from dracoon.crypto import create_plain_userkeypair, encrypt_private_key
 from dracoon.crypto.models import UserKeyPairContainer, UserKeyPairVersion
 from dracoon.errors import ClientDisconnectedError, InvalidClientError, InvalidArgumentError
@@ -56,7 +55,6 @@ class DRACOONUser:
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
 
 
-    @retry(**RETRY_CONFIG)
     async def get_account_information(self, more_info: bool = False, raise_on_err: bool = False) -> Optional[UserAccount]:
         """ returns account information for authenticated user """
         if self.raise_on_err:
