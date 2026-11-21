@@ -81,7 +81,7 @@ class DRACOONSettings:
         if self.raise_on_err:
             raise_on_err = True
 
-        payload = settings_update.dict(exclude_unset=True)
+        payload = settings_update.model_dump(exclude_unset=True)
 
         try:
             res = await self.dracoon.http.put(url=self.api_url, json=payload)

@@ -23,7 +23,7 @@ import base64
 import logging 
 from typing import Tuple
 
-from pydantic import validate_arguments
+from pydantic import validate_call
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.ciphers import (Cipher, algorithms, modes)
@@ -36,7 +36,7 @@ from .models import (FileKey, FileKeyVersion, PlainFileKey, PlainFileKeyVersion,
 
 logger = logging.getLogger('dracoon.crypto')
 
-@validate_arguments
+@validate_call
 def encrypt_private_key(secret: str, plain_key: PlainUserKeyPairContainer) -> UserKeyPairContainer:
     """ encrypt a private key (requires a plain user keypair container: create_plain_user_keypair()) """
     logger.info("Encrypting private key - version: %s", plain_key.privateKeyContainer.version)
@@ -62,7 +62,7 @@ def encrypt_private_key(secret: str, plain_key: PlainUserKeyPairContainer) -> Us
         }
     })
 
-@validate_arguments
+@validate_call
 def decrypt_private_key(secret: str, keypair: UserKeyPairContainer) -> PlainUserKeyPairContainer:
     """ decrypt a private key (requires secret). Returns a plain user keypair """
     logger.info("Decrypting private key - version: %s", keypair.privateKeyContainer.version)
@@ -89,7 +89,7 @@ def decrypt_private_key(secret: str, keypair: UserKeyPairContainer) -> PlainUser
     })
 
 
-@validate_arguments
+@validate_call
 def create_plain_userkeypair(version: UserKeyPairVersion) -> PlainUserKeyPairContainer:
     """ create a new RSA plain keypair – needs to be encrypted with encrypt_private_key() """
     
@@ -148,7 +148,7 @@ def get_file_key_version_public(public_key: PublicKeyContainer) -> FileKeyVersio
         raise InvalidKeypairVersionError(message='Invalid keypair version')
 
 
-@validate_arguments
+@validate_call
 def create_file_key(version: PlainFileKeyVersion = PlainFileKeyVersion.AES256GCM) -> PlainFileKey:
     """ create a plain file key (AES 256) """
 
