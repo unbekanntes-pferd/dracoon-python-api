@@ -548,6 +548,9 @@ uv sync
 # run unit tests
 uv run pytest
 
+# lint
+uv run ruff check .
+
 # run E2E tests against a DRACOON instance (requires .env - see .env.example)
 # each run creates its own top level rooms and removes them afterwards - use a dedicated test user
 uv run pytest tests/e2e
