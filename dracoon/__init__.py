@@ -162,7 +162,7 @@ class DRACOON:
     
     async def valid_access_token(self) -> bool:
         """ check access token validity based on expiration """
-        return self.client.check_access_token()
+        return await self.client.check_access_token()
     
     def check_keypair(self) -> bool:
         

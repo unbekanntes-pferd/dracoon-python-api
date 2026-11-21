@@ -1,6 +1,6 @@
 import unittest
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -181,6 +181,14 @@ class TestAsyncDRACOON(unittest.IsolatedAsyncioTestCase):
         self.dracoon.client.connection = None
         with self.assertRaises(ClientDisconnectedError):
             await self.dracoon.download(file_path='/room/test.bin', target_path=self.tmp_dir.name)
+
+    # connection
+
+    async def test_valid_access_token(self):
+        assert await self.dracoon.valid_access_token() is True
+
+        self.dracoon.client.connection = DRACOONConnection(datetime.now() - timedelta(hours=2), 'access_token', 3600, 'refresh_token')
+        assert await self.dracoon.valid_access_token() is False
 
     # keypair
 
