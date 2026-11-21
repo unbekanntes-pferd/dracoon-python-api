@@ -15,14 +15,15 @@ import urllib.parse
 
 from datetime import datetime
 from importlib import metadata
+from typing import Optional, Set
 
 import httpx
-from tenacity import retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from dracoon.client.models import DRACOONConnection, OAuth2ConnectionType, ProxyConfig, RetryConfig
 from dracoon.errors import (HTTPTooManyRequestsError, MissingCredentialsError, HTTPBadRequestError, HTTPUnauthorizedError, 
                             HTTPPaymentRequiredError, HTTPForbiddenError, HTTPNotFoundError, HTTPConflictError, HTTPPreconditionsFailedError,
-                            HTTPUnknownError, HTTPServerError, ConnectionError)
+                            HTTPUnknownError, HTTPServerError, ConnectionError, DRACOONHttpError)
 
 # constants for client config
 try:
@@ -331,6 +332,48 @@ class DRACOONClient:
         if close_client:
             await self.disconnect()
         raise err
+
+    async def ensure_valid_token(self) -> None:
+        """ refresh an expired access token (no-op without connection, e.g. public endpoints) """
+        if self.connection and not await self.test_connection():
+            await self.connect(OAuth2ConnectionType.refresh_token)
+
+    async def request(self, method: str, url: str, raise_on_err: bool = False, expected_status: Set[int] = None,
+                      http_client: httpx.AsyncClient = None, **kwargs) -> Optional[httpx.Response]:
+        """ 
+        send a request: refreshes an expired token, retries transient errors (429, 502-504, connection errors)
+        and maps HTTP errors to DRACOONHttpError subclasses
+        HTTP errors are raised with raise_on_err (method or client), otherwise logged and None is returned
+        connection errors are always raised
+        """
+        try:
+            return await self._send_with_retry(method, url, expected_status=expected_status, http_client=http_client, **kwargs)
+        except DRACOONHttpError as err:
+            if raise_on_err or self.raise_on_err:
+                raise
+            self.logger.error("Request failed: %s %s (%s)", method, err.error.request.url.path, err.error.response.status_code)
+            return None
+
+    @retry(**RETRY_CONFIG)
+    async def _send_with_retry(self, method: str, url: str, expected_status: Set[int] = None, http_client: httpx.AsyncClient = None,
+                               **kwargs) -> httpx.Response:
+        """ single request attempt - raises typed errors (retried if transient) """
+        await self.ensure_valid_token()
+
+        if http_client is None:
+            http_client = self.http
+
+        try:
+            res = await http_client.request(method, url, **kwargs)
+        except httpx.RequestError as e:
+            await self.handle_connection_error(e)
+
+        if res.is_error and res.status_code not in (expected_status or set()):
+            self.logger.debug("HTTP request failed: %s", res.status_code)
+            self.logger.debug("%s", res.text)
+            self.raise_http_error(err=httpx.HTTPStatusError(f'HTTP {res.status_code}', request=res.request, response=res))
+
+        return res
 
     def raise_http_error(self, err: httpx.HTTPStatusError):
         """ raise error based on http status code """

@@ -331,5 +331,152 @@ class TestAsyncDRACOONClient(unittest.IsolatedAsyncioTestCase):
         assert node_mock.call_count == 1
 
 
+
+class TestAsyncDRACOONClientRequest(unittest.IsolatedAsyncioTestCase):
+    """ DRACOONClient.request(): central request handling (token refresh, retries, error mapping, raise_on_err) """
+
+    def setUp(self) -> None:
+
+        with open('tests/responses/auth/auth_ok.json', 'r') as json_file:
+            self.auth_json = json.load(json_file)
+
+        self.client = DRACOONClient(base_url=BASE_URL, client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
+        self.set_connection(datetime.now())
+        self.url = f'{BASE_URL}/api/v4/nodes/2'
+
+        # no waits between retries
+        self.wait_patch = patch.object(DRACOONClient._send_with_retry.retry, 'wait', wait_none())
+        self.wait_patch.start()
+
+        return super().setUp()
+
+    async def asyncTearDown(self) -> None:
+        self.wait_patch.stop()
+        await self.client.disconnect()
+
+    def set_connection(self, connected_at: datetime):
+        self.client.connection = DRACOONConnection(connected_at, 'access_token', 3600, 'refresh_token')
+        self.client.connected = True
+        self.client.http.headers["Authorization"] = "Bearer access_token"
+
+    @respx.mock
+    async def test_request(self):
+        route = respx.post(self.url).respond(200, json={"id": 2})
+
+        res = await self.client.request('POST', self.url, json={"name": "test"})
+
+        assert res.json() == {"id": 2}
+        request = route.calls.last.request
+        assert json.loads(request.content) == {"name": "test"}
+        assert request.headers['Authorization'] == 'Bearer access_token'
+
+    @respx.mock
+    async def test_request_http_error_raise_on_err(self):
+        respx.get(self.url).respond(404)
+
+        with self.assertRaises(HTTPNotFoundError) as raised:
+            await self.client.request('GET', self.url, raise_on_err=True)
+
+        assert raised.exception.error.response.status_code == 404
+
+    @respx.mock
+    async def test_request_http_error_client_raise_on_err(self):
+        self.client.raise_on_err = True
+        respx.get(self.url).respond(403)
+
+        with self.assertRaises(HTTPForbiddenError):
+            await self.client.request('GET', self.url)
+
+    @respx.mock
+    async def test_request_http_error_default_returns_none(self):
+        respx.get(self.url).respond(404, json={"code": 404, "message": "Not found"})
+
+        with self.assertLogs('dracoon.client', level='ERROR') as logs:
+            res = await self.client.request('GET', self.url)
+
+        assert res is None
+        assert any('404' in message and '/api/v4/nodes/2' in message for message in logs.output)
+
+    @respx.mock
+    async def test_request_expected_status(self):
+        respx.put(self.url).respond(409, json={"code": 409})
+
+        res = await self.client.request('PUT', self.url, raise_on_err=True, expected_status={409})
+
+        assert res.status_code == 409
+
+    async def test_request_retries_transient_errors_in_default_mode(self):
+        for status_code in (429, 502, 503, 504):
+            with self.subTest(status_code=status_code), respx.mock:
+                route = respx.get(self.url).mock(side_effect=[httpx.Response(status_code), httpx.Response(200, json={})])
+
+                res = await self.client.request('GET', self.url)
+
+                assert res.status_code == 200
+                assert route.call_count == 2
+
+    @respx.mock
+    async def test_request_retries_exhausted(self):
+        route = respx.get(self.url).respond(503)
+
+        assert await self.client.request('GET', self.url) is None
+        assert route.call_count == 5
+
+        with self.assertRaises(HTTPServerError):
+            await self.client.request('GET', self.url, raise_on_err=True)
+
+    @respx.mock
+    async def test_request_no_retry_on_internal_server_error(self):
+        # deliberate: DRACOON returns 500 under load - retries would add more load
+        route = respx.get(self.url).respond(500)
+
+        with self.assertRaises(HTTPUnknownError):
+            await self.client.request('GET', self.url, raise_on_err=True)
+
+        assert route.call_count == 1
+
+    @respx.mock
+    async def test_request_connection_error_raises_in_default_mode(self):
+        route = respx.get(self.url).mock(side_effect=httpx.ConnectError)
+
+        with self.assertRaises(ConnectionError):
+            await self.client.request('GET', self.url)
+
+        assert route.call_count == 5
+
+    @respx.mock
+    async def test_request_refreshes_expired_token(self):
+        self.set_connection(datetime.now() - timedelta(hours=2))
+        token_mock = respx.post(TOKEN_URL).respond(200, json=self.auth_json)
+        route = respx.get(self.url).respond(200, json={})
+
+        await self.client.request('GET', self.url)
+
+        assert form_data(token_mock.calls.last.request)['grant_type'] == 'refresh_token'
+        assert route.called
+
+    @respx.mock
+    async def test_request_without_connection(self):
+        # public endpoints - no token refresh without a connection
+        self.client.connection = None
+        self.client.connected = False
+        token_mock = respx.post(TOKEN_URL).respond(200, json=self.auth_json)
+        route = respx.get(self.url).respond(200, json={})
+
+        await self.client.request('GET', self.url)
+
+        assert route.called
+        assert not token_mock.called
+
+    @respx.mock
+    async def test_request_custom_http_client(self):
+        respx.put(self.url).respond(200)
+
+        res = await self.client.request('PUT', self.url, http_client=self.client.uploader, content=b'data')
+
+        assert res.request.content == b'data'
+        assert 'Authorization' not in res.request.headers
+
+
 if __name__ == '__main__':
     unittest.main()
