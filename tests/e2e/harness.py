@@ -233,10 +233,13 @@ class E2ETestCase(unittest.IsolatedAsyncioTestCase):
 
 
 class E2ECryptoTestCase(E2ETestCase):
-    """ encrypted room tests: encrypted run room, keypair with a random secret per run """
+    """ encrypted room tests: encrypted run room, keypair with a random secret per run - opt-in (E2E_CRYPTO=1) """
 
     @classmethod
     def setUpClass(cls) -> None:
+        # opt-in: the keypair cannot be deleted after an encrypted room with deleted files was removed (server returns 404)
+        if env('E2E_CRYPTO') != '1':
+            raise unittest.SkipTest('encrypted tests disabled - enable with E2E_CRYPTO=1')
         super().setUpClass()
         cls.crypto_room_id, cls.crypto_secret = test_run.crypto()
 
