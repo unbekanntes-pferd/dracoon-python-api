@@ -103,14 +103,6 @@ KNOWN_BROKEN_DEFAULT = {
     'DRACOONUser.get_account_information',
     'DRACOONUser.get_user_keypair',
     'DRACOONUser.update_account_information',
-    'DRACOONUsers.create_user',
-    'DRACOONUsers.get_user',
-    'DRACOONUsers.get_user_attributes',
-    'DRACOONUsers.get_user_groups',
-    'DRACOONUsers.get_user_last_admin_rooms',
-    'DRACOONUsers.get_user_roles',
-    'DRACOONUsers.get_users',
-    'DRACOONUsers.update_user',
 }
 
 
