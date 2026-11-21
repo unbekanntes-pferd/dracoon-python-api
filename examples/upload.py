@@ -23,7 +23,7 @@ async def main():
 
     secret ='VerySecret1234!' # use getpass to prompt for decryption password
 
-    plain_keypair = await dracoon.get_keypair(secret) # leave out if unencrypted target parent
+    await dracoon.get_keypair(secret) # leave out if unencrypted target parent
 
     target = '/DEMO/XYZ/' # encrypted nodes supported
 

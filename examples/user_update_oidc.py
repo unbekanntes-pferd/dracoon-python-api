@@ -4,13 +4,9 @@ Update all users of a certain domain to openID
 15.02.22 Quirin Wierer
 """
 
-from os import system
-from dracoon import DRACOON, user
+from dracoon import DRACOON
 import asyncio
 
-from dracoon.nodes_models import ProcessRoomPendingUsers, UpdateRoomGroups
-from dracoon.nodes_responses import RoomGroup
-from dracoon.user_responses import UserItem
  
 async def main():
     baseURL = 'https://dracoon.team'

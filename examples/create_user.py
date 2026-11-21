@@ -15,7 +15,7 @@ async def main():
 
     dracoon = DRACOON(base_url=baseURL, client_id=client_id, client_secret=client_secret)
 
-    connection = await dracoon.connect()
+    await dracoon.connect()
 
     user = dracoon.users.make_local_user('TEST', 'TEST', 'pferd@unbekanntespferd.com', 'testdc1')
     

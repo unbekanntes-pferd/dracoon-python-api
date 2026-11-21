@@ -7,6 +7,7 @@ homeroom creation: create rooms for users with given internal domain with admin 
 
 
 from dracoon import DRACOON, OAuth2ConnectionType
+from dracoon.nodes.models import UpdateRoomUsers
 import asyncio
 import os
 
@@ -24,7 +25,7 @@ async def main():
 
     #establish connection
     dracoon = DRACOON(base_url=baseURL, client_id=client_id, client_secret=client_secret)
-    connection = await dracoon.connect(OAuth2ConnectionType.password_flow, username, password)
+    await dracoon.connect(OAuth2ConnectionType.password_flow, username, password)
         
     # get users
     user_res = await dracoon.nodes.get_room_users(room_id=PARENT_ID, filter=user_filter)
@@ -76,9 +77,9 @@ async def main():
             # set edit perms for user
             no_admin_perm = dracoon.nodes.make_permissions(False, True, True, True, True, True, True, True, True, False)
             perms_update = dracoon.nodes.make_permission_update(id=user['user'].userInfo.id, permission=no_admin_perm)
-            update = {"items": [perms_update]}
+            update = UpdateRoomUsers(items=[perms_update])
 
-            add_perms = await dracoon.nodes.update_room_users(room_id=room_res.id, users_update=update)
+            await dracoon.nodes.update_room_users(room_id=room_res.id, users_update=update)
         
            
 if __name__ == '__main__':

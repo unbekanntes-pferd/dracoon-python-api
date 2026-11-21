@@ -15,7 +15,6 @@ folder_to_room.py -p "/Path/to/root" -d 1
 import argparse
 import sys
 import asyncio
-from pathlib import Path
 from getpass import getpass
 from typing import Any, Coroutine, List, Set, Tuple
 

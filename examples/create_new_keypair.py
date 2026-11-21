@@ -14,7 +14,7 @@ async def main():
     client_secret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXX'
     dracoon = DRACOON(base_url=baseURL, client_id=client_id, client_secret=client_secret)
 
-    connection = await dracoon.connect()
+    await dracoon.connect()
     print(dracoon.client.connected)
 
     res = await dracoon.user.delete_user_keypair()
