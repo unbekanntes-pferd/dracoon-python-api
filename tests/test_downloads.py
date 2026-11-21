@@ -2,6 +2,7 @@ import unittest
 import tempfile
 from pathlib import Path
 from datetime import datetime
+from unittest.mock import patch
 
 import respx
 
@@ -82,6 +83,14 @@ class TestAsyncDRACOONDownloads(unittest.IsolatedAsyncioTestCase):
 
         with self.assertRaises(InvalidPathError):
             await self.downloads.download_unencrypted(download_url=DOWNLOAD_URL, target_path=str(target_file), node_info=self.plain_node)
+
+    @respx.mock
+    async def test_download_unencrypted_open_error(self):
+        respx.get(DOWNLOAD_URL).respond(200, content=PLAIN_DATA)
+
+        with patch('dracoon.downloads.open', side_effect=PermissionError('denied'), create=True):
+            with self.assertRaises(PermissionError):
+                await self.downloads.download_unencrypted(download_url=DOWNLOAD_URL, target_path=self.target_dir.name, node_info=self.plain_node)
 
     @respx.mock
     async def test_download_unencrypted_http_error(self):
