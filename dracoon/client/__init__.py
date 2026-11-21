@@ -63,6 +63,7 @@ class DRACOONClient:
         else:
             self.redirect_uri = f"{self.base_url}/oauth/callback"
         self.connection: DRACOONConnection = None
+        self.refresh_lock = asyncio.Lock()
         self.raise_on_err = raise_on_err
         self.logger = logging.getLogger('dracoon.client')
         self.logger.info("DRACOON client created.")
@@ -163,31 +164,39 @@ class DRACOONClient:
 
         # TODO: refactor to own _method
         if connection_type == OAuth2ConnectionType.refresh_token:
+
+            # serialize refreshes - concurrent requests with an expired token would otherwise all refresh (and invalidate) the token
+            connection = self.connection
+            async with self.refresh_lock:
+
+                # token already refreshed by another request while waiting
+                if refresh_token is None and self.connection is not None and self.connection is not connection:
+                    return self.connection
             
-            # only use connection refresh token if no token is provided
-            if self.connection and refresh_token is None:
-                refresh_token = self.connection.refresh_token
-            # raise if no connection and no token provided
-            if refresh_token is None:
-                await self.disconnect()
-                raise MissingCredentialsError(message='Missing refresh token.')
+                # only use connection refresh token if no token is provided
+                if self.connection and refresh_token is None:
+                    refresh_token = self.connection.refresh_token
+                # raise if no connection and no token provided
+                if refresh_token is None:
+                    await self.disconnect()
+                    raise MissingCredentialsError(message='Missing refresh token.')
 
-            data = {'grant_type': 'refresh_token', 'refresh_token': refresh_token, 'client_id': self.client_id, 'client_secret': self.client_secret}
+                data = {'grant_type': 'refresh_token', 'refresh_token': refresh_token, 'client_id': self.client_id, 'client_secret': self.client_secret}
 
-            try:
-                res = await self.http.post(url=token_url, data=data)
-                res.raise_for_status()
-            except httpx.RequestError as e:
-                await self.handle_connection_error(e)
+                try:
+                    res = await self.http.post(url=token_url, data=data)
+                    res.raise_for_status()
+                except httpx.RequestError as e:
+                    await self.handle_connection_error(e)
 
-            except httpx.HTTPStatusError as e:
-                self.logger.debug("Login error: %s", e.response.text)
-                self.logger.error("Refresh token authentication failed.")
-                await self.handle_http_error(e, True)
+                except httpx.HTTPStatusError as e:
+                    self.logger.debug("Login error: %s", e.response.text)
+                    self.logger.error("Refresh token authentication failed.")
+                    await self.handle_http_error(e, True)
 
 
-            self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in"],
-                                         res.json()["refresh_token"])
+                self.connection = DRACOONConnection(now, res.json()["access_token"], res.json()["expires_in"],
+                                             res.json()["refresh_token"])
 
         self.connected = True
         self.http.headers["Authorization"] = "Bearer " + self.connection.access_token

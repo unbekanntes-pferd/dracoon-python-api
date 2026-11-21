@@ -1,4 +1,5 @@
 import unittest
+import asyncio
 import base64
 import json
 from datetime import datetime, timedelta
@@ -239,6 +240,25 @@ class TestAsyncDRACOONClient(unittest.IsolatedAsyncioTestCase):
         assert node.id == 2
         assert form_data(token_mock.calls.last.request)['grant_type'] == 'refresh_token'
         assert node_mock.calls.last.request.headers['Authorization'] == 'Bearer access_token'
+
+    @respx.mock
+    async def test_concurrent_requests_refresh_token_once(self):
+        self.set_connection(datetime.now() - timedelta(hours=2))
+
+        async def token_response(request: httpx.Request) -> httpx.Response:
+            # yield to the event loop like a real network request
+            await asyncio.sleep(0)
+            return httpx.Response(200, json=self.auth_json)
+
+        token_mock = respx.post(TOKEN_URL).mock(side_effect=token_response)
+        node_mock = respx.get(f'{BASE_URL}/api/v4/nodes/2').respond(200, json=self.node_json)
+        nodes = DRACOONNodes(self.client)
+
+        results = await asyncio.gather(*[nodes.get_node(node_id=2) for _ in range(5)])
+
+        assert all(node.id == 2 for node in results)
+        assert token_mock.call_count == 1
+        assert all(call.request.headers['Authorization'] == 'Bearer access_token' for call in node_mock.calls)
 
     @respx.mock
     async def test_retry_on_too_many_requests(self):
