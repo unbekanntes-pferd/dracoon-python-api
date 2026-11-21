@@ -10,9 +10,13 @@ Cleanup
  - everything created via the helpers is deleted after the test (also on failure), in reverse order
  - deleted nodes end up in the recycle bin of E2E_ROOM_ID - use a room with a short retention period
 
+Encryption
+ - the e2e user gets a new keypair with a random secret per test run (conftest.py) - use a dedicated test user
+
 Configuration (environment or .env, see .env.example) - tests are skipped if it is missing
 """
 import os
+import secrets
 import tempfile
 import unittest
 import uuid
@@ -22,6 +26,7 @@ from typing import Optional, Union
 import dotenv
 
 from dracoon import DRACOON, OAuth2ConnectionType
+from dracoon.crypto.models import UserKeyPairVersion
 from dracoon.errors import HTTPNotFoundError
 from dracoon.groups.responses import Group
 from dracoon.nodes.models import Node
@@ -32,6 +37,8 @@ from dracoon.user.responses import UserData
 dotenv.load_dotenv()
 
 REQUIRED = ('E2E_BASE_URL', 'E2E_USER_NAME', 'E2E_PASSWORD', 'E2E_ROOM_ID')
+# set per test run by conftest.py - not configurable
+CRYPTO_SECRET = 'E2E_CRYPTO_SECRET'
 
 
 def env(name: str, default: str = None) -> Optional[str]:
@@ -40,6 +47,33 @@ def env(name: str, default: str = None) -> Optional[str]:
 
 def missing_config() -> list:
     return [name for name in REQUIRED if not env(name)]
+
+
+def crypto_configured() -> bool:
+    return not missing_config() and env('E2E_CRYPTO_ROOM_ID') is not None
+
+
+async def connect() -> DRACOON:
+    dracoon = DRACOON(base_url=env('E2E_BASE_URL'), client_id=env('CLIENT_ID', 'dracoon_legacy_scripting'),
+                      client_secret=env('CLIENT_SECRET', ''), raise_on_err=True)
+    await dracoon.connect(OAuth2ConnectionType.password_flow, username=env('E2E_USER_NAME'), password=env('E2E_PASSWORD'))
+    return dracoon
+
+
+async def reset_keypair() -> str:
+    """ replace the e2e user's keypair(s) with a new one protected by a random secret - returns the secret """
+    secret = secrets.token_urlsafe(24)
+    dracoon = await connect()
+    try:
+        for version in UserKeyPairVersion:
+            try:
+                await dracoon.user.delete_user_keypair(version=version)
+            except HTTPNotFoundError:
+                pass
+        await dracoon.user.set_user_keypair(secret=secret)
+    finally:
+        await dracoon.logout()
+    return secret
 
 
 class E2ETestCase(unittest.IsolatedAsyncioTestCase):
@@ -52,9 +86,7 @@ class E2ETestCase(unittest.IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self) -> None:
         self.room_id = int(env('E2E_ROOM_ID'))
-        self.dracoon = DRACOON(base_url=env('E2E_BASE_URL'), client_id=env('CLIENT_ID', 'dracoon_legacy_scripting'),
-                               client_secret=env('CLIENT_SECRET', ''), raise_on_err=True)
-        await self.dracoon.connect(OAuth2ConnectionType.password_flow, username=env('E2E_USER_NAME'), password=env('E2E_PASSWORD'))
+        self.dracoon = await connect()
         # cleanups run in reverse order - logout last
         self.addAsyncCleanup(self.dracoon.logout)
 
@@ -136,16 +168,18 @@ class E2ETestCase(unittest.IsolatedAsyncioTestCase):
 
 
 class E2ECryptoTestCase(E2ETestCase):
-    """ encrypted room tests: E2E_CRYPTO_ROOM_ID (encrypted room) and E2E_CRYPTO_SECRET (existing user keypair) """
+    """ encrypted room tests: E2E_CRYPTO_ROOM_ID (encrypted room) - keypair secret per test run (conftest.py) """
 
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        if not env('E2E_CRYPTO_ROOM_ID') or not env('E2E_CRYPTO_SECRET'):
-            raise unittest.SkipTest('E2E crypto configuration missing: E2E_CRYPTO_ROOM_ID, E2E_CRYPTO_SECRET')
+        if not env('E2E_CRYPTO_ROOM_ID'):
+            raise unittest.SkipTest('E2E crypto configuration missing: E2E_CRYPTO_ROOM_ID')
+        if not env(CRYPTO_SECRET):
+            raise unittest.SkipTest('No keypair for this test run - run tests/e2e with pytest (conftest.py)')
 
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()
         self.crypto_room_id = int(env('E2E_CRYPTO_ROOM_ID'))
-        # the keypair is shared user state - it is only read, never created or deleted
-        await self.dracoon.get_keypair(secret=env('E2E_CRYPTO_SECRET'))
+        # the keypair is shared user state - created once per test run, only read in tests
+        await self.dracoon.get_keypair(secret=env(CRYPTO_SECRET))

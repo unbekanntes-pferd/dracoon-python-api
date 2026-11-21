@@ -24,7 +24,6 @@ jobs:
       E2E_ROOM_ID: ${{ secrets.E2E_ROOM_ID }}
       E2E_EMAIL_DOMAIN: ${{ secrets.E2E_EMAIL_DOMAIN }}
       E2E_CRYPTO_ROOM_ID: ${{ secrets.E2E_CRYPTO_ROOM_ID }}
-      E2E_CRYPTO_SECRET: ${{ secrets.E2E_CRYPTO_SECRET }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
