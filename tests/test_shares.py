@@ -15,6 +15,10 @@ class TestShareMakers(unittest.TestCase):
         self.assertEqual(shares_update.objectIds, [1, 2])
         self.assertEqual(shares_update.maxDownloads, 3)
 
+    def test_shares_update_keeps_max_downloads(self):
+        shares_update = self.shares.make_shares_update(shares_list=[1], max_downloads=3)
+        self.assertEqual(shares_update.model_dump(exclude_unset=True), {"objectIds": [1], "maxDownloads": 3})
+
     def test_share_update_sms_recipients(self):
         share_update = self.shares.make_share_update(sms_recipients=['+491234'])
         self.assertEqual(share_update.textMessageRecipients, ['+491234'])
@@ -30,9 +34,9 @@ class TestShareMakers(unittest.TestCase):
         self.assertEqual(payload, {"receiverLanguage": 'de-DE', "resetMaxSlots": True, "resetMaxSize": True})
 
     def test_file_requests_update(self):
-        file_requests_update = self.shares.make_file_requests_update(file_requests_list=[1, 2], reset_max_slots=True)
+        file_requests_update = self.shares.make_file_requests_update(file_requests_list=[1, 2], max_size=10, reset_max_slots=True)
         payload = file_requests_update.model_dump(exclude_unset=True)
-        self.assertEqual(payload, {"objectIds": [1, 2], "resetMaxSlots": True, "resetMaxSize": True})
+        self.assertEqual(payload, {"objectIds": [1, 2], "maxSize": 10, "resetMaxSlots": True})
 
 
 if __name__ == '__main__':

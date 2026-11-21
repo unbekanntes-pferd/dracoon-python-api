@@ -84,7 +84,7 @@ class FileRequestTests(E2ETestCase):
         file_requests = [await self.create_file_request(target_id=self.folder.id) for _ in range(2)]
         file_request_ids = [file_request.id for file_request in file_requests]
 
-        update = self.dracoon.shares.make_file_requests_update(file_requests_list=file_request_ids, max_slots=3, reset_max_size=None)
+        update = self.dracoon.shares.make_file_requests_update(file_requests_list=file_request_ids, max_slots=3)
         await self.dracoon.shares.update_file_requests(file_requests_update=update)
         for file_request_id in file_request_ids:
             self.assertEqual((await self.dracoon.shares.get_file_request(file_request_id=file_request_id)).maxSlots, 3)

@@ -165,7 +165,7 @@ class DRACOONShares:
     
     def make_shares_update(self, shares_list = List[int], expiration: Expiration = None, 
                           show_creator_name: bool = None, show_creator_login: bool = None, 
-                          max_downloads: int = None, reset_max_downloads: bool = True) -> UpdateShares:
+                          max_downloads: int = None, reset_max_downloads: bool = None) -> UpdateShares:
 
         """ make a shares update payload required for update_shares() """
         shares_update = {
@@ -381,7 +381,7 @@ class DRACOONShares:
 
     def make_file_requests_update(self, file_requests_list = List[int], expiration: Expiration = None, file_expiration: int = None,
                           show_creator_name: bool = None, show_creator_login: bool = None, 
-                          max_slots: int = None, max_size: int = None, show_uploaded_files: bool = None, reset_max_size: bool = True, 
+                          max_slots: int = None, max_size: int = None, show_uploaded_files: bool = None, reset_max_size: bool = None, 
                           reset_max_slots: bool = None, reset_file_expiration: bool = None, raise_on_err: bool = False) -> UpdateFileRequests:
 
         """ make a file_requests update payload required for update_file_requests() """
