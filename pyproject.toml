@@ -1,6 +1,6 @@
 [project]
 name = "dracoon"
-version = "1.13.0"
+version = "1.14.0"
 description = "DRACOON API wrapper in Python"
 authors = [{ name = "Octavio Simone", email = "o.simone@dracoon.com" }]
 license = "MIT"
