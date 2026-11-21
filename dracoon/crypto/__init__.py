@@ -307,7 +307,7 @@ def encrypt_bytes(plain_data: bytes, plain_file_key: PlainFileKey) -> Tuple[byte
     """ encrypt bytes with given plain file key (on the fly) """
     logger.info("Encrypting bytes with version: %s", plain_file_key.version)
 
-    if not bytes:
+    if plain_data is None:
         raise CryptoMissingDataError(message='No data to process.')
 
     key = base64.b64decode(plain_file_key.key)
@@ -348,7 +348,7 @@ class FileEncryptionCipher:
         if not plain_file_key.version or not plain_file_key.key or not plain_file_key.iv:
             logger.critical("Invalid file key format (lack of iv or key).")
             raise InvalidFileKeyError(message="Invalid file key")
-        if plain_file_key.version != PlainFileKeyVersion.AES256GCM.value and plain_file_key.version != PlainFileKeyVersion.AES256GCM.value:
+        if plain_file_key.version != PlainFileKeyVersion.AES256GCM.value:
             logger.critical("Invalid / unknown file key version.")
             raise InvalidFileKeyError(message="Invalid file key version")
         
@@ -402,7 +402,7 @@ class FileDecryptionCipher:
         if not plain_file_key.version or not plain_file_key.key or not plain_file_key.iv:
             logger.critical("Invalid file key format (lack of iv or key).")
             raise InvalidFileKeyError(message="Invalid file key")
-        if plain_file_key.version != PlainFileKeyVersion.AES256GCM.value and plain_file_key.version != PlainFileKeyVersion.AES256GCM.value:
+        if plain_file_key.version != PlainFileKeyVersion.AES256GCM.value:
             logger.critical("Invalid / unknown file key version.")
             raise InvalidFileKeyError(message="Invalid file key version")
         self.plain_file_key = plain_file_key
