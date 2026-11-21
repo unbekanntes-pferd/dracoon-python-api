@@ -170,7 +170,7 @@ class DRACOONShares:
         """ make a shares update payload required for update_shares() """
         shares_update = {
 
-            "objetIds": shares_list
+            "objectIds": shares_list
 
             }
 
@@ -313,14 +313,14 @@ class DRACOONShares:
         if name: file_request["name"] = name
         if password: file_request["password"] = password
         if expiration: file_request["expiration"] = expiration
-        if file_expiration: file_request["fileExpiryPeriod"] = file_expiration
+        if file_expiration: file_request["filesExpiryPeriod"] = file_expiration
         if notes: file_request["notes"] = notes
         if internal_notes: file_request["internalNotes"] = internal_notes
         if show_creator is not None: file_request["showCreatorName"] = show_creator
         if show_creator_login is not None: file_request["showCreatorUsername"] = show_creator_login
         if max_slots: file_request["maxSlots"] = max_slots
         if max_size: file_request["maxSize"] = max_size
-        if language: file_request["receiverLangauge"] = language
+        if language: file_request["receiverLanguage"] = language
         if show_uploaded_files is not None: file_request["showUploadedFiles"] = show_uploaded_files
         if sms_recipients: file_request["textMessageRecipients"] = sms_recipients
 
@@ -387,7 +387,7 @@ class DRACOONShares:
         """ make a file_requests update payload required for update_file_requests() """
         file_requests_update = {
 
-            "objetIds": file_requests_list
+            "objectIds": file_requests_list
 
             }
 
@@ -398,8 +398,8 @@ class DRACOONShares:
         if show_creator_name is not None: file_requests_update["showCreatorName"] = show_creator_name
         if max_slots: file_requests_update["maxSlots"] = max_slots
         if max_size: file_requests_update["maxSize"] = max_size
-        if reset_max_slots is not None: file_requests_update["resetSlots"] = reset_max_slots
-        if reset_max_size is not None: file_requests_update["resetSize"] = reset_max_size
+        if reset_max_slots is not None: file_requests_update["resetMaxSlots"] = reset_max_slots
+        if reset_max_size is not None: file_requests_update["resetMaxSize"] = reset_max_size
         if show_uploaded_files is not None: file_requests_update["showUploadedFiles"] = show_uploaded_files
 
         return UpdateFileRequests(**file_requests_update)
@@ -422,9 +422,9 @@ class DRACOONShares:
         if show_creator_login is not None: file_request["showCreatorUsername"] = show_creator_login
         if max_slots: file_request["maxSlots"] = max_slots
         if max_size: file_request["maxSize"] = max_size
-        if reset_max_slots is not None: file_request["resetSlots"] = reset_max_slots
-        if reset_max_size is not None: file_request["resetSize"] = reset_max_size
-        if language: file_request["receiverLangauge"] = language
+        if reset_max_slots is not None: file_request["resetMaxSlots"] = reset_max_slots
+        if reset_max_size is not None: file_request["resetMaxSize"] = reset_max_size
+        if language: file_request["receiverLanguage"] = language
         if show_uploaded_files is not None: file_request["showUploadedFiles"] = show_uploaded_files
         if sms_recipients: file_request["textMessageRecipients"] = sms_recipients
 
