@@ -33,6 +33,19 @@ RETRY_CONFIG_BASE = RetryConfig(retry=retry_if_exception_type((HTTPTooManyReques
                            reraise=True
                            )
 RETRY_CONFIG = RETRY_CONFIG_BASE.model_dump()
+CONNECTION_RETRIES = 5
+
+
+def make_transport_config(proxy_config: ProxyConfig = None) -> dict:
+    """ httpx client transport config with retries on connection errors and optional proxy (single url or dict of url patterns) """
+    if proxy_config is None or isinstance(proxy_config, str):
+        return {"transport": httpx.AsyncHTTPTransport(retries=CONNECTION_RETRIES, proxy=proxy_config)}
+
+    return {
+        "transport": httpx.AsyncHTTPTransport(retries=CONNECTION_RETRIES),
+        "mounts": {pattern: httpx.AsyncHTTPTransport(retries=CONNECTION_RETRIES, proxy=proxy_url)
+                   for pattern, proxy_url in proxy_config.items()}
+    }
 
 
 class DRACOONClient:
@@ -50,15 +63,13 @@ class DRACOONClient:
                  raise_on_err: bool = False, proxy_config: ProxyConfig = None):
         """ client is initialized with DRACOON instance details (url and OAuth client credentials) """
         
-        # custom transport for retries on connection errors
-        DEFAULT_HTTPX_TRANSPORT = httpx.AsyncHTTPTransport(retries=5)
-        
         self.base_url = base_url
         self.client_id = client_id
         self.client_secret = client_secret
-        self.http = httpx.AsyncClient(headers=self.headers, timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config, transport=DEFAULT_HTTPX_TRANSPORT)
-        self.uploader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config, transport=DEFAULT_HTTPX_TRANSPORT)
-        self.downloader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, proxies=proxy_config, transport=DEFAULT_HTTPX_TRANSPORT)
+        # custom transport(s) for retries on connection errors and proxy support
+        self.http = httpx.AsyncClient(headers=self.headers, timeout=DEFAULT_TIMEOUT_CONFIG, **make_transport_config(proxy_config))
+        self.uploader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, **make_transport_config(proxy_config))
+        self.downloader = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_CONFIG, **make_transport_config(proxy_config))
         self.connected = False
         if redirect_uri:
             self.redirect_uri = redirect_uri

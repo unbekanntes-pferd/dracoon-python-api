@@ -62,6 +62,33 @@ class TestDRACOONClient(unittest.TestCase):
         self.assertEqual(query['scope'], ['all'])
 
 
+    def assert_proxy(self, client: DRACOONClient, url: str, proxy_host):
+        """ all httpx clients route url via proxy host (None: direct connection with connection retries) """
+        for http_client in (client.http, client.uploader, client.downloader):
+            pool = http_client._transport_for_url(httpx.URL(url))._pool
+            proxy_url = getattr(pool, '_proxy_url', None)
+            self.assertEqual(proxy_url.host.decode() if proxy_url else None, proxy_host)
+            # httpx does not apply connection retries to proxied connections
+            if proxy_host is None:
+                self.assertEqual(pool._retries, 5)
+
+    def test_client_without_proxy(self):
+        dracoon = DRACOONClient(base_url='https://foo.bar')
+
+        self.assert_proxy(dracoon, 'https://foo.bar', None)
+
+    def test_client_proxy_url(self):
+        dracoon = DRACOONClient(base_url='https://foo.bar', proxy_config='http://proxy.test:8080')
+
+        self.assert_proxy(dracoon, 'https://foo.bar', 'proxy.test')
+        self.assert_proxy(dracoon, 'http://foo.bar', 'proxy.test')
+
+    def test_client_proxy_patterns(self):
+        dracoon = DRACOONClient(base_url='https://foo.bar', proxy_config={'https://': 'http://proxy.test:3128'})
+
+        self.assert_proxy(dracoon, 'https://foo.bar', 'proxy.test')
+        self.assert_proxy(dracoon, 'http://foo.bar', None)
+
 
 def form_data(request: httpx.Request) -> dict:
     """ parse url encoded form body (token requests) into a flat dict """
