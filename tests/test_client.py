@@ -139,14 +139,14 @@ class TestAsyncDRACOONClient(unittest.IsolatedAsyncioTestCase):
                 with self.assertRaises(MissingCredentialsError):
                     await client.connect(connection_type=connection_type)
 
-    @unittest.expectedFailure
     @respx.mock
     async def test_connect_password_flow_missing_password(self):
-        # known bug: guard uses 'and' - a request without password is sent
-        respx.post(TOKEN_URL).respond(200, json=self.auth_json)
+        token_mock = respx.post(TOKEN_URL).respond(200, json=self.auth_json)
 
         with self.assertRaises(MissingCredentialsError):
             await self.client.connect(connection_type=OAuth2ConnectionType.password_flow, username='test_user')
+
+        assert not token_mock.called
 
     @respx.mock
     async def test_connect_unauthorized(self):

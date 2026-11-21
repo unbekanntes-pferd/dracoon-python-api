@@ -98,7 +98,7 @@ class DRACOONClient:
         self.logger.debug("Establishing DRACOON connection...")
         
         # handle missing credentials for password flow
-        if connection_type == OAuth2ConnectionType.password_flow and username is None and password is None:
+        if connection_type == OAuth2ConnectionType.password_flow and (username is None or password is None):
             await self.disconnect()
             self.logger.error("Missing credentials for OAuth2 password flow.")
             raise MissingCredentialsError(message='Username and password are mandatory for OAuth2 password flow.')
