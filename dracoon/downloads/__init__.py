@@ -180,17 +180,16 @@ class DRACOONDownloads:
                     res.raise_for_status()
                 
                     # decrypt file and then write to disk
-                    async for chunk in res.aiter_bytes(chunksize):            
+                    async for chunk in res.aiter_bytes(chunksize):
                         plain_chunk = decryptor.decode_bytes(chunk)
                         file_out.write(plain_chunk)
                         if callback_fn: callback_fn(len(chunk))
-                            
-                            # finalize encryption after last chunk
-                        if not chunk:
-                            last_data = decryptor.finalize()
-                            file_out.write(last_data)
-                                        
-                        self.logger.info("Download completed.")
+
+                # finalize decryption after last chunk (verifies GCM tag - raises InvalidTag on mismatch)
+                last_data = decryptor.finalize()
+                file_out.write(last_data)
+
+            self.logger.info("Download completed.")
         except InvalidTag:
             # remove unverified decrypted bytes
             os.remove(file_path)
