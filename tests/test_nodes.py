@@ -9,6 +9,7 @@ from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.nodes import DRACOONNodes
 from dracoon.nodes.models import NodeType
 from dracoon.crypto.models import FileKeyVersion
+from tests.adapter_harness import make_client
 
 CLIENT_ID = 'client_id'
 CLIENT_SECRET = 'client_secret'
@@ -495,3 +496,21 @@ class TestAsyncDRACOONNodes(unittest.IsolatedAsyncioTestCase):
         respx.get(f'{BASE_URL}/api/v4/nodes/search').respond(200, json=self.search_empty_json)
         node = await self.nodes.get_node_from_path(path='/room/missing.txt')
         assert node is None
+
+
+class TestNodeMakers(unittest.TestCase):
+    """ payload makers must not drop fields (pydantic ignores unknown keys) """
+
+    def setUp(self):
+        self.nodes = DRACOONNodes(make_client())
+
+    def test_modification_dates(self):
+        payloads = [
+            self.nodes.make_folder(name='folder', parent_id=1, modified_date=DEFAULT_DATE),
+            self.nodes.make_folder_update(modified_date=DEFAULT_DATE),
+            self.nodes.make_room(name='room', modified_date=DEFAULT_DATE),
+            self.nodes.make_room_update(modified_date=DEFAULT_DATE),
+        ]
+        for payload in payloads:
+            with self.subTest(payload=type(payload).__name__):
+                self.assertIn('timestampModification', payload.model_dump(exclude_unset=True))
