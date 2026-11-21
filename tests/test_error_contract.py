@@ -27,9 +27,6 @@ KNOWN_BROKEN_RAISE = {'DRACOONNodes.get_parents'}
 KNOWN_BROKEN_DEFAULT = {
     'DRACOONBranding.get_branding',
     'DRACOONBranding.update_branding',
-    'DRACOONEvents.get_events',
-    'DRACOONEvents.get_permissions',
-    'DRACOONEvents.get_rooms',
     'DRACOONNodes.add_favorite',
     'DRACOONNodes.add_node_comment',
     'DRACOONNodes.check_s3_upload',

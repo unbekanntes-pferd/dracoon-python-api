@@ -11,16 +11,13 @@ Please note: maximum 500 items are returned in GET requests
  - refer to documentation for details on filtering and offset 
  - use documentation for payload description 
 
-
 """
 
-from typing import List
-import httpx
+from typing import List, Optional
 import logging
 import urllib.parse
-from tenacity import retry
 
-from dracoon.client import DRACOONClient, OAuth2ConnectionType, RETRY_CONFIG
+from dracoon.client import DRACOONClient
 from dracoon.errors import ClientDisconnectedError, InvalidClientError
 from .responses import AuditNodeInfoResponse, AuditNodeResponse, LogEventList
 
@@ -55,12 +52,8 @@ class DRACOONEvents:
             self.logger.critical("DRACOON client not connected.")
             raise ClientDisconnectedError(message='DRACOON client must be connected: client.connect()')
    
-    @retry(**RETRY_CONFIG)
-    async def get_permissions(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err = False) -> List[AuditNodeResponse]:
+    async def get_permissions(self, offset: int = 0, filter: str = None, limit: int = None, sort: str = None, raise_on_err = False) -> Optional[List[AuditNodeResponse]]:
         """ get permissions for all nodes (rooms) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
         
@@ -71,27 +64,20 @@ class DRACOONEvents:
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 
 
-        try:
-            res = await self.dracoon.http.get(api_url)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Getting permissions failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved node permission audit.")
         tmp_list = res.json()
         
         return [AuditNodeResponse(**node_info) for node_info in tmp_list]
     
-    @retry(**RETRY_CONFIG)
     async def get_rooms(self, parent_id: int = 0, offset: int = 0, filter: str = None, 
-                                   limit: int = None, sort: str = None, raise_on_err = False) -> AuditNodeInfoResponse:
+                                   limit: int = None, sort: str = None, raise_on_err = False) -> Optional[AuditNodeInfoResponse]:
         """ get permissions for all nodes (rooms) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
         if self.raise_on_err:
             raise_on_err = True
         
@@ -102,25 +88,18 @@ class DRACOONEvents:
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}'
 
-        try:
-            res = await self.dracoon.http.get(api_url)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Getting permissions failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved node permission audit.")
         return AuditNodeInfoResponse(**res.json())
 
-    @retry(**RETRY_CONFIG)
     async def get_events(self, offset: int = 0, filter: str = None, limit: int = None, 
-                        sort: str = None, date_start: str = None, date_end: str = None, operation_id: int = None, user_id: int = None, raise_on_err = False) -> LogEventList:
+                        sort: str = None, date_start: str = None, date_end: str = None, operation_id: int = None, user_id: int = None, raise_on_err = False) -> Optional[LogEventList]:
         """ get events (audit log) """
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-        
         if self.raise_on_err:
             raise_on_err = True
         
@@ -135,15 +114,11 @@ class DRACOONEvents:
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}' 
 
-        try:
-            res = await self.dracoon.http.get(api_url)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
-        except httpx.HTTPStatusError as e:
+        if res is None:
             self.logger.error("Getting event log failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
 
         self.logger.info("Retrieved events from eventlog.")
         return LogEventList(**res.json())
