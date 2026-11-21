@@ -38,12 +38,12 @@ https://dracoon.team/api/
 
 ### Built With
 
-* [Python 3.9.0](https://www.python.org/)
+* [Python 3.10+](https://www.python.org/)
 * [httpx module](https://www.python-httpx.org/)
 * [cryptography](https://cryptography.io/en/latest/)
 * [pydantic](https://pydantic-docs.helpmanual.io/)
 
-[List all dependencies](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/requirements.txt)
+[List all dependencies](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/pyproject.toml)
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -520,6 +520,26 @@ _For examples, check out the example files:_<br>
 * [Set a new keypair](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/create_new_keypair.py)
 * [Upload file](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/upload.py)
 * [Download files](https://github.com/unbekanntes-pferd/dracoon-python-api/blob/master/examples/download.py)
+
+<!-- CONTRIBUTING -->
+## Contributing
+
+The project is managed with [uv](https://docs.astral.sh/uv/).
+
+```bash
+# install dependencies (incl. dev group) into .venv
+uv sync
+
+# run unit tests
+uv run pytest
+
+# run E2E tests against a DRACOON instance (requires .env - see .env.example)
+uv run pytest tests/e2e
+
+# build and publish
+uv build
+uv publish
+```
 
 <!-- ROADMAP -->
 ## Roadmap
