@@ -205,6 +205,8 @@ class E2ETestCase(unittest.IsolatedAsyncioTestCase):
         name = self.unique_name()
         email = f"{name}@{env('E2E_EMAIL_DOMAIN', 'example.com')}"
         payload = self.dracoon.users.make_local_user(first_name='E2E', last_name=name, email=email, login=email, notify=False)
+        # without notification (no invitation mail) an initial password is required
+        payload.authData = self.dracoon.users.make_auth_data(method='basic', password=f'{secrets.token_urlsafe(24)}aA1!', change_password=True)
         user = await self.dracoon.users.create_user(user=payload)
         self.defer(self.dracoon.users.delete_user, user_id=user.id)
         return user
