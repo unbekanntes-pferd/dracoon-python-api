@@ -66,14 +66,6 @@ KNOWN_BROKEN_DEFAULT = {
     'DRACOONPublicBranding.get_public_branding',
     'DRACOONPublicBranding.get_public_branding_image',
     'DRACOONReports.get_reports',
-    'DRACOONShares.create_file_request',
-    'DRACOONShares.create_share',
-    'DRACOONShares.get_file_request',
-    'DRACOONShares.get_file_requests',
-    'DRACOONShares.get_share',
-    'DRACOONShares.get_shares',
-    'DRACOONShares.update_file_request',
-    'DRACOONShares.update_share',
 }
 
 
