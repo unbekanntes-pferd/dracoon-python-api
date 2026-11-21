@@ -223,9 +223,7 @@ class TestAsyncDRACOONClient(unittest.IsolatedAsyncioTestCase):
         self.set_connection(datetime.now() - timedelta(hours=2))
         assert not await self.client.check_access_token()
 
-    @unittest.expectedFailure
     async def test_check_access_token_expired_days_ago(self):
-        # known bug: uses timedelta.seconds instead of total_seconds() - wraps every 24 hours
         self.set_connection(datetime.now() - timedelta(days=1, seconds=10))
         assert not await self.client.check_access_token()
 

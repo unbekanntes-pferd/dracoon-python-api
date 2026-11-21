@@ -235,7 +235,7 @@ class DRACOONClient:
 
         if not test and self.connection:
             now = datetime.now()
-            return (now - self.connection.connected_at).seconds < self.connection.access_token_validity
+            return (now - self.connection.connected_at).total_seconds() < self.connection.access_token_validity
         elif test and self.connection:
             return await self.test_connection()
         else:
