@@ -8,7 +8,44 @@
   ],
   "DRACOONBranding.update_branding": [
     {
-      "body": {},
+      "body": {
+        "appearanceLoginBox": "string",
+        "colorizeHeader": true,
+        "colors": [
+          {
+            "colorDetails": [
+              {
+                "rgba": "string",
+                "type": "normal"
+              }
+            ],
+            "type": "string"
+          }
+        ],
+        "emailContact": "string",
+        "images": [
+          {
+            "id": 1,
+            "type": "webLogo"
+          }
+        ],
+        "imprintUrl": "https://dracoon.team/string",
+        "positionLoginBox": 1,
+        "privacyUrl": "https://dracoon.team/string",
+        "productName": "string",
+        "supportUrl": "https://dracoon.team/string",
+        "texts": [
+          {
+            "languages": [
+              {
+                "content": "string",
+                "languageTag": "string"
+              }
+            ],
+            "type": "emailSignature"
+          }
+        ]
+      },
       "method": "PUT",
       "url": "https://dracoon.team/branding/api/v1/branding"
     }
@@ -111,7 +148,9 @@
   ],
   "DRACOONGroups.create_group": [
     {
-      "body": {},
+      "body": {
+        "name": "string"
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/groups"
     }
@@ -171,7 +210,9 @@
   ],
   "DRACOONGroups.update_group": [
     {
-      "body": {},
+      "body": {
+        "name": "string"
+      },
       "method": "PUT",
       "url": "https://dracoon.team/api/v4/groups/1"
     }
@@ -185,7 +226,9 @@
   ],
   "DRACOONNodes.add_node_comment": [
     {
-      "body": {},
+      "body": {
+        "text": "string"
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/nodes/1/comments"
     }
@@ -206,12 +249,25 @@
   ],
   "DRACOONNodes.complete_s3_upload": [
     {
-      "body": {},
+      "body": {
+        "parts": [
+          {
+            "partEtag": "string",
+            "partNumber": 1
+          }
+        ]
+      },
       "method": "PUT",
       "url": "https://dracoon.team/api/v4/nodes/files/uploads/string/s3"
     }
   ],
-  "DRACOONNodes.complete_upload": [],
+  "DRACOONNodes.complete_upload": [
+    {
+      "body": {},
+      "method": "PUT",
+      "url": "https://dracoon.team/api/v4/uploads/string"
+    }
+  ],
   "DRACOONNodes.config_room": [
     {
       "body": {},
@@ -221,28 +277,42 @@
   ],
   "DRACOONNodes.copy_nodes": [
     {
-      "body": {},
+      "body": {
+        "items": [
+          {
+            "id": 1
+          }
+        ]
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/nodes/1/copy_to"
     }
   ],
   "DRACOONNodes.create_folder": [
     {
-      "body": {},
+      "body": {
+        "name": "string",
+        "parentId": 1
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/nodes/folders"
     }
   ],
   "DRACOONNodes.create_room": [
     {
-      "body": {},
+      "body": {
+        "name": "string"
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/nodes/rooms"
     }
   ],
   "DRACOONNodes.create_upload_channel": [
     {
-      "body": {},
+      "body": {
+        "name": "string",
+        "parentId": 1
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/nodes/files/uploads"
     }
@@ -314,7 +384,9 @@
   ],
   "DRACOONNodes.encrypt_room": [
     {
-      "body": {},
+      "body": {
+        "isEncrypted": true
+      },
       "method": "PUT",
       "url": "https://dracoon.team/api/v4/nodes/rooms/1/encrypt"
     }
@@ -433,7 +505,11 @@
   ],
   "DRACOONNodes.get_s3_urls": [
     {
-      "body": {},
+      "body": {
+        "firstPartNumber": 1,
+        "lastPartNumber": 1,
+        "size": 1
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/nodes/files/uploads/string/s3_urls"
     }
@@ -447,21 +523,41 @@
   ],
   "DRACOONNodes.move_nodes": [
     {
-      "body": {},
+      "body": {
+        "items": [
+          {
+            "id": 1
+          }
+        ]
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/nodes/1/move_to"
     }
   ],
   "DRACOONNodes.process_pending_assignments": [
     {
-      "body": {},
+      "body": {
+        "items": [
+          {
+            "groupId": 1,
+            "roomId": 1,
+            "roomName": "string",
+            "state": "string",
+            "userId": 1
+          }
+        ]
+      },
       "method": "PUT",
       "url": "https://dracoon.team/api/v4/nodes/rooms/pending"
     }
   ],
   "DRACOONNodes.restore_nodes": [
     {
-      "body": {},
+      "body": {
+        "deletedNodeIds": [
+          1
+        ]
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/nodes/deleted_nodes/actions/restore"
     }
@@ -475,7 +571,19 @@
   ],
   "DRACOONNodes.set_file_keys": [
     {
-      "body": {},
+      "body": {
+        "items": [
+          {
+            "fileId": 1,
+            "fileKey": {
+              "iv": "string",
+              "key": "string",
+              "version": "A"
+            },
+            "userId": 1
+          }
+        ]
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/nodes/files/keys"
     }
@@ -489,7 +597,11 @@
   ],
   "DRACOONNodes.update_files": [
     {
-      "body": {},
+      "body": {
+        "objectIds": [
+          1
+        ]
+      },
       "method": "PUT",
       "url": "https://dracoon.team/api/v4/nodes/files"
     }
@@ -510,21 +622,64 @@
   ],
   "DRACOONNodes.update_room_groups": [
     {
-      "body": {},
+      "body": {
+        "items": [
+          {
+            "id": 1,
+            "permissions": {
+              "change": true,
+              "create": true,
+              "delete": true,
+              "deleteRecycleBin": true,
+              "manage": true,
+              "manageDownloadShare": true,
+              "manageUploadShare": true,
+              "read": true,
+              "readRecycleBin": true,
+              "restoreRecycleBin": true
+            }
+          }
+        ]
+      },
       "method": "PUT",
       "url": "https://dracoon.team/api/v4/nodes/rooms/1/groups"
     }
   ],
   "DRACOONNodes.update_room_users": [
     {
-      "body": {},
+      "body": {
+        "items": [
+          {
+            "id": 1,
+            "permissions": {
+              "change": true,
+              "create": true,
+              "delete": true,
+              "deleteRecycleBin": true,
+              "manage": true,
+              "manageDownloadShare": true,
+              "manageUploadShare": true,
+              "read": true,
+              "readRecycleBin": true,
+              "restoreRecycleBin": true
+            }
+          }
+        ]
+      },
       "method": "PUT",
       "url": "https://dracoon.team/api/v4/nodes/rooms/1/users"
     }
   ],
   "DRACOONNodes.update_room_webhooks": [
     {
-      "body": {},
+      "body": {
+        "items": [
+          {
+            "isAssigned": true,
+            "webhookId": 1
+          }
+        ]
+      },
       "method": "PUT",
       "url": "https://dracoon.team/api/v4/nodes/rooms/1/webhooks"
     }
@@ -566,7 +721,14 @@
   ],
   "DRACOONReports.create_report": [
     {
-      "body": {},
+      "body": {
+        "name": "string",
+        "subType": "general-audit-report",
+        "target": {
+          "id": 1
+        },
+        "type": "single"
+      },
       "method": "POST",
       "url": "https://dracoon.team/reporting/api/reports"
     }
@@ -598,14 +760,22 @@
   ],
   "DRACOONRoles.assign_groups_to_role": [
     {
-      "body": {},
+      "body": {
+        "ids": [
+          1
+        ]
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/roles/1/groups"
     }
   ],
   "DRACOONRoles.assign_users_to_role": [
     {
-      "body": {},
+      "body": {
+        "ids": [
+          1
+        ]
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/roles/1/users"
     }
@@ -633,21 +803,35 @@
   ],
   "DRACOONRoles.remove_groups_from_role": [
     {
-      "body": {},
+      "body": {
+        "ids": [
+          1
+        ]
+      },
       "method": "DELETE",
       "url": "https://dracoon.team/api/v4/roles/1/groups"
     }
   ],
   "DRACOONRoles.remove_users_from_role": [
     {
-      "body": {},
+      "body": {
+        "ids": [
+          1
+        ]
+      },
       "method": "DELETE",
       "url": "https://dracoon.team/api/v4/roles/1/users"
     }
   ],
   "DRACOONSettings.create_webhook": [
     {
-      "body": {},
+      "body": {
+        "eventTypeNames": [
+          "string"
+        ],
+        "name": "string",
+        "url": "https://dracoon.team/string"
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/settings/webhooks"
     }
@@ -703,14 +887,18 @@
   ],
   "DRACOONShares.create_file_request": [
     {
-      "body": {},
+      "body": {
+        "targetId": 1
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/shares/uploads"
     }
   ],
   "DRACOONShares.create_share": [
     {
-      "body": {},
+      "body": {
+        "nodeId": 1
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/shares/downloads"
     }
@@ -781,14 +969,24 @@
   ],
   "DRACOONShares.mail_file_request": [
     {
-      "body": {},
+      "body": {
+        "body": "string",
+        "recipients": [
+          "string"
+        ]
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/shares/uploads/1/email"
     }
   ],
   "DRACOONShares.mail_share": [
     {
-      "body": {},
+      "body": {
+        "body": "string",
+        "recipients": [
+          "string"
+        ]
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/shares/downloads/1/email"
     }
@@ -802,7 +1000,15 @@
   ],
   "DRACOONShares.update_file_requests": [
     {
-      "body": {},
+      "body": {
+        "expiration": {
+          "enableExpiration": true,
+          "expireAt": "2020-01-01T00:00:00"
+        },
+        "objectIds": [
+          1
+        ]
+      },
       "method": "PUT",
       "url": "https://dracoon.team/api/v4/shares/uploads"
     }
@@ -816,7 +1022,11 @@
   ],
   "DRACOONShares.update_shares": [
     {
-      "body": {},
+      "body": {
+        "objectIds": [
+          1
+        ]
+      },
       "method": "PUT",
       "url": "https://dracoon.team/api/v4/shares/downloads"
     }
@@ -867,7 +1077,14 @@
   ],
   "DRACOONUsers.create_user": [
     {
-      "body": {},
+      "body": {
+        "authData": {
+          "method": "string"
+        },
+        "email": "string",
+        "firstName": "string",
+        "lastName": "string"
+      },
       "method": "POST",
       "url": "https://dracoon.team/api/v4/users"
     }

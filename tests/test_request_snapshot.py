@@ -7,67 +7,18 @@ Guards refactorings of the request handling - a diff means a request changed.
 Regenerate after an intended change: UPDATE_REQUEST_SNAPSHOT=1 uv run pytest tests/test_request_snapshot.py
 """
 import asyncio
-import inspect
+import warnings
 import json
 import os
 import unittest
-from datetime import datetime
-from enum import Enum
 from pathlib import Path
-from typing import List, Union, get_args, get_origin, get_type_hints
 
 import httpx
 import respx
-from pydantic import BaseModel
 
-from dracoon.client import DRACOONClient
-from dracoon.client.models import DRACOONConnection
-from dracoon.branding import DRACOONBranding
-from dracoon.config import DRACOONConfig
-from dracoon.eventlog import DRACOONEvents
-from dracoon.groups import DRACOONGroups
-from dracoon.nodes import DRACOONNodes
-from dracoon.public import DRACOONPublic, DRACOONPublicBranding
-from dracoon.reports import DRACOONReports
-from dracoon.roles import DRACOONRoles
-from dracoon.settings import DRACOONSettings
-from dracoon.shares import DRACOONShares
-from dracoon.user import DRACOONUser
-from dracoon.users import DRACOONUsers
+from tests.adapter_harness import adapter_methods, make_client
 
-BASE_URL = 'https://dracoon.team'
 SNAPSHOT = Path('tests/responses/request_snapshot.json')
-
-ADAPTERS = [DRACOONBranding, DRACOONConfig, DRACOONEvents, DRACOONGroups, DRACOONNodes, DRACOONPublic, DRACOONPublicBranding,
-            DRACOONReports, DRACOONRoles, DRACOONSettings, DRACOONShares, DRACOONUser, DRACOONUsers]
-
-# transfers are covered by test_uploads.py / test_downloads.py
-EXCLUDED = {'upload_unencrypted', 'upload_encrypted', 'upload_s3_unencrypted', 'upload_s3_encrypted'}
-
-
-def sample_value(annotation):
-    """ deterministic sample argument for a type hint """
-    origin = get_origin(annotation)
-    if origin is Union:
-        return sample_value(next(arg for arg in get_args(annotation) if arg is not type(None)))
-    if origin in (list, List):
-        args = get_args(annotation)
-        return [sample_value(args[0])] if args else []
-    if annotation is bool:
-        return True
-    if annotation is int:
-        return 1
-    if annotation is float:
-        return 1.0
-    if annotation is str:
-        return 'string'
-    if annotation is datetime:
-        return datetime(2020, 1, 1)
-    if isinstance(annotation, type) and issubclass(annotation, Enum):
-        return list(annotation)[0]
-    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
-        return annotation.model_construct()
-    return None
 
 
 def mask_keys(value):
@@ -91,29 +42,21 @@ def record_request(request: httpx.Request) -> dict:
 
 
 async def capture_requests() -> dict:
-    client = DRACOONClient(base_url=BASE_URL, client_id='client_id', client_secret='client_secret')
-    client.connection = DRACOONConnection(datetime.now(), 'access_token', 3600, 'refresh_token')
-    client.connected = True
+    client = make_client()
     captured = {}
 
-    for adapter_class in ADAPTERS:
-        adapter = adapter_class(client)
-        for name, method in inspect.getmembers(adapter, inspect.iscoroutinefunction):
-            if name.startswith('_') or name in EXCLUDED:
-                continue
-            hints = get_type_hints(method)
-            kwargs = {param.name: sample_value(hints.get(param.name))
-                      for param in inspect.signature(method).parameters.values()
-                      if param.default is inspect.Parameter.empty and param.kind is param.POSITIONAL_OR_KEYWORD}
-
-            with respx.mock(assert_all_called=False) as router:
-                router.route().respond(200, json={})
+    for name, method, kwargs in adapter_methods(client):
+        with respx.mock(assert_all_called=False) as router:
+            router.route().respond(200, json={})
+            # JSON ready sample values in model fields cause pydantic serializer warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', UserWarning)
                 try:
                     await method(**kwargs)
                 except Exception:
                     # responses are not valid models - only the requests matter
                     pass
-                captured[f'{adapter_class.__name__}.{name}'] = [record_request(call.request) for call in router.calls]
+            captured[name] = [record_request(call.request) for call in router.calls]
 
     await client.disconnect()
     return captured
