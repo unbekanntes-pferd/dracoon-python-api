@@ -354,8 +354,7 @@ class DRACOONNodes:
                     
                     try:        
 
-                        self.dracoon.uploader.headers["Content-Range"] = content_range
-                        res = await self.dracoon.uploader.post(url=upload_url, files=upload_file) 
+                        res = await self.dracoon.uploader.post(url=upload_url, files=upload_file, headers={"Content-Range": content_range})
                         res.raise_for_status()
 
                     except httpx.RequestError as e:
@@ -454,8 +453,7 @@ class DRACOONNodes:
                         }
                     
                     try:                              
-                        self.dracoon.uploader.headers["Content-Range"] = content_range                    
-                        res = await self.dracoon.uploader.post(url=upload_url, files=upload_file) 
+                        res = await self.dracoon.uploader.post(url=upload_url, files=upload_file, headers={"Content-Range": content_range})
                         res.raise_for_status()
 
                     except httpx.RequestError as e:
@@ -605,8 +603,8 @@ class DRACOONNodes:
             with open(file, 'rb') as f:
                          
                 try:
-                    self.dracoon.uploader.headers["Content-Length"] = str(filesize)
-                    res = await self.dracoon.uploader.put(url=s3_urls.urls[0].url, content=self.upload_bytes(file_obj=f, callback_fn=callback_fn))
+                    res = await self.dracoon.uploader.put(url=s3_urls.urls[0].url, content=self.upload_bytes(file_obj=f, callback_fn=callback_fn),
+                                                          headers={"Content-Length": str(filesize)})
                     res.raise_for_status()
                         
                     # remove double quotes from etag
@@ -634,9 +632,7 @@ class DRACOONNodes:
                     upload_url = s3_urls.urls[part_number].url
 
                     try:        
-                        self.dracoon.uploader.headers["Content-Length"] = str(len(chunk)) 
-                            
-                        res = await self.dracoon.uploader.put(url=upload_url, content=chunk)
+                        res = await self.dracoon.uploader.put(url=upload_url, content=chunk, headers={"Content-Length": str(len(chunk))})
                             
                         res.raise_for_status()
                         e_tag = res.headers["ETag"].replace('"', '')
@@ -750,8 +746,7 @@ class DRACOONNodes:
                          
                 try:
 
-                    self.dracoon.uploader.headers["Content-Length"] = str(len(enc_bytes))
-                    res = await self.dracoon.uploader.put(url=s3_urls.urls[0].url, content=enc_bytes)
+                    res = await self.dracoon.uploader.put(url=s3_urls.urls[0].url, content=enc_bytes, headers={"Content-Length": str(len(enc_bytes))})
                     res.raise_for_status()
                         
                     # remove double quotes from etag
@@ -796,8 +791,7 @@ class DRACOONNodes:
                     index = offset
                 
                     try:        
-                        self.dracoon.uploader.headers["Content-Length"] = str(len(enc_chunk)) 
-                        res = await self.dracoon.uploader.put(url=upload_url, content=enc_chunk)
+                        res = await self.dracoon.uploader.put(url=upload_url, content=enc_chunk, headers={"Content-Length": str(len(enc_chunk))})
                         res.raise_for_status()
                         e_tag = res.headers["ETag"].replace('"', '')
                         part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })

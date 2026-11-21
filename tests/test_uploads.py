@@ -199,15 +199,15 @@ class TestAsyncDRACOONUploads(unittest.IsolatedAsyncioTestCase):
         content_ranges = [call.request.headers['Content-Range'] for call in upload_mock.calls]
         assert content_ranges == ['bytes 0-255/1000', 'bytes 256-511/1000', 'bytes 512-767/1000', 'bytes 768-999/1000']
 
-    @unittest.expectedFailure
     @respx.mock
     async def test_upload_chunked_does_not_leak_headers(self):
-        # known bug: Content-Range is set on the shared uploader client and sent with all later requests
-        self.mock_proxy_upload()
+        upload_mock, _ = self.mock_proxy_upload()
 
         await self.nodes.upload_unencrypted(file_path=str(self.file_path), upload_channel=self.upload_channel, chunksize=CHUNK_SIZE)
+        await self.nodes.upload_unencrypted(file_path=str(self.file_path), upload_channel=self.upload_channel)
 
         assert 'Content-Range' not in self.dracoon.uploader.headers
+        assert 'Content-Range' not in upload_mock.calls.last.request.headers
 
     @respx.mock
     async def test_upload_encrypted(self):
@@ -263,6 +263,7 @@ class TestAsyncDRACOONUploads(unittest.IsolatedAsyncioTestCase):
         assert json.loads(s3_urls_mock.calls.last.request.content) == {"firstPartNumber": 1, "lastPartNumber": 1, "size": 0}
         assert s3_put_mock.call_count == 1
         assert s3_put_mock.calls.last.request.content == b''
+        assert s3_put_mock.calls.last.request.headers['Content-Length'] == '0'
         assert json.loads(complete_mock.calls.last.request.content)["parts"] == [{"partNumber": 1, "partEtag": "etag-1"}]
         assert upload_status.status == 'done'
 
@@ -282,6 +283,8 @@ class TestAsyncDRACOONUploads(unittest.IsolatedAsyncioTestCase):
                                    {"firstPartNumber": 1, "lastPartNumber": 3, "size": 256}]
         assert [call.request.url.path.split('/')[-1] for call in s3_put_mock.calls] == ['1', '2', '3', '4']
         assert b''.join(call.request.content for call in s3_put_mock.calls) == self.data
+        assert [call.request.headers['Content-Length'] for call in s3_put_mock.calls] == ['256', '256', '256', '232']
+        assert 'Content-Length' not in self.dracoon.uploader.headers
         payload = json.loads(complete_mock.calls.last.request.content)
         assert payload == {"parts": [{"partNumber": part, "partEtag": f"etag-{part}"} for part in range(1, 5)],
                            "resolutionStrategy": "autorename", "fileName": "test.bin"}
