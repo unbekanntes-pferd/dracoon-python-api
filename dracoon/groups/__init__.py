@@ -102,7 +102,7 @@ class DRACOONGroups:
         return GroupList(**res.json())
 
 
-    async def get_group(self, group_id: int, raise_on_err: bool = True) -> Optional[Group]:
+    async def get_group(self, group_id: int, raise_on_err: bool = False) -> Optional[Group]:
         """ get user details for specific group (by id) """
         if self.raise_on_err:
             raise_on_err = True

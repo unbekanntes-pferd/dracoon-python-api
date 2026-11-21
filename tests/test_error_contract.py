@@ -14,9 +14,6 @@ from tests.adapter_harness import adapter_methods, make_client
 
 ERROR_RESPONSE = {"code": 404, "message": "Not found", "errorCode": -40000}
 
-# method default is raise_on_err=True (public default - kept)
-RAISES_BY_DEFAULT = {'DRACOONGroups.get_group'}
-
 
 async def call_with_not_found(raise_on_err: bool) -> dict:
     """ outcome per method: 'None', 'returned <type>', exception class name - methods without request are skipped """
@@ -56,7 +53,7 @@ class TestErrorContract(unittest.TestCase):
 
     def test_default_returns_none(self):
         outcomes = asyncio.run(call_with_not_found(raise_on_err=False))
-        expected = {name: HTTPNotFoundError.__name__ if name in RAISES_BY_DEFAULT else 'None' for name in outcomes}
+        expected = {name: 'None' for name in outcomes}
 
         self.assert_contract(outcomes, expected)
 
