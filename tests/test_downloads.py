@@ -101,6 +101,31 @@ class TestAsyncDRACOONDownloads(unittest.IsolatedAsyncioTestCase):
                 await self.downloads.download_unencrypted(download_url=DOWNLOAD_URL, target_path=self.target_dir.name, node_info=self.plain_node)
 
     @respx.mock
+    async def test_download_unencrypted_http_error_default(self):
+        respx.get(DOWNLOAD_URL).respond(404)
+
+        with self.assertLogs('dracoon.downloads', level='INFO') as logs:
+            result = await self.downloads.download_unencrypted(download_url=DOWNLOAD_URL, target_path=self.target_dir.name,
+                                                               node_info=self.plain_node)
+
+        assert result is None
+        assert list(self.target_path.iterdir()) == []
+        assert not any('Download completed' in message for message in logs.output)
+        assert any(message.startswith('ERROR') for message in logs.output)
+
+    @respx.mock
+    async def test_download_encrypted_http_error_default(self):
+        respx.get(DOWNLOAD_URL).respond(404)
+
+        with self.assertLogs('dracoon.downloads', level='INFO') as logs:
+            result = await self.downloads.download_encrypted(download_url=DOWNLOAD_URL, target_path=self.target_dir.name, node_info=self.node,
+                                                             plain_keypair=self.plain_keypair, file_key=self.file_key)
+
+        assert result is None
+        assert list(self.target_path.iterdir()) == []
+        assert not any('Download completed' in message for message in logs.output)
+
+    @respx.mock
     async def test_download_unencrypted_http_error(self):
         respx.get(DOWNLOAD_URL).respond(404)
         self.downloads.raise_on_err = True

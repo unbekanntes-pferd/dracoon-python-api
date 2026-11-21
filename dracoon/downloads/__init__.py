@@ -118,7 +118,9 @@ class DRACOONDownloads:
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
             os.remove(file_path)
+            self.logger.error("Download failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err, is_xml=True, debug_content=False)
+            return None
            
         self.logger.info("Download completed.")
             
@@ -197,7 +199,9 @@ class DRACOONDownloads:
             await self.dracoon.handle_connection_error(e)
         except httpx.HTTPStatusError as e:
             os.remove(file_path)
+            self.logger.error("Download failed.")
             await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err, is_xml=True, debug_content=False)
+            return None
 
         file_path.rename(end_file)
             
