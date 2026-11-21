@@ -223,7 +223,7 @@ class DRACOON:
         
         if not node_info:
             self.logger.critical('Upload failed: Invalid target path.')
-            msg = 'Node %s not found.', target_path
+            msg = f'Node {target_path if target_path is not None else target_parent_id} not found.'
             self.logger.debug(msg)
             err = InvalidPathError(message=msg)
             await self.client.handle_generic_error(err=err)

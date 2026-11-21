@@ -133,8 +133,13 @@ class TestAsyncDRACOON(unittest.IsolatedAsyncioTestCase):
     async def test_upload_target_not_found(self):
         patcher, _ = self.patch_nodes(None)
         with patcher:
-            with self.assertRaises(InvalidPathError):
+            with self.assertRaises(InvalidPathError) as path_error:
                 await self.dracoon.upload(file_path=str(self.file_path), target_path='/missing/')
+            with self.assertRaises(InvalidPathError) as id_error:
+                await self.dracoon.upload(file_path=str(self.file_path), target_parent_id=99)
+
+        assert path_error.exception.message == 'Node /missing/ not found.'
+        assert id_error.exception.message == 'Node 99 not found.'
 
     # downloads
 
