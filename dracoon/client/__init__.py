@@ -11,6 +11,7 @@ The client implements all login and logout procedures and is part of every API a
 import base64 
 import asyncio
 import logging
+import urllib.parse
 
 from datetime import datetime
 
@@ -212,7 +213,9 @@ class DRACOONClient:
     def get_code_url(self):
         """ builds OAuth authorization code url to visit – requires OAuth app to use redirect uri ($host/oauth/callback or custom uri) """
         # generate URL string for OAuth auth code flow
-        return self.base_url + f'/oauth/authorize?branding=full&response_type=code&client_id={self.client_id}&redirect_uri={self.redirect_uri}&scope=all'
+        params = urllib.parse.urlencode({'branding': 'full', 'response_type': 'code', 'client_id': self.client_id,
+                                         'redirect_uri': self.redirect_uri, 'scope': 'all'})
+        return self.base_url + f'/oauth/authorize?{params}'
 
 
     async def logout(self, revoke_refresh_token: bool = False):

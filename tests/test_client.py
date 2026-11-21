@@ -4,7 +4,7 @@ import base64
 import json
 from datetime import datetime, timedelta
 from unittest.mock import patch
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 import respx
@@ -48,8 +48,18 @@ class TestDRACOONClient(unittest.TestCase):
         
         self.assertEqual(dracoon_custom_redirect.redirect_uri, 'https://bar.foo/callback')
         self.assertEqual(dracoon_default_redirect.redirect_uri, f"{dracoon_default_redirect.base_url}/oauth/callback")
-        self.assertEqual(dracoon_custom_redirect.get_code_url(), f'{dracoon_custom_redirect.base_url}/oauth/authorize?branding=full&response_type=code&client_id={dracoon_custom_redirect.client_id}&redirect_uri=https://bar.foo/callback&scope=all')
-        self.assertEqual(dracoon_default_redirect.get_code_url(), f'{dracoon_custom_redirect.base_url}/oauth/authorize?branding=full&response_type=code&client_id={dracoon_default_redirect.client_id}&redirect_uri=https://foo.bar/oauth/callback&scope=all')
+        self.assertEqual(dracoon_custom_redirect.get_code_url(), f'{dracoon_custom_redirect.base_url}/oauth/authorize?branding=full&response_type=code&client_id={dracoon_custom_redirect.client_id}&redirect_uri=https%3A%2F%2Fbar.foo%2Fcallback&scope=all')
+        self.assertEqual(dracoon_default_redirect.get_code_url(), f'{dracoon_custom_redirect.base_url}/oauth/authorize?branding=full&response_type=code&client_id={dracoon_default_redirect.client_id}&redirect_uri=https%3A%2F%2Ffoo.bar%2Foauth%2Fcallback&scope=all')
+
+    def test_client_code_url_encodes_redirect_uri(self):
+        redirect_uri = 'https://bar.foo/callback?app=test&lang=de'
+        dracoon = DRACOONClient(base_url='https://foo.bar', client_id='my client', redirect_uri=redirect_uri)
+
+        query = parse_qs(urlparse(dracoon.get_code_url()).query)
+
+        self.assertEqual(query['redirect_uri'], [redirect_uri])
+        self.assertEqual(query['client_id'], ['my client'])
+        self.assertEqual(query['scope'], ['all'])
 
 
 
