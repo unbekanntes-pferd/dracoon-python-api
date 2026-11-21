@@ -100,9 +100,6 @@ KNOWN_BROKEN_DEFAULT = {
     'DRACOONShares.get_shares',
     'DRACOONShares.update_file_request',
     'DRACOONShares.update_share',
-    'DRACOONUser.get_account_information',
-    'DRACOONUser.get_user_keypair',
-    'DRACOONUser.update_account_information',
 }
 
 
