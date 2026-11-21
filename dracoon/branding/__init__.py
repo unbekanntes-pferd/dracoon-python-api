@@ -1,12 +1,11 @@
 
 import logging
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Optional
 
-import httpx
 from dracoon.branding.models import SimpleImageRequest, UpdateBrandingRequest
 from dracoon.branding.responses import CacheableBrandingResponse, ColorDetailType, ImageSize, ImageType, UpdateBrandingResponse, Upload
-from dracoon.client import DRACOONClient, OAuth2ConnectionType
+from dracoon.client import DRACOONClient
 
 from dracoon.errors import ClientDisconnectedError, InvalidArgumentError, InvalidClientError
 
@@ -80,31 +79,22 @@ class DRACOONBranding:
         return branding
         
 
-    async def get_branding(self, raise_on_err: bool = False) -> UpdateBrandingResponse:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-
+    async def get_branding(self, raise_on_err: bool = False) -> Optional[UpdateBrandingResponse]:
         if self.raise_on_err:
             raise_on_err = True
         
         api_url = self.api_url + f'/v1/branding'
 
-        try:
-            res = await self.dracoon.http.get(api_url)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Getting branding failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved branding.")
         return UpdateBrandingResponse(**res.json())
     
-    async def update_branding(self, branding_update: UpdateBrandingRequest, raise_on_err: bool = False) -> UpdateBrandingResponse:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-            
+    async def update_branding(self, branding_update: UpdateBrandingRequest, raise_on_err: bool = False) -> Optional[UpdateBrandingResponse]:
         payload = branding_update.model_dump()
 
         if self.raise_on_err:
@@ -112,22 +102,16 @@ class DRACOONBranding:
         
         api_url = self.api_url + f'/v1/branding'
 
-        try:
-            res = await self.dracoon.http.put(url=api_url, json=payload)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('PUT', url=api_url, json=payload, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Updating branding failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Updated branding.")
         return UpdateBrandingResponse(**res.json())
     
-    async def upload_branding_image(self, type: ImageType, file_path: str, raise_on_err: bool = False) -> Upload:
-        if not await self.dracoon.test_connection() and self.dracoon.connection:
-            await self.dracoon.connect(OAuth2ConnectionType.refresh_token)
-            
+    async def upload_branding_image(self, type: ImageType, file_path: str, raise_on_err: bool = False) -> Optional[Upload]:
         path = Path(file_path)
         
         if not path.exists() or not path.is_file():
@@ -143,15 +127,11 @@ class DRACOONBranding:
         
         api_url = self.api_url + f'/v1/branding/files?type={type.value}'
 
-        try:
-            res = await self.dracoon.http.post(url=api_url, files=payload)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('POST', url=api_url, files=payload, raise_on_err=raise_on_err)
 
+        if res is None:
             self.logger.error("Uploading branding image failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Uploaded branding image.")
         return Upload(**res.json())
@@ -178,42 +158,34 @@ class DRACOONPublicBranding:
         else:
             self.raise_on_err = False
    
-    async def get_public_branding(self) -> CacheableBrandingResponse:
+    async def get_public_branding(self, raise_on_err: bool = False) -> Optional[CacheableBrandingResponse]:
 
         if self.raise_on_err:
             raise_on_err = True
         
         api_url = self.api_url + f'/v1/public/branding'
 
-        try:
-            res = await self.dracoon.http.get(api_url)
-            res.raise_for_status()
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Getting branding failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved branding.")
         return CacheableBrandingResponse(**res.json())
     
-    async def get_public_branding_image(self, type: ImageType, size: ImageSize) -> Tuple[bytes, str]:
+    async def get_public_branding_image(self, type: ImageType, size: ImageSize, raise_on_err: bool = False) -> Optional[Tuple[bytes, str]]:
 
         if self.raise_on_err:
             raise_on_err = True
         
         api_url = self.api_url + f'/v1/public/branding/files/{type.value}/{size.value}'
 
-        try:
-            res = await self.dracoon.http.get(api_url)
-            res.raise_for_status()
-            content_type = res.headers["content-type"]
-            image = res.content
-        except httpx.RequestError as e:
-            await self.dracoon.handle_connection_error(e)
-        except httpx.HTTPStatusError as e:
+        res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
+
+        if res is None:
             self.logger.error("Getting public branding image failed.")
-            await self.dracoon.handle_http_error(err=e, raise_on_err=raise_on_err)
+            return None
         
         self.logger.info("Retrieved public branding image.")
-        return image, content_type
+        return res.content, res.headers["content-type"]

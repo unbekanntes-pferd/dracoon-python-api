@@ -25,8 +25,6 @@ KNOWN_BROKEN_RAISE = {'DRACOONNodes.get_parents'}
 
 # B11: HTTP error ends in ValidationError / TypeError / UnboundLocalError or a model parsed from the error body
 KNOWN_BROKEN_DEFAULT = {
-    'DRACOONBranding.get_branding',
-    'DRACOONBranding.update_branding',
     'DRACOONNodes.add_favorite',
     'DRACOONNodes.add_node_comment',
     'DRACOONNodes.check_s3_upload',
@@ -60,8 +58,6 @@ KNOWN_BROKEN_DEFAULT = {
     'DRACOONNodes.update_folder',
     'DRACOONNodes.update_room',
     'DRACOONNodes.update_room_webhooks',
-    'DRACOONPublicBranding.get_public_branding',
-    'DRACOONPublicBranding.get_public_branding_image',
 }
 
 
