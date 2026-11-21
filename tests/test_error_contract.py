@@ -60,9 +60,6 @@ KNOWN_BROKEN_DEFAULT = {
     'DRACOONNodes.update_folder',
     'DRACOONNodes.update_room',
     'DRACOONNodes.update_room_webhooks',
-    'DRACOONPublic.get_auth_ad_info',
-    'DRACOONPublic.get_auth_openid_info',
-    'DRACOONPublic.get_system_info',
     'DRACOONPublicBranding.get_public_branding',
     'DRACOONPublicBranding.get_public_branding_image',
 }
