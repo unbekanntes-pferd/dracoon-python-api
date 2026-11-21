@@ -188,8 +188,8 @@ def encrypt_file_key_public(plain_file_key: PlainFileKey, public_key: PublicKeyC
 
     # use SHA1 MGF1 and SHA256 hash
     if public_key.version == UserKeyPairVersion.RSA2048.value:
-        encrypted_key = public_key_pem.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                                                                                                     algorithm=hashes.SHA1(),
+        encrypted_key = public_key_pem.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA1()),
+                                                                                                     algorithm=hashes.SHA256(),
                                                                                                      label=None))
     # use SHA256 (hash and MGF1)
     elif public_key.version == UserKeyPairVersion.RSA4096.value:
@@ -226,8 +226,8 @@ def encrypt_file_key(plain_file_key: PlainFileKey, keypair: PlainUserKeyPairCont
 
     # use SHA1 MGF1 and SHA256 hash
     if keypair.publicKeyContainer.version == UserKeyPairVersion.RSA2048.value:
-        encrypted_key = public_key.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                                                                                                 algorithm=hashes.SHA1(),
+        encrypted_key = public_key.encrypt(plaintext=base64.b64decode(key), padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA1()),
+                                                                                                 algorithm=hashes.SHA256(),
                                                                                                  label=None))
     # use SHA256 (hash and MGF1)
     elif keypair.publicKeyContainer.version == UserKeyPairVersion.RSA4096.value:
@@ -257,9 +257,16 @@ def decrypt_file_key(file_key: FileKey, keypair: PlainUserKeyPairContainer) -> P
     plain_key = None
 
     if keypair.publicKeyContainer.version == UserKeyPairVersion.RSA2048.value:
-        plain_key = private_key.decrypt(ciphertext=key, padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                                                                                  algorithm=hashes.SHA1(),
-                                                                                  label=None))
+        try:
+            plain_key = private_key.decrypt(ciphertext=key, padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA1()),
+                                                                                      algorithm=hashes.SHA256(),
+                                                                                      label=None))
+        # file keys encrypted by dracoon < 1.14.0 used swapped parameters (SHA1 hash and SHA256 MGF1)
+        except ValueError:
+            logger.warning("Decrypting file key with legacy parameters (encrypted by dracoon < 1.14.0).")
+            plain_key = private_key.decrypt(ciphertext=key, padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                                                                                      algorithm=hashes.SHA1(),
+                                                                                      label=None))
     # use SHA256 (hash and MGF1)
     elif keypair.publicKeyContainer.version == UserKeyPairVersion.RSA4096.value:
         plain_key = private_key.decrypt(ciphertext=key, padding=padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),

@@ -86,17 +86,25 @@ class TestDRACOONCryptoVectors(unittest.TestCase):
         with self.assertRaises(ValueError):
             decrypt_private_key('wrong password', load_keypair('kp_rsa4096'))
 
-    @unittest.expectedFailure
     def test_decrypt_file_key_rsa2048(self):
-        # known bug: RSA-2048 (version A) uses OAEP hash SHA-1 / MGF1 SHA-256 - reference is hash SHA-256 / MGF1 SHA-1
         self.assert_decrypt_file_key('kp_rsa2048', 'fk_rsa2048_aes256gcm')
+
+    def test_decrypt_file_key_rsa2048_legacy_padding(self):
+        """ file keys encrypted by dracoon < 1.14.0 (hash SHA-1 / MGF1 SHA-256) must remain decryptable """
+        plain_keypair = decrypt_private_key(load_password('kp_rsa2048'), load_keypair('kp_rsa2048'))
+        public_key = serialization.load_pem_public_key(plain_keypair.publicKeyContainer.publicKey.encode('ascii'))
+        plain_file_key = load_plain_file_key('fk_rsa2048_aes256gcm')
+
+        legacy_padding = padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA1(), label=None)
+        enc_key = public_key.encrypt(base64.b64decode(plain_file_key.key), legacy_padding)
+        legacy_file_key = FileKey(key=base64.b64encode(enc_key).decode('ascii'), iv=plain_file_key.iv, version='A', tag=plain_file_key.tag)
+
+        assert decrypt_file_key(legacy_file_key, plain_keypair).key == plain_file_key.key
 
     def test_decrypt_file_key_rsa4096(self):
         self.assert_decrypt_file_key('kp_rsa4096', 'fk_rsa4096_aes256gcm')
 
-    @unittest.expectedFailure
     def test_encrypt_file_key_public_rsa2048(self):
-        # known bug: see test_decrypt_file_key_rsa2048
         self.assert_encrypt_file_key_public('kp_rsa2048')
 
     def test_encrypt_file_key_public_rsa4096(self):
