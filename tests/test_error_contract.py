@@ -65,7 +65,6 @@ KNOWN_BROKEN_DEFAULT = {
     'DRACOONPublic.get_system_info',
     'DRACOONPublicBranding.get_public_branding',
     'DRACOONPublicBranding.get_public_branding_image',
-    'DRACOONReports.get_reports',
 }
 
 
