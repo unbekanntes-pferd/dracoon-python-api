@@ -8,7 +8,6 @@ from datetime import datetime
 from dracoon.client import DRACOONClient, OAuth2ConnectionType
 from dracoon.nodes import DRACOONNodes
 from dracoon.nodes.models import NodeType
-from dracoon.crypto.models import FileKeyVersion
 from tests.adapter_harness import make_client
 
 CLIENT_ID = 'client_id'

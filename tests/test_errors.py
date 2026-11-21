@@ -1,5 +1,5 @@
 import unittest
-from dracoon.errors import * 
+from dracoon.errors import DRACOONBaseError, DRACOONClientError, DRACOONCryptoError, DRACOONHttpError, DRACOONValidationError
 
 class TestDRACOONErrors(unittest.TestCase):
     """ Test cases for the DRACOON Python errors """

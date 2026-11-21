@@ -252,7 +252,8 @@ def decrypt_file_key(file_key: FileKey, keypair: PlainUserKeyPairContainer) -> P
     private_key: rsa.RSAPrivateKeyWithSerialization = serialization.load_pem_private_key(
         data=private_key_pem.encode('ascii'), password=None)
 
-    file_key_version = get_file_key_version(keypair)
+    # raises on invalid keypair versions
+    get_file_key_version(keypair)
 
     plain_key = None
 

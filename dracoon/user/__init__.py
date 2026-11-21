@@ -75,7 +75,7 @@ class DRACOONUser:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/account'
+        api_url = self.api_url + '/account'
 
         payload = account_update.model_dump(exclude_unset=True)
 
@@ -111,7 +111,7 @@ class DRACOONUser:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/account/keypair'
+        api_url = self.api_url + '/account/keypair'
         if version != None: api_url += '?version=' + version.value
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
@@ -133,7 +133,7 @@ class DRACOONUser:
         
         payload = encrypted_keypair.model_dump(exclude_unset=True)
 
-        api_url = self.api_url + f'/account/keypair'
+        api_url = self.api_url + '/account/keypair'
 
         res = await self.dracoon.request('POST', url=api_url, json=payload, raise_on_err=raise_on_err)
 
@@ -149,7 +149,7 @@ class DRACOONUser:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/account/keypair'
+        api_url = self.api_url + '/account/keypair'
         if version != None: api_url += '?version=' + version.value
 
         res = await self.dracoon.request('DELETE', api_url, raise_on_err=raise_on_err)

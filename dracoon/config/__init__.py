@@ -50,7 +50,7 @@ class DRACOONConfig:
         if self.raise_on_err:
             raise_on_err = True
         
-        api_url = self.api_url + f'/defaults'
+        api_url = self.api_url + '/defaults'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
@@ -65,7 +65,7 @@ class DRACOONConfig:
         if self.raise_on_err:
             raise_on_err = True
         
-        api_url = self.api_url + f'/general'
+        api_url = self.api_url + '/general'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
@@ -80,7 +80,7 @@ class DRACOONConfig:
         if self.raise_on_err:
             raise_on_err = True
         
-        api_url = self.api_url + f'/infrastructure'
+        api_url = self.api_url + '/infrastructure'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
@@ -95,7 +95,7 @@ class DRACOONConfig:
         if self.raise_on_err:
             raise_on_err = True
         
-        api_url = self.api_url + f'/policies/algorithms'
+        api_url = self.api_url + '/policies/algorithms'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
@@ -110,7 +110,7 @@ class DRACOONConfig:
         if self.raise_on_err:
             raise_on_err = True
         
-        api_url = self.api_url + f'/policies/classifications'
+        api_url = self.api_url + '/policies/classifications'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
@@ -125,7 +125,7 @@ class DRACOONConfig:
         if self.raise_on_err:
             raise_on_err = True
         
-        api_url = self.api_url + f'/policies/passwords'
+        api_url = self.api_url + '/policies/passwords'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
@@ -140,7 +140,7 @@ class DRACOONConfig:
         if self.raise_on_err:
             raise_on_err = True
         
-        api_url = self.api_url + f'/product_packages'
+        api_url = self.api_url + '/product_packages'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
@@ -155,7 +155,7 @@ class DRACOONConfig:
         if self.raise_on_err:
             raise_on_err = True
         
-        api_url = self.api_url + f'/product_packages/current'
+        api_url = self.api_url + '/product_packages/current'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
@@ -170,7 +170,7 @@ class DRACOONConfig:
         if self.raise_on_err:
             raise_on_err = True
         
-        api_url = self.api_url + f'/s3_tags'
+        api_url = self.api_url + '/s3_tags'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 

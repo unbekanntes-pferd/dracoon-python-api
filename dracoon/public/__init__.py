@@ -68,7 +68,7 @@ class DRACOONPublic:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/auth/ad'
+        api_url = self.api_url + '/auth/ad'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
@@ -84,7 +84,7 @@ class DRACOONPublic:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/auth/openid'
+        api_url = self.api_url + '/auth/openid'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 

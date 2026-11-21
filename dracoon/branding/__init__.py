@@ -83,7 +83,7 @@ class DRACOONBranding:
         if self.raise_on_err:
             raise_on_err = True
         
-        api_url = self.api_url + f'/v1/branding'
+        api_url = self.api_url + '/v1/branding'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 
@@ -100,7 +100,7 @@ class DRACOONBranding:
         if self.raise_on_err:
             raise_on_err = True
         
-        api_url = self.api_url + f'/v1/branding'
+        api_url = self.api_url + '/v1/branding'
 
         res = await self.dracoon.request('PUT', url=api_url, json=payload, raise_on_err=raise_on_err)
 
@@ -163,7 +163,7 @@ class DRACOONPublicBranding:
         if self.raise_on_err:
             raise_on_err = True
         
-        api_url = self.api_url + f'/v1/public/branding'
+        api_url = self.api_url + '/v1/public/branding'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 

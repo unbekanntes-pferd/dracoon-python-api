@@ -313,7 +313,6 @@ class Callback(Protocol):
         
 class TransferJob:
     """ object representing a single transfer (up- / download) """
-    progress = 0
     transferred = 0
     total = 0
     

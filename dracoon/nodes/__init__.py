@@ -13,7 +13,6 @@ Please note: maximum 500 items are returned in GET requests
 
 """
 
-import datetime
 import math
 from pathlib import Path
 from datetime import datetime
@@ -292,7 +291,7 @@ class DRACOONNodes:
             with open(file, 'rb') as f:
                 data = f.read()
 
-            res = await self._send_upload_request('POST', upload_channel.uploadUrl, upload_channel=upload_channel, content=data)
+            await self._send_upload_request('POST', upload_channel.uploadUrl, upload_channel=upload_channel, content=data)
             if callback_fn: callback_fn(filesize)
           
         elif filesize > chunksize:
@@ -312,7 +311,7 @@ class DRACOONNodes:
                     
                     offset += len(chunk)
                     
-                    res = await self._send_upload_request('POST', upload_url, upload_channel=upload_channel, files=upload_file,
+                    await self._send_upload_request('POST', upload_url, upload_channel=upload_channel, files=upload_file,
                                                           headers={"Content-Range": content_range})
                     if callback_fn: callback_fn(len(chunk))
           
@@ -1123,7 +1122,7 @@ class DRACOONNodes:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/deleted_nodes/actions/restore'
+        api_url = self.api_url + '/deleted_nodes/actions/restore'
         res = await self.dracoon.request('POST', api_url, json=payload, raise_on_err=raise_on_err)
 
         if res is None:
@@ -1169,7 +1168,7 @@ class DRACOONNodes:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/files'
+        api_url = self.api_url + '/files'
 
         payload = files_update.model_dump(exclude_unset=True)
 
@@ -1251,7 +1250,7 @@ class DRACOONNodes:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/files/keys'
+        api_url = self.api_url + '/files/keys'
         res = await self.dracoon.request('POST', api_url, json=payload, raise_on_err=raise_on_err)
 
         if res is None:
@@ -1299,7 +1298,7 @@ class DRACOONNodes:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/folders'
+        api_url = self.api_url + '/folders'
 
         payload = folder.model_dump(exclude_unset=True)
 
@@ -1387,7 +1386,7 @@ class DRACOONNodes:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/rooms'
+        api_url = self.api_url + '/rooms'
 
         payload = room.model_dump(exclude_unset=True)
 
@@ -1785,7 +1784,7 @@ class DRACOONNodes:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/rooms/pending'
+        api_url = self.api_url + '/rooms/pending'
 
         payload = pending_update.model_dump(exclude_unset=True)
 

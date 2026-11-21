@@ -120,7 +120,7 @@ class DRACOONSettings:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/webhooks'
+        api_url = self.api_url + '/webhooks'
         res = await self.dracoon.request('POST', api_url, json=payload, raise_on_err=raise_on_err)
 
         if res is None:
@@ -214,7 +214,7 @@ class DRACOONSettings:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/webhooks/event_types'
+        api_url = self.api_url + '/webhooks/event_types'
 
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 

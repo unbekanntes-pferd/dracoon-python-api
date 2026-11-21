@@ -191,8 +191,8 @@ class DRACOONUsers:
         if filter != None: api_url += f'&filter={filter}' 
         if limit != None: api_url += f'&limit={str(limit)}' 
         if sort != None: api_url += f'&sort={sort}'
-        if include_attributes: api_url += f'&include_attributes=true'
-        if include_roles: api_url += f'&include_roles=true'
+        if include_attributes: api_url += '&include_attributes=true'
+        if include_roles: api_url += '&include_roles=true'
         
         res = await self.dracoon.request('GET', api_url, raise_on_err=raise_on_err)
 

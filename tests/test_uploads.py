@@ -263,7 +263,8 @@ class TestAsyncDRACOONUploads(unittest.IsolatedAsyncioTestCase):
     @respx.mock
     async def test_upload_encrypted_distributes_missing_file_keys(self):
         _, complete_mock = self.mock_proxy_upload()
-        get_file_key = lambda: json.loads(complete_mock.calls.last.request.content)["fileKey"]
+        def get_file_key():
+            return json.loads(complete_mock.calls.last.request.content)["fileKey"]
         set_keys_mock = self.mock_missing_keys_for_recipient(get_file_key)
 
         await self.nodes.upload_encrypted(file_path=str(self.file_path), upload_channel=self.upload_channel, plain_keypair=self.plain_keypair)
@@ -354,7 +355,8 @@ class TestAsyncDRACOONUploads(unittest.IsolatedAsyncioTestCase):
     @respx.mock
     async def test_upload_s3_encrypted_distributes_missing_file_keys(self):
         _, _, complete_mock, _ = self.mock_s3_upload()
-        get_file_key = lambda: json.loads(complete_mock.calls.last.request.content)["fileKey"]
+        def get_file_key():
+            return json.loads(complete_mock.calls.last.request.content)["fileKey"]
         set_keys_mock = self.mock_missing_keys_for_recipient(get_file_key)
 
         with patch('dracoon.nodes.POLL_WAIT', 0):

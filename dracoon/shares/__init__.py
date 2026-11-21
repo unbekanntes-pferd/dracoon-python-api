@@ -76,7 +76,7 @@ class DRACOONShares:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/downloads'
+        api_url = self.api_url + '/downloads'
 
         res = await self.dracoon.request('POST', api_url, json=payload, raise_on_err=raise_on_err)
 
@@ -118,7 +118,7 @@ class DRACOONShares:
         payload = {
             "shareIds": share_list
         }
-        api_url = self.api_url + f'/downloads'
+        api_url = self.api_url + '/downloads'
 
         res = await self.dracoon.request('DELETE', url=api_url, json=payload, raise_on_err=raise_on_err)
 
@@ -150,7 +150,7 @@ class DRACOONShares:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/downloads'
+        api_url = self.api_url + '/downloads'
 
         payload = shares_update.model_dump(exclude_unset=True)
 
@@ -291,7 +291,7 @@ class DRACOONShares:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/uploads'
+        api_url = self.api_url + '/uploads'
 
         res = await self.dracoon.request('POST', api_url, json=payload, raise_on_err=raise_on_err)
 
@@ -334,7 +334,7 @@ class DRACOONShares:
         payload = {
             "shareIds": file_request_list
         }
-        api_url = self.api_url + f'/uploads'
+        api_url = self.api_url + '/uploads'
 
         res = await self.dracoon.request('DELETE', url=api_url, json=payload, raise_on_err=raise_on_err)
 
@@ -366,7 +366,7 @@ class DRACOONShares:
         if self.raise_on_err:
             raise_on_err = True
 
-        api_url = self.api_url + f'/uploads'
+        api_url = self.api_url + '/uploads'
 
         payload = file_requests_update.model_dump(exclude_unset=True)
 
