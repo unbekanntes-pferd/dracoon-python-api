@@ -14,7 +14,8 @@ from dracoon.nodes import DRACOONNodes
 from dracoon.nodes.responses import CreateFileUploadResponse
 from dracoon.crypto import create_plain_userkeypair, decrypt_file_key, decrypt_bytes
 from dracoon.crypto.models import FileKey, UserKeyPairVersion
-from dracoon.errors import UploadTimeoutError
+from dracoon.errors import UploadTimeoutError, HTTPForbiddenError, HTTPServerError
+from tenacity import wait_none
 
 CLIENT_ID = 'client_id'
 CLIENT_SECRET = 'client_secret'
@@ -83,6 +84,14 @@ class TestAsyncDRACOONUploads(unittest.IsolatedAsyncioTestCase):
 
         self.upload_channel = CreateFileUploadResponse(uploadUrl=UPLOAD_URL, uploadId=UPLOAD_ID, token=UPLOAD_TOKEN)
 
+        # no waits between retries (request retries; transfer method retries where still present)
+        self.wait_patches = [patch.object(DRACOONClient._send_with_retry.retry, 'wait', wait_none())]
+        self.wait_patches += [patch.object(getattr(DRACOONNodes, name).retry, 'wait', wait_none())
+                              for name in ('upload_unencrypted', 'upload_encrypted', 'upload_s3_unencrypted', 'upload_s3_encrypted')
+                              if hasattr(getattr(DRACOONNodes, name), 'retry')]
+        for wait_patch in self.wait_patches:
+            wait_patch.start()
+
         self.tmp_dir = tempfile.TemporaryDirectory()
         self.data = file_content(FILE_SIZE)
         self.file_path = Path(self.tmp_dir.name).joinpath('test.bin')
@@ -91,6 +100,8 @@ class TestAsyncDRACOONUploads(unittest.IsolatedAsyncioTestCase):
         return super().setUp()
 
     async def asyncTearDown(self) -> None:
+        for wait_patch in self.wait_patches:
+            wait_patch.stop()
         await self.dracoon.disconnect()
         self.tmp_dir.cleanup()
 
@@ -352,6 +363,144 @@ class TestAsyncDRACOONUploads(unittest.IsolatedAsyncioTestCase):
 
         assert set_keys_mock.called
         self.assert_recipient_file_key(set_keys_mock, get_file_key())
+
+    # retries (B8): only the failed chunk is retried, the upload channel is cancelled once on final failure
+
+    def fail_once(self, failing_call: int, response: httpx.Response = None, error: Exception = None):
+        """ side effect: call number <failing_call> fails once (response or exception), all others succeed """
+        calls = {'count': 0}
+
+        def side_effect(request: httpx.Request):
+            calls['count'] += 1
+            if calls['count'] == failing_call:
+                if error is not None:
+                    raise error
+                return response
+            part = request.url.path.split('/')[-1]
+            return httpx.Response(201, headers={"ETag": f'"etag-{part}"'})
+        return side_effect
+
+    @respx.mock
+    async def test_upload_chunked_retries_failed_chunk(self):
+        for failure in ({'response': httpx.Response(503)}, {'error': httpx.ConnectError('connection reset')}):
+            with self.subTest(failure=failure), respx.mock:
+                upload_mock = respx.post(UPLOAD_URL).mock(side_effect=self.fail_once(2, **failure))
+                complete_mock = respx.put(UPLOAD_URL).respond(201, json=self.node_json)
+                cancel_mock = respx.delete(UPLOAD_URL).respond(204)
+                callback = CallbackRecorder()
+
+                node = await self.nodes.upload_unencrypted(file_path=str(self.file_path), upload_channel=self.upload_channel,
+                                                           chunksize=CHUNK_SIZE, callback_fn=callback)
+
+                assert node.id == NODE_ID
+                # 4 chunks, chunk 2 sent twice
+                content_ranges = [call.request.headers['Content-Range'] for call in upload_mock.calls]
+                assert content_ranges == ['bytes 0-255/1000', 'bytes 256-511/1000', 'bytes 256-511/1000', 'bytes 512-767/1000',
+                                          'bytes 768-999/1000']
+                assert multipart_file(upload_mock.calls[1].request) == multipart_file(upload_mock.calls[2].request)
+                assert complete_mock.call_count == 1
+                assert not cancel_mock.called
+                assert callback.transferred == FILE_SIZE
+
+    @respx.mock
+    async def test_upload_encrypted_chunked_retries_same_ciphertext(self):
+        upload_mock = respx.post(UPLOAD_URL).mock(side_effect=self.fail_once(2, response=httpx.Response(503)))
+        complete_mock = respx.put(UPLOAD_URL).respond(201, json=self.node_json)
+        respx.get(f'{API_URL}/nodes/missingFileKeys').respond(200, json=self.missing_keys_empty_json)
+
+        await self.nodes.upload_encrypted(file_path=str(self.file_path), upload_channel=self.upload_channel,
+                                          plain_keypair=self.plain_keypair, chunksize=CHUNK_SIZE)
+
+        assert upload_mock.call_count == 5
+        # skip the failed attempt (call 2) - the retry must carry the identical encrypted chunk
+        assert multipart_file(upload_mock.calls[1].request) == multipart_file(upload_mock.calls[2].request)
+        enc_data = b''.join(multipart_file(call.request) for index, call in enumerate(upload_mock.calls) if index != 1)
+        self.assert_decrypts_to_data(enc_data, json.loads(complete_mock.calls.last.request.content)["fileKey"])
+
+    @respx.mock
+    async def test_upload_single_request_retries_with_content(self):
+        upload_mock = respx.post(UPLOAD_URL).mock(side_effect=self.fail_once(1, response=httpx.Response(503)))
+        respx.put(UPLOAD_URL).respond(201, json=self.node_json)
+        callback = CallbackRecorder()
+
+        node = await self.nodes.upload_unencrypted(file_path=str(self.file_path), upload_channel=self.upload_channel, callback_fn=callback)
+
+        assert node.id == NODE_ID
+        assert upload_mock.call_count == 2
+        assert upload_mock.calls.last.request.content == self.data
+        assert callback.transferred == FILE_SIZE
+
+    @respx.mock
+    async def test_upload_s3_retries_failed_part(self):
+        s3_urls_mock, _, complete_mock, _ = self.mock_s3_upload()
+        s3_put_mock = respx.put(url__startswith=S3_URL).mock(side_effect=self.fail_once(2, response=httpx.Response(503)))
+        cancel_mock = respx.delete(UPLOAD_URL).respond(204)
+        callback = CallbackRecorder()
+
+        with patch('dracoon.nodes.POLL_WAIT', 0):
+            upload_status = await self.nodes.upload_s3_unencrypted(file_path=str(self.file_path), upload_channel=self.upload_channel,
+                                                                   chunksize=CHUNK_SIZE, callback_fn=callback)
+
+        assert upload_status.status == 'done'
+        assert [call.request.url.path.split('/')[-1] for call in s3_put_mock.calls] == ['1', '2', '2', '3', '4']
+        assert json.loads(complete_mock.calls.last.request.content)["parts"] == [{"partNumber": part, "partEtag": f"etag-{part}"}
+                                                                                for part in range(1, 5)]
+        assert s3_urls_mock.call_count == 2
+        assert not cancel_mock.called
+        assert callback.transferred == FILE_SIZE
+
+    @respx.mock
+    async def test_upload_s3_single_part_retries_with_content(self):
+        self.mock_s3_upload()
+        s3_put_mock = respx.put(url__startswith=S3_URL).mock(side_effect=self.fail_once(1, response=httpx.Response(503)))
+
+        with patch('dracoon.nodes.POLL_WAIT', 0):
+            await self.nodes.upload_s3_unencrypted(file_path=str(self.file_path), upload_channel=self.upload_channel)
+
+        assert s3_put_mock.call_count == 2
+        assert s3_put_mock.calls.last.request.content == self.data
+        assert s3_put_mock.calls.last.request.headers['Content-Length'] == str(FILE_SIZE)
+
+    @respx.mock
+    async def test_upload_chunk_permanent_error(self):
+        def forbidden_second_chunk(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(403) if request.headers['Content-Range'].startswith('bytes 256-') else httpx.Response(201)
+
+        upload_mock = respx.post(UPLOAD_URL).mock(side_effect=forbidden_second_chunk)
+        complete_mock = respx.put(UPLOAD_URL).respond(201, json=self.node_json)
+        cancel_mock = respx.delete(UPLOAD_URL).respond(204)
+
+        with self.assertRaises(HTTPForbiddenError):
+            await self.nodes.upload_unencrypted(file_path=str(self.file_path), upload_channel=self.upload_channel, chunksize=CHUNK_SIZE)
+
+        # no retry of a permanent error, no rerun of the whole upload
+        assert upload_mock.call_count == 2
+        assert cancel_mock.call_count == 1
+        assert not complete_mock.called
+
+    @respx.mock
+    async def test_upload_chunk_retries_exhausted(self):
+        upload_mock = respx.post(UPLOAD_URL).respond(503)
+        cancel_mock = respx.delete(UPLOAD_URL).respond(204)
+
+        with self.assertRaises(HTTPServerError):
+            await self.nodes.upload_unencrypted(file_path=str(self.file_path), upload_channel=self.upload_channel, chunksize=CHUNK_SIZE)
+
+        # 5 attempts for the first chunk - not multiplied by an outer retry
+        assert upload_mock.call_count == 5
+        assert cancel_mock.call_count == 1
+
+    @respx.mock
+    async def test_upload_s3_part_permanent_error(self):
+        self.mock_s3_upload()
+        s3_put_mock = respx.put(url__startswith=S3_URL).respond(403)
+        cancel_mock = respx.delete(UPLOAD_URL).respond(204)
+
+        with self.assertRaises(HTTPForbiddenError):
+            await self.nodes.upload_s3_unencrypted(file_path=str(self.file_path), upload_channel=self.upload_channel, chunksize=CHUNK_SIZE)
+
+        assert s3_put_mock.call_count == 1
+        assert cancel_mock.call_count == 1
 
 
 if __name__ == '__main__':

@@ -23,12 +23,11 @@ import asyncio
 import urllib.parse
 
 import httpx
-from tenacity import retry
 
 from dracoon.crypto import FileEncryptionCipher, decrypt_file_key, encrypt_bytes, encrypt_file_key, create_file_key, encrypt_file_key_public
 from dracoon.crypto.models import FileKey, PlainUserKeyPairContainer, UserKeyPairContainer
 from dracoon.groups.models import Expiration
-from dracoon.client import DRACOONClient, RETRY_CONFIG
+from dracoon.client import DRACOONClient
 from dracoon.errors import (InvalidClientError, ClientDisconnectedError, InvalidFileError, InvalidArgumentError, UploadTimeoutError,
                             DRACOONHttpError, ConnectionError)
 from dracoon.uploads.models import UploadChannelResponse
@@ -268,7 +267,6 @@ class DRACOONNodes:
         self.logger.info("Retrieved S3 presigned upload URLs.")
         return PresignedUrlList(**res.json())
     
-    @retry(**RETRY_CONFIG)
     async def upload_unencrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, keep_shares: bool = False, 
                                     file_name: str = None, resolution_strategy: str = 'autorename', raise_on_err: bool = False, chunksize: int = CHUNK_SIZE, 
                                     callback_fn: Callback  = None
@@ -292,17 +290,10 @@ class DRACOONNodes:
         if filesize <= chunksize:
             
             with open(file, 'rb') as f:
-                         
-                try:
-                    res = await self.dracoon.uploader.post(url=upload_channel.uploadUrl, content=self.upload_bytes(file_obj=f, callback_fn=callback_fn))
-                    res.raise_for_status()     
-                except httpx.RequestError as e:
-                    res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                    await self.dracoon.handle_connection_error(e)
-                except httpx.HTTPStatusError as e:
-                    self.logger.error("Uploading file failed.")
-                    res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                    await self.dracoon.handle_http_error(err=e, raise_on_err=True)
+                data = f.read()
+
+            res = await self._send_upload_request('POST', upload_channel.uploadUrl, upload_channel=upload_channel, content=data)
+            if callback_fn: callback_fn(filesize)
           
         elif filesize > chunksize:
     
@@ -310,7 +301,7 @@ class DRACOONNodes:
                 
                 offset = 0
                                          
-                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, callback_fn=callback_fn):
+                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize):
                                           
                     upload_url = upload_channel.uploadUrl
                     content_range = f'bytes {offset}-{offset + len(chunk) - 1}/{filesize}'
@@ -321,18 +312,9 @@ class DRACOONNodes:
                     
                     offset += len(chunk)
                     
-                    try:        
-
-                        res = await self.dracoon.uploader.post(url=upload_url, files=upload_file, headers={"Content-Range": content_range})
-                        res.raise_for_status()
-
-                    except httpx.RequestError as e:
-                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                        await self.dracoon.handle_connection_error(e)
-                    except httpx.HTTPStatusError as e:
-                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                        self.logger.error("Uploading chunk failed.")
-                        await self.dracoon.handle_http_error(err=e, raise_on_err=True)
+                    res = await self._send_upload_request('POST', upload_url, upload_channel=upload_channel, files=upload_file,
+                                                          headers={"Content-Range": content_range})
+                    if callback_fn: callback_fn(len(chunk))
           
                     
         complete_upload = self.make_upload_complete(file_name=file_name, keep_shares=keep_shares, 
@@ -342,7 +324,6 @@ class DRACOONNodes:
              
         return node
     
-    @retry(**RETRY_CONFIG)                     
     async def upload_encrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, plain_keypair: PlainUserKeyPairContainer, 
                                   file_name: str = None, keep_shares: bool = False, resolution_strategy: str = 'autorename', 
                                   chunksize: int = CHUNK_SIZE, raise_on_err: bool = False,
@@ -376,17 +357,8 @@ class DRACOONNodes:
                     "file": enc_bytes
                 }
                      
-                try:
-                    res = await self.dracoon.uploader.post(url=upload_channel.uploadUrl, files=files)
-                    res.raise_for_status()
-                    if callback_fn: callback_fn(filesize)
-                except httpx.RequestError as e:
-                    res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                    await self.dracoon.handle_connection_error(e)
-                except httpx.HTTPStatusError as e:
-                    self.logger.error("Uploading file failed.")
-                    res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                    await self.dracoon.handle_http_error(err=e, raise_on_err=True)
+                res = await self._send_upload_request('POST', upload_channel.uploadUrl, upload_channel=upload_channel, files=files)
+                if callback_fn: callback_fn(filesize)
          
         elif filesize > chunksize:
             
@@ -398,7 +370,7 @@ class DRACOONNodes:
                 
                 dracoon_cipher = FileEncryptionCipher(plain_file_key=plain_file_key)
                                          
-                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, callback_fn=callback_fn):
+                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize):
                                           
                     upload_url = upload_channel.uploadUrl
                 
@@ -419,17 +391,10 @@ class DRACOONNodes:
                     'file': enc_chunk
                         }
                     
-                    try:                              
-                        res = await self.dracoon.uploader.post(url=upload_url, files=upload_file, headers={"Content-Range": content_range})
-                        res.raise_for_status()
-
-                    except httpx.RequestError as e:
-                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                        await self.dracoon.handle_connection_error(e)
-                    except httpx.HTTPStatusError as e:
-                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                        self.logger.error("Uploading chunk failed.")
-                        await self.dracoon.handle_http_error(err=e, raise_on_err=True)
+                    # encrypted once - retries send the same encrypted chunk
+                    res = await self._send_upload_request('POST', upload_url, upload_channel=upload_channel, files=upload_file,
+                                                          headers={"Content-Range": content_range})
+                    if callback_fn: callback_fn(len(chunk))
 
         # encrypt file key    
         file_key = encrypt_file_key(plain_file_key=plain_file_key, keypair=plain_keypair)
@@ -471,6 +436,15 @@ class DRACOONNodes:
              
         return node
     
+    async def _send_upload_request(self, method: str, url: str, upload_channel: CreateFileUploadResponse, **kwargs) -> httpx.Response:
+        """ send upload data (file, chunk or S3 part) - transient errors are retried, the upload channel is cancelled on final failure """
+        try:
+            return await self.dracoon.request(method, url, http_client=self.dracoon.uploader, raise_on_err=True, **kwargs)
+        except (DRACOONHttpError, ConnectionError):
+            self.logger.error("Uploading file failed.")
+            await self.dracoon.http.delete(upload_channel.uploadUrl)
+            raise
+
     def make_upload_complete(self, resolution_strategy: str = 'autorename', keep_shares: bool = False,
                              file_name: str = None, file_key: FileKey = None) -> CompleteUpload:
         
@@ -505,7 +479,6 @@ class DRACOONNodes:
           
         return Node(**res.json())
     
-    @retry(**RETRY_CONFIG)
     async def upload_s3_unencrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, keep_shares: bool = False,
                                     file_name: str = None,
                                     resolution_strategy: str = 'autorename', chunksize: int = CHUNK_SIZE, 
@@ -567,24 +540,16 @@ class DRACOONNodes:
         if part_count == 1:
             
             with open(file, 'rb') as f:
-                         
-                try:
-                    res = await self.dracoon.uploader.put(url=s3_urls.urls[0].url, content=self.upload_bytes(file_obj=f, callback_fn=callback_fn),
-                                                          headers={"Content-Length": str(filesize)})
-                    res.raise_for_status()
+                data = f.read()
+
+            res = await self._send_upload_request('PUT', s3_urls.urls[0].url, upload_channel=upload_channel, content=data,
+                                                  headers={"Content-Length": str(filesize)})
                         
-                    # remove double quotes from etag
-                    e_tag = res.headers["ETag"].replace('"', '')
-                    part = S3Part(**{ "partNumber": 1, "partEtag": e_tag })
-                    parts.append(part)
-                        
-                except httpx.RequestError as e:
-                    res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                    await self.dracoon.handle_connection_error(e)
-                except httpx.HTTPStatusError as e:
-                    self.logger.error("Uploading file failed.")
-                    res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                    await self.dracoon.handle_http_error(err=e, raise_on_err=True, is_xml=True)
+            # remove double quotes from etag
+            e_tag = res.headers["ETag"].replace('"', '')
+            part = S3Part(**{ "partNumber": 1, "partEtag": e_tag })
+            parts.append(part)
+            if callback_fn: callback_fn(filesize)
 
            
         elif part_count > 1:
@@ -593,24 +558,16 @@ class DRACOONNodes:
                 
                 part_number = 0
                                          
-                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, callback_fn=callback_fn):
+                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize):
                                           
                     upload_url = s3_urls.urls[part_number].url
 
-                    try:        
-                        res = await self.dracoon.uploader.put(url=upload_url, content=chunk, headers={"Content-Length": str(len(chunk))})
-                            
-                        res.raise_for_status()
-                        e_tag = res.headers["ETag"].replace('"', '')
-                        part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })
-                        parts.append(part)
-                    except httpx.RequestError as e:
-                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                        await self.dracoon.handle_connection_error(e)
-                    except httpx.HTTPStatusError as e:
-                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                        self.logger.error("Uploading chunk failed.")
-                        await self.dracoon.handle_http_error(err=e, raise_on_err=True, is_xml=True)
+                    res = await self._send_upload_request('PUT', upload_url, upload_channel=upload_channel, content=chunk,
+                                                          headers={"Content-Length": str(len(chunk))})
+                    e_tag = res.headers["ETag"].replace('"', '')
+                    part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })
+                    parts.append(part)
+                    if callback_fn: callback_fn(len(chunk))
   
                     part_number += 1
                     
@@ -643,7 +600,6 @@ class DRACOONNodes:
             
         return upload_status
     
-    @retry(**RETRY_CONFIG)
     async def upload_s3_encrypted(self, file_path: str, upload_channel: CreateFileUploadResponse, plain_keypair: PlainUserKeyPairContainer, 
                                   file_name: str = None,
                                   keep_shares: bool = False, resolution_strategy: str = 'autorename', 
@@ -715,23 +671,14 @@ class DRACOONNodes:
                 
                 enc_bytes, plain_file_key = encrypt_bytes(plain_data=f.read(), plain_file_key=plain_file_key)
                          
-                try:
-
-                    res = await self.dracoon.uploader.put(url=s3_urls.urls[0].url, content=enc_bytes, headers={"Content-Length": str(len(enc_bytes))})
-                    res.raise_for_status()
+                res = await self._send_upload_request('PUT', s3_urls.urls[0].url, upload_channel=upload_channel, content=enc_bytes,
+                                                      headers={"Content-Length": str(len(enc_bytes))})
                         
-                    # remove double quotes from etag
-                    e_tag = res.headers["ETag"].replace('"', '')
-                    part = S3Part(**{ "partNumber": 1, "partEtag": e_tag })
-                    parts.append(part)
-                    if callback_fn: callback_fn(filesize)
-                except httpx.RequestError as e:
-                    res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                    await self.dracoon.handle_connection_error(e)
-                except httpx.HTTPStatusError as e:
-                    self.logger.error("Uploading file failed.")
-                    res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                    await self.dracoon.handle_http_error(err=e, raise_on_err=True, is_xml=True)
+                # remove double quotes from etag
+                e_tag = res.headers["ETag"].replace('"', '')
+                part = S3Part(**{ "partNumber": 1, "partEtag": e_tag })
+                parts.append(part)
+                if callback_fn: callback_fn(filesize)
 
         # multipart upload
         elif part_count > 1:
@@ -744,7 +691,7 @@ class DRACOONNodes:
                 
                 dracoon_cipher = FileEncryptionCipher(plain_file_key=plain_file_key)
                                     
-                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize, callback_fn=callback_fn):
+                for chunk in self.read_in_chunks(file_obj=f, chunksize=chunksize):
                     
                     # if not las chunk
                     if filesize - offset > chunksize:
@@ -761,20 +708,14 @@ class DRACOONNodes:
                     offset = index + len(enc_chunk)
                     index = offset
                 
-                    try:        
-                        res = await self.dracoon.uploader.put(url=upload_url, content=enc_chunk, headers={"Content-Length": str(len(enc_chunk))})
-                        res.raise_for_status()
-                        e_tag = res.headers["ETag"].replace('"', '')
-                        part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })
-                        parts.append(part)
-                        self.logger.debug("Uploaded part %s", part_number)
-                    except httpx.RequestError as e:
-                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                        await self.dracoon.handle_connection_error(e)
-                    except httpx.HTTPStatusError as e:
-                        res = await self.dracoon.http.delete(upload_channel.uploadUrl)
-                        self.logger.error("Uploading chunk failed.")
-                        await self.dracoon.handle_http_error(err=e, raise_on_err=True, is_xml=True)
+                    # encrypted once - retries send the same encrypted part
+                    res = await self._send_upload_request('PUT', upload_url, upload_channel=upload_channel, content=enc_chunk,
+                                                          headers={"Content-Length": str(len(enc_chunk))})
+                    e_tag = res.headers["ETag"].replace('"', '')
+                    part = S3Part(**{ "partNumber": s3_urls.urls[part_number].partNumber, "partEtag": e_tag })
+                    parts.append(part)
+                    self.logger.debug("Uploaded part %s", part_number)
+                    if callback_fn: callback_fn(len(chunk))
 
                     part_number += 1
                          
