@@ -5,7 +5,7 @@ Test run
  - a top level room per run (e2e-run-<id>), created on first use - all nodes are created inside
  - encrypted tests: the e2e user gets a new keypair with a random secret and an encrypted top level room
    (e2e-run-<id>-crypto) - use a dedicated test user, its keypair is replaced
- - the rooms are deleted (and removed from the recycle bin) at the end of the run, also if tests failed (conftest.py)
+ - the rooms are deleted at the end of the run, also if tests failed (conftest.py)
 
 Isolation
  - every test connects on its own and works in its own folders / rooms / users / groups with unique names
@@ -118,7 +118,7 @@ class TestRun:
         return secret
 
     async def cleanup(self) -> List[str]:
-        """ delete the run rooms and remove them from the recycle bin - returns errors """
+        """ delete the run rooms (room deletion is permanent - no recycle bin) - returns errors """
         errors = []
         if not self.rooms:
             return errors
@@ -127,8 +127,6 @@ class TestRun:
             for room in self.rooms:
                 try:
                     await dracoon.nodes.delete_node(node_id=room.id)
-                    deleted = await dracoon.nodes.get_node_versions(parent_id=0, name=room.name, type='room')
-                    await dracoon.nodes.empty_recyclebin(node_list=[item.id for item in deleted.items])
                 except Exception as error:
                     errors.append(f'{room.name} ({room.id}): {error!r}')
         finally:
